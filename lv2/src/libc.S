@@ -1,0 +1,35 @@
+#include <lv2/macros.h.S>
+#include <lv2/symbols.h>
+
+LV2_FUNCTION(lv2_printf, printf_symbol)
+LV2_FUNCTION(lv2_sprintf, sprintf_symbol)
+LV2_FUNCTION(lv2_snprintf, snprintf_symbol)
+LV2_FUNCTION(lv2_strcpy, strcpy_symbol)
+LV2_FUNCTION(lv2_strncpy, strncpy_symbol)
+LV2_FUNCTION(lv2_strlen, strlen_symbol)
+LV2_FUNCTION(lv2_strcat, strcat_symbol)
+LV2_FUNCTION(lv2_strcmp, strcmp_symbol)
+LV2_FUNCTION(lv2_strncmp, strncmp_symbol)
+LV2_FUNCTION(lv2_strchr, strchr_symbol)
+LV2_FUNCTION(lv2_strrchr, strrchr_symbol)
+LV2_FUNCTION(lv2_memcpy, memcpy_symbol)
+LV2_FUNCTION(lv2_memset, memset_symbol)
+LV2_FUNCTION(lv2_memcmp, memcmp_symbol)
+LV2_FUNCTION(lv2_memchr, memchr_symbol)
+
+/* For compatibility with apps that don't import lv2/libc.h */
+LV2_FUNCTION3(printf, printf_symbol) /* We use LV2_FUNCTION3 to allow calls from non-sce functions if the function is hooked */
+LV2_FUNCTION2(sprintf, sprintf_symbol)
+LV2_FUNCTION2(snprintf, snprintf_symbol)
+LV2_FUNCTION2(strcpy, strcpy_symbol)
+LV2_FUNCTION2(strncpy, strncpy_symbol)
+LV2_FUNCTION2(strlen, strlen_symbol)
+LV2_FUNCTION2(strcat, strcat_symbol)
+LV2_FUNCTION2(strcmp, strcmp_symbol)
+LV2_FUNCTION2(strncmp, strncmp_symbol)
+LV2_FUNCTION2(strchr, strchr_symbol)
+LV2_FUNCTION2(strrchr, strrchr_symbol)
+LV2_FUNCTION2(memcpy, memcpy_symbol)
+LV2_FUNCTION2(memset, memset_symbol)
+LV2_FUNCTION2(memcmp, memcmp_symbol)
+LV2_FUNCTION2(memchr, memchr_symbol)

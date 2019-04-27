@@ -1,0 +1,16 @@
+#include <lv2/macros.h.S>
+#include <lv2/symbols.h>
+
+LV2_FUNCTION(storage_get_device_info, storage_get_device_info_symbol)
+LV2_FUNCTION(storage_get_device_config, storage_get_device_config_symbol)
+LV2_FUNCTION(storage_open, storage_open_symbol)
+LV2_FUNCTION(storage_close, storage_close_symbol)
+LV2_FUNCTION(storage_read, storage_read_symbol)
+LV2_FUNCTION(storage_write, storage_write_symbol)
+LV2_FUNCTION(storage_send_device_command, storage_send_device_command_symbol)
+LV2_FUNCTION(storage_map_io_memory, storage_map_io_memory_symbol)
+LV2_FUNCTION(storage_unmap_io_memory, storage_unmap_io_memory_symbol)
+LV2_FUNCTION(storage_internal_get_device_object, storage_internal_get_device_object_symbol)
+
+
+
