@@ -19,6 +19,8 @@
 #define BDP_BDVD_HASH				0xcc28d00000430000
 #define DOWNLOAD_PLUGIN_HASH				0xcc26800000020000
 #define AUTODOWNLOAD_PLUGIN_HASH				0x6a1af00000040000
+#define PREMO_PLUGIN_HASH				0x1000000000010000
+#define PREMO_GAME_PLUGIN_HASH			0x5bc3000000010000
 //// Currently unused ////
 #define BASIC_PLUGINS_HASH				0x55f4700000010000
 #define PSP_EMULATOR_HASH				0xcc29b00000020000
@@ -89,6 +91,12 @@
 #define ps2_nonbw_offset3				0x17000
 #define ps_region_error_offset			0x68C0
 #define remote_play_offset			0x5fc0
+
+/* premo_plugin */
+#define pcremote_play_offset1			0xb6fc
+
+/* premo_game_plugin */
+#define pcremote_play_offset2			0xc8fc
 
 /* psp_emulator */
 #define psp_set_psp_mode_offset 		0x1C18

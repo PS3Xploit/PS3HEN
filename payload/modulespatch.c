@@ -233,6 +233,18 @@ SprxPatch autodownload_plugin_patches[] =
 	{0}
 };
 
+SprxPatch premo_plugin_patches[] =
+{
+	{pcremote_play_offset1,0x38000001 , &condition_true},
+	{0}
+};
+
+SprxPatch premo_game_plugin_patches[] =
+{
+	{pcremote_play_offset2,0x38000001 , &condition_true},
+	{0}
+};
+
 SprxPatch libfs_external_patches[] =
 {
 	// Redirect internal libfs function to kernel. If condition_apphome is 1, it means there is a JB game mounted
@@ -267,6 +279,8 @@ PatchTableEntry patch_table[] =
 	{ BDP_BDVD_HASH, bdp_bdvd_patches },
 	{ DOWNLOAD_PLUGIN_HASH, download_plugin_patches },
 	{ AUTODOWNLOAD_PLUGIN_HASH, autodownload_plugin_patches },
+	{ PREMO_PLUGIN_HASH, premo_plugin_patches },
+	{ PREMO_GAME_PLUGIN_HASH, premo_game_plugin_patches },		
 };
 
 #define N_PATCH_TABLE_ENTRIES	(sizeof(patch_table) / sizeof(PatchTableEntry))
@@ -349,6 +363,14 @@ static char *hash_to_name(uint64_t hash)
 			return "bdp_BDVD.self";
 		break;
 	
+		case PREMO_PLUGIN_HASH:
+			return "premo_plugin.sprx";
+		break;
+
+		case PREMO_GAME_PLUGIN_HASH:
+			return "premo_game_plugin.sprx";
+		break;
+		
 		default:
 			return "UNKNOWN";
 		break;		
