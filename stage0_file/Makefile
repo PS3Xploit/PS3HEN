@@ -25,7 +25,7 @@ all: $(TARGET).bin
 %.bin: %.elf
 	$(OBJCOPY) -O binary $< $@	
 	@rm -f *.o *.elf ../lv1/src/*.o
-	cp stage0.bin ../
+	mv stage0.bin ../
 
 $(TARGET).elf: $(OBJS) $(TARGET).ld
 	$(CC) $(LDFLAGS) -o $@ $(OBJS)

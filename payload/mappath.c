@@ -9,6 +9,8 @@
 #include "mappath.h"
 #include "modulespatch.h"
 #include "syscall8.h"
+#include "aes.h"
+#include "ps3mapi_core.h"
 
 #define MAX_TABLE_ENTRIES 16
 
@@ -34,7 +36,7 @@ int map_path(char *oldpath, char *newpath, uint32_t flags)
 		return -1;
 	
 	#ifdef  DEBUG
-		DPRINTF("Map path: %s -> %s\n", oldpath, newpath);
+		//DPRINTF("Map path: %s -> %s\n", oldpath, newpath);
 	#endif
 	
 	if (newpath && strcmp(oldpath, newpath) == 0)
@@ -108,7 +110,7 @@ int map_path_user(char *oldpath, char *newpath, uint32_t flags)
 	char *oldp, *newp;
 	
 	#ifdef  DEBUG
-		DPRINTF("map_path_user, called by process %s: %s -> %s\n", get_process_name(get_current_process_critical()), oldpath, newpath); 
+		//DPRINTF("map_path_user, called by process %s: %s -> %s\n", get_process_name(get_current_process_critical()), oldpath, newpath); 
 	#endif
 	
 	if (oldpath == 0)
@@ -288,6 +290,11 @@ static int listed(int blacklist, char *gameid)
 		return 0;
 	}
 
+#define IDPS_KEYBITS 128
+#define ACT_DAT_KEYBITS 128
+#define RIF_KEYBITS 128
+#define RAP_KEYBITS 128
+	
 static uint8_t libft2d_access = 0;
 
 // BEGIN KW & AV block access to homebrews when syscalls are disabled
@@ -301,6 +308,132 @@ static uint8_t libft2d_access = 0;
 // Nel verificherà se il gameid è in blacklist.cfg (sostituisce tutti i test precedenti)
 // ** AVVERTENZA ** Questo test di disabilitazione delle syscall, presuppone che la voce di tabella syscall 6 (peek) sia stata sostituita dal valore originale (equivale alla voce syscall 0) come fatto da PSNPatch
 // ** AVVERTENZA ** Se è stata effettuata solo una disattivazione parziale, questa assunzione AVRA' ESITO NEGATIVO !!!
+
+void aescbc128_decrypt(unsigned char *key, unsigned char *iv, unsigned char *in, unsigned char *out, int len)
+{
+	aes_context ctx;
+	aes_setkey_dec(&ctx, key, 128);
+	aes_crypt_cbc(&ctx, AES_DECRYPT, len, iv, in, out);
+
+	// Reset the IV.
+	memset(iv, 0, 0x10);
+}
+
+unsigned char RAP_KEY[] = {0x86, 0x9F, 0x77, 0x45, 0xC1, 0x3F, 0xD8, 0x90, 0xCC, 0xF2, 0x91, 0x88, 0xE3, 0xCC, 0x3E, 0xDF};
+unsigned char RAP_PBOX[] = {0x0C, 0x03, 0x06, 0x04, 0x01, 0x0B, 0x0F, 0x08, 0x02, 0x07, 0x00, 0x05, 0x0A, 0x0E, 0x0D, 0x09};
+unsigned char RAP_E1[] = {0xA9, 0x3E, 0x1F, 0xD6, 0x7C, 0x55, 0xA3, 0x29, 0xB7, 0x5F, 0xDD, 0xA6, 0x2A, 0x95, 0xC7, 0xA5};
+unsigned char RAP_E2[] = {0x67, 0xD4, 0x5D, 0xA3, 0x29, 0x6D, 0x00, 0x6A, 0x4E, 0x7C, 0x53, 0x7B, 0xF5, 0x53, 0x8C, 0x74};
+
+void get_rif_key(unsigned char* rap, unsigned char* rif)
+{
+	int i;
+	int round;
+
+	unsigned char key[0x10];
+	unsigned char iv[0x10];
+	memset(key, 0, 0x10);
+	memset(iv, 0, 0x10);
+
+	// Initial decrypt.
+	aescbc128_decrypt(RAP_KEY, iv, rap, key, 0x10);
+
+	// rap2rifkey round.
+	for (round = 0; round < 5; ++round)
+	{
+		for (i = 0; i < 16; ++i)
+		{
+			int p = RAP_PBOX[i];
+			key[p] ^= RAP_E1[p];
+		}
+		for (i = 15; i >= 1; --i)
+		{
+			int p = RAP_PBOX[i];
+			int pp = RAP_PBOX[i - 1];
+			key[p] ^= key[pp];
+		}
+		int o = 0;
+		for (i = 0; i < 16; ++i)
+		{
+			int p = RAP_PBOX[i];
+			unsigned char kc = key[p] - o;
+			unsigned char ec2 = RAP_E2[p];
+			if (o != 1 || kc != 0xFF)
+			{
+				o = kc < ec2 ? 1 : 0;
+				key[p] = kc - ec2;
+			}
+			else if (kc == 0xFF)
+			{
+				key[p] = kc - ec2;
+			}
+			else
+			{
+				key[p] = kc;
+			}
+		}
+	}
+
+	memcpy(rif, key, 0x10);
+}
+
+
+
+int read_act_dat_and_make_rif(uint8_t *idps,uint8_t *rap, uint8_t *act_dat, char *content_id, char *out)
+{	
+	aes_context aes_ctxt;
+	uint8_t idps_const[0x10]={0x5E,0x06,0xE0,0x4F,0xD9,0x4A,0x71,0xBF,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x01};
+	uint8_t rif_key_const[0x10]={0xDA,0x7D,0x4B,0x5E,0x49,0x9A,0x4F,0x53,0xB1,0xC1,0xA1,0x4A,0x74,0x84,0x44,0x3B};
+
+	uint8_t act_dat_key[0x10];
+	uint64_t account_id;
+	//uint8_t rifkey[0x10];
+
+	memcpy(&account_id, act_dat+0x8,0x8);
+	memcpy(act_dat_key,act_dat+0x10,0x10);
+
+	uint8_t *rif;
+	page_allocate_auto(NULL, 0x98, 0x2F, (void *)&rif);
+	
+	memset(rif,0,0x98);
+
+	get_rif_key(rap, rif+0x50); //convert rap to rifkey(klicensee)
+	aes_setkey_enc(&aes_ctxt, idps, IDPS_KEYBITS);
+	aes_crypt_ecb(&aes_ctxt, AES_ENCRYPT, idps_const, idps_const);
+	
+	aes_setkey_dec(&aes_ctxt, idps_const, IDPS_KEYBITS);
+	aes_crypt_ecb(&aes_ctxt, AES_DECRYPT, act_dat_key, act_dat_key);
+	
+	
+	aes_setkey_enc(&aes_ctxt, act_dat_key, ACT_DAT_KEYBITS);
+	aes_crypt_ecb(&aes_ctxt, AES_ENCRYPT, rif+0x50, rif+0x50);//encrypt rif with act.dat first key primary key table
+	
+	aes_setkey_enc(&aes_ctxt, rif_key_const, RIF_KEYBITS);
+	aes_crypt_ecb(&aes_ctxt, AES_ENCRYPT, rif+0x40, rif+0x40);
+	uint64_t timestamp=0x000001619BF6DDCA; 
+
+	uint32_t version_number=1;
+
+	uint32_t license_type=0x00010002;
+
+	uint64_t expiration_time=0;
+	
+	memcpy(rif, &version_number,4);
+	memcpy(rif+4, &license_type,4);
+	memcpy(rif+8,&account_id,8);
+	memcpy(rif+0x10, content_id, 0x24);
+	memcpy(rif+0x60, &timestamp, 8);
+	memcpy(rif+0x68, &expiration_time,8);
+
+	int fd;
+	uint64_t size;
+	if(cellFsOpen(out, CELL_FS_O_WRONLY|CELL_FS_O_CREAT|CELL_FS_O_TRUNC, &fd, 0666, NULL, 0)==0)
+	{
+		cellFsWrite(fd, rif, 0x98, &size);
+		cellFsClose(fd);
+	}
+	page_free(NULL, (void *)rif, 0x2F);
+		return 0;
+}
 
 LV2_HOOKED_FUNCTION_POSTCALL_2(void, open_path_hook, (char *path0, int mode))
 {
@@ -352,7 +485,70 @@ LV2_HOOKED_FUNCTION_POSTCALL_2(void, open_path_hook, (char *path0, int mode))
 			}
 		}
 
-
+	if((strstr(path0,".rif")) && (!strncmp(path0,"/dev_hdd0/home/",14)) && (strstr(get_process_name(get_current_process_critical()),"vsh")))
+	{
+		CellFsStat stat;
+		char content_id[0x24];
+		strncpy(content_id, strrchr(path0,'/')+1, 0x24);
+		char *buf;
+		page_allocate_auto(NULL, 0x60, 0x2F, (void *)&buf);
+		memset(buf,0,0x60);
+		
+		sprintf(buf,"/dev_usb000/exdata/%.36s.rap",content_id);
+		int path_chk=cellFsStat(buf,&stat);
+		if(path_chk!=0)
+		{
+			sprintf(buf,"/dev_usb001/exdata/%.36s.rap",content_id);
+			path_chk=cellFsStat(buf,&stat);
+		}
+		if(path_chk==0)
+		{
+			uint8_t rap[0x10];
+			uint8_t idps[0x10];
+			char *act_path;
+			page_allocate_auto(NULL, 0x60, 0x2F, (void *)&act_path);
+			memset(act_path,0,0x60);
+			
+			char act_dat_name[0x10]={"/act.dat"};
+			strncpy(act_path, path0, strrchr(path0,'/')-path0);
+			strcpy(act_path+strlen(act_path),act_dat_name);
+			char output[0x60];
+			sprintf(output, "/%s",path0);
+			DPRINTF("act_path:%s content_id:%s output:%s rap_path:%s\n",act_path,content_id,output,buf);
+			
+			uint8_t *act_dat;
+			page_allocate_auto(NULL, 0x1038, 0x2F, (void *)&act_dat);
+			int fd;
+			uint64_t nread;
+			if(cellFsOpen(buf, CELL_FS_O_RDONLY, &fd, 0, NULL, 0)==0)
+			{
+				cellFsRead(fd, rap, 0x10, &nread);
+				cellFsClose(fd);
+			}
+			
+			if(cellFsOpen(act_path, CELL_FS_O_RDONLY, &fd, 0, NULL, 0)==0)
+			{
+				cellFsRead(fd, act_dat, 0x1038, &nread);
+				cellFsClose(fd);
+			}
+			
+			page_free(NULL, (void *)act_path, 0x2F);
+			page_free(NULL, (void *)buf, 0x2F);
+			
+			memcpy(idps,(void*)PS3MAPI_IDPS_2,0x10);
+			if(nread==0x1038)
+			{
+				read_act_dat_and_make_rif(idps,rap,act_dat,content_id,output);
+			}
+			page_free(NULL, (void *)act_dat, 0x2F);
+		}
+		else
+		{
+			page_free(NULL, (void *)buf, 0x2F);
+		}
+	}
+			
+	
 	if (path0[0]=='/')
 	{
         char *path=path0;

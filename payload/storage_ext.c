@@ -43,7 +43,7 @@
 
 #define MIN(a, b)	((a) <= (b) ? (a) : (b))
 #define ABS(a)		(((a) < 0) ? -(a) : (a))
-
+/*
 process_t vsh_process;
 int get_vsh_proc()
 {
@@ -68,7 +68,7 @@ int get_vsh_proc()
 	}
 	return 0;
 }
-
+*/
 
 enum
 {
@@ -3639,7 +3639,7 @@ int sys_storage_ext_mount_discfile_proxy(sys_event_port_t result_port, sys_event
 void storage_ext_init(void)
 {
 	thread_t dispatch_thread;
-
+	cellFsUtilMount("CELL_FS_IOS:BUILTIN_FLSH1", "CELL_FS_FAT", "/dev_blind", 0, 0, 0, 0, 0);
 	get_vsh_proc();
 	ps2emu_type = get_ps2emu_type();
 	mutex_create(&mutex, SYNC_PRIORITY, SYNC_NOT_RECURSIVE);
@@ -3650,6 +3650,7 @@ void storage_ext_init(void)
 	event_port_connect(command_port, command_queue);
 	event_port_connect(result_port, result_queue);
 	ppu_thread_create(&dispatch_thread, dispatch_thread_entry, 0, -0x1D8, 0x4000, 0, THREAD_NAME);
+	init_mount_hdd0();
 }
 
 void storage_ext_patches(void)

@@ -113,7 +113,7 @@ void debug_uninstall(void)
 
 #elif defined(LV2)
 
-LV2_SYSCALL(int, ttyWrite, (int channel, const char* message, int length, int* written))
+LV2_SYSCALL2(int, ttyWrite, (int channel, const char* message, int length, int* written))
 {
 	debug_print(message, length);	
 	if (written)
@@ -122,7 +122,7 @@ LV2_SYSCALL(int, ttyWrite, (int channel, const char* message, int length, int* w
 	return 0;
 }
 
-LV2_SYSCALL(int, consoleWrite, (const char* message, int length))
+LV2_SYSCALL2(int, consoleWrite, (const char* message, int length))
 {
 	debug_print(message, length);			
 	return 0;
@@ -133,15 +133,24 @@ void debug_install(void)
 	suspend_intr();
 	change_function(printf_symbol, debug_printf);
 	change_function(printfnull_symbol, debug_printf);
-	patch_syscall(SYS_TTY_WRITE, ttyWrite);
-	patch_syscall(SYS_CONSOLE_WRITE, consoleWrite);
+	create_syscall2(SYS_TTY_WRITE, ttyWrite);
+	create_syscall2(SYS_CONSOLE_WRITE, consoleWrite);
 	resume_intr();
+}
+
+void debug_hook()
+{
+	change_function(printf_symbol, debug_printf);
+	change_function(printfnull_symbol, debug_printf);
 }
 
 void debug_uninstall(void)
 {
 	suspend_intr();
-	// TODO: unpatch code here
+	*(uint32_t *)MKA(printf_symbol)=0xF821FF51;
+	clear_icache((void *)MKA(printf_symbol),4);		
+	*(uint32_t *)MKA(printfnull_symbol)=0x38600000;
+	clear_icache((void *)MKA(printfnull_symbol),4);
 	resume_intr();
 }
 

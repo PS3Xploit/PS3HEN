@@ -45,6 +45,7 @@ typedef struct
 } __attribute__((packed)) sys_emu_state_t;
 
 extern process_t vsh_process;
+int get_vsh_proc();
 
 int sys_storage_ext_get_disc_type(unsigned int *real_disctype, unsigned int *effective_disctype, unsigned int *fake_disctype);
 int sys_storage_ext_read_ps3_disc(void *buf, uint64_t start_sector, uint32_t count);

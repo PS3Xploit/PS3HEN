@@ -12,6 +12,7 @@ see file COPYING or http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt
 int64_t debug_init(void);
 int 	debug_end(void);
 void 	debug_install(void);
+void debug_hook();
 void	debug_uninstall(void);
 int64_t debug_printf(const char* fmt, ...) __attribute__ ((format (printf, 1, 2)));
 int64_t _debug_printf(const char* fmt, ...) __attribute__ ((format (printf, 1, 2)));

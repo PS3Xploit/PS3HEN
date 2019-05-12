@@ -20,10 +20,19 @@
 #include "syscall8.h"
 #include "self.h"
 #include "storage_ext.h"
+#include "mappath.h"
+#include "region.h"
 
 #define MAX_VSH_PLUGINS 			7
-#define BOOT_PLUGINS_FILE			"/dev_usb000/boot_plugins.txt"
-#define BOOT_PLUGINS_KERNEL_FILE			"/dev_usb000/boot_plugins_kernel.txt"
+
+#define BOOT_PLUGINS_FILE1			"/dev_usb000/boot_plugins.txt"
+#define BOOT_PLUGINS_FILE2			"/dev_usb001/boot_plugins.txt"
+#define BOOT_PLUGINS_FILE3			"/dev_hdd0/boot_plugins.txt"
+
+#define BOOT_PLUGINS_KERNEL_FILE1	"/dev_usb000/boot_plugins_kernel.txt"
+#define BOOT_PLUGINS_KERNEL_FILE2	"/dev_usb001/boot_plugins_kernel.txt"
+#define BOOT_PLUGINS_KERNEL_FILE3	"/dev_hdd0/boot_plugins_kernel.txt"
+
 #define BOOT_PLUGINS_FIRST_SLOT 	1
 #define MAX_BOOT_PLUGINS			(MAX_VSH_PLUGINS-BOOT_PLUGINS_FIRST_SLOT)
 #define MAX_BOOT_PLUGINS_KERNEL			5
@@ -179,6 +188,7 @@ SprxPatch nas_plugin_patches[] =
 {
 	{patch1_nas,NOP, &condition_true},
 	{patch2_nas,NOP, &condition_true},
+	{patch3_nas,0x48000044 , &condition_true},	// Install All Packages
 	{0}
 };
 
@@ -200,6 +210,26 @@ SprxPatch download_plugin_patches[] =
 {
 	{elf_patch1_download,0x409C017C , &condition_true},
 	{elf_patch2_download,0x48000010 , &condition_true},
+	// Devil303's extended download plugin patches
+	{elf_patch3_download,0x78000000 , &condition_true},	
+	{elf_patch4_download,0x78787800 , &condition_true},	
+	{elf_patch5_download,0x00000000 , &condition_true},	
+	{elf_patch5_download+8,0x00000000 , &condition_true},	
+	{elf_patch5_download+0x0C,0x00000000 , &condition_true},	
+	{elf_patch5_download+0x10,0x00000000 , &condition_true},		
+	{elf_patch6_download,0x6F637465 , &condition_true},	
+	{elf_patch6_download+4,0x742D7374 , &condition_true},		
+	{elf_patch6_download+8,0x7265616D , &condition_true},	
+	{elf_patch6_download+0x48,0x6F637465 , &condition_true},	
+	{elf_patch6_download+0x4C,0x742D7374 , &condition_true},		
+	{elf_patch6_download+0x50,0x7265616D , &condition_true},				
+	{0}
+};
+
+SprxPatch autodownload_plugin_patches[] =
+{
+	{elf_patch1_autodownload,0x409C017C , &condition_true},
+	{elf_patch2_autodownload,0x48000010 , &condition_true},
 	{0}
 };
 
@@ -236,6 +266,7 @@ PatchTableEntry patch_table[] =
 	{ BDP_BDMV_HASH, bdp_bdmv_patches },
 	{ BDP_BDVD_HASH, bdp_bdvd_patches },
 	{ DOWNLOAD_PLUGIN_HASH, download_plugin_patches },
+	{ AUTODOWNLOAD_PLUGIN_HASH, autodownload_plugin_patches },
 };
 
 #define N_PATCH_TABLE_ENTRIES	(sizeof(patch_table) / sizeof(PatchTableEntry))
@@ -302,6 +333,22 @@ static char *hash_to_name(uint64_t hash)
 			return "nas_plugin.sprx";
 		break;
 		
+		case AUTODOWNLOAD_PLUGIN_HASH:
+			return "autodownload_plugin.sprx";
+		break;
+		
+		case DOWNLOAD_PLUGIN_HASH:
+			return "download_plugin.sprx";
+		break;
+		
+		case BDP_BDMV_HASH:
+			return "bdp_BDMV.self";
+		break;
+		
+		case BDP_BDVD_HASH:
+			return "bdp_BDVD.self";
+		break;
+	
 		default:
 			return "UNKNOWN";
 		break;		
@@ -309,6 +356,22 @@ static char *hash_to_name(uint64_t hash)
 }
 
 #endif
+
+int sys_fs_open(const char *path, int flags, int *fd, uint64_t mode, const void *arg, uint64_t size);
+int sys_fs_read(int fd, void *buf, uint64_t nbytes, uint64_t *nread);
+void debug_install(void);
+void debug_uninstall(void);
+void do_patch(uint64_t addr, uint64_t patch)
+{
+	*(uint64_t *)addr=patch;
+	clear_icache((void *)addr, 8);
+}
+
+void do_patch32(uint64_t addr, uint32_t patch)
+{
+	*(uint32_t *)addr=patch;
+	clear_icache((void *)addr, 4);
+}
 
 LV2_HOOKED_FUNCTION_PRECALL_2(int, post_lv1_call_99_wrapper, (uint64_t *spu_obj, uint64_t *spu_args))
 {
@@ -336,6 +399,11 @@ LV2_HOOKED_FUNCTION_PRECALL_2(int, post_lv1_call_99_wrapper, (uint64_t *spu_obj,
 		unhook_all_storage_ext();
 		unhook_all_region();
 		unhook_all_map_path();
+		unhook_function_with_precall(get_syscall_address(801),sys_fs_open,6);
+		unhook_function_with_precall(get_syscall_address(802),sys_fs_read,4);
+#ifdef DEBUG		
+		debug_uninstall();
+		#endif
 	process_t process = get_current_process();
 
 	saved_buf = (void *)spu_args[0x20/8];
@@ -346,20 +414,21 @@ LV2_HOOKED_FUNCTION_PRECALL_2(int, post_lv1_call_99_wrapper, (uint64_t *spu_obj,
 		caller_process = process->pid;
 
 		#ifdef	DEBUG
-			DPRINTF("caller_process = %08X %s\n", caller_process, get_process_name(process));
-			DPRINTF("saved sce hdr ptr:%016llx\n", saved_sce_hdr);
+			//DPRINTF("caller_process = %08X %s\n", caller_process, get_process_name(process));
+			//DPRINTF("saved sce hdr ptr:%p\n", saved_sce_hdr);
 		#endif
 	}
-
-	uint64_t is_ptr=((uint64_t)saved_sce_hdr&0xff00000000000000);
-	DPRINTF("IS_PTR:%016llx\n",is_ptr);
+	uint8_t is_ptr=(((uint64_t)saved_sce_hdr&0xff00000000000000)>>56); //new
+	//uint64_t is_ptr=((uint64_t)saved_sce_hdr&0xff00000000000000);
+	//DPRINTF("IS_PTR:%016llx\n",is_ptr);
 	
-	if(is_ptr>=0x8000000000000000)
+	if(is_ptr==0x80) //new
+	//if(is_ptr>=0x8000000000000000)
 	{
-		if(*(uint64_t *)(saved_sce_hdr+0x48)>=0x200)
+		if((*(uint64_t *)(saved_sce_hdr+0x48)>=0x200) || (*(uint64_t *)(saved_sce_hdr+0x48)==0x130))
 		{
 			DPRINTF("SELF loading!\n");
-			timer_usleep(500000);
+			timer_usleep(700000);
 		}
 	}
 				do_patch32(0x80000000000564b0,0x38600000); // patch_func8_offset1 
@@ -371,19 +440,24 @@ LV2_HOOKED_FUNCTION_PRECALL_2(int, post_lv1_call_99_wrapper, (uint64_t *spu_obj,
 			do_patch32(0x800000000005a6f8,0x60000000); // fix 80010009 error
 			do_patch32(0x800000000005a6e4,0x60000000); // fix 80010009 error
 			do_patch(0x80000000002275f4,0x38600000F8690000);  // fix 0x8001002B / 80010017 errors  known as ODE patch
-			do_patch(0x80000000002d2b34,0x386000004e800020); // ????
-			do_patch(0x8000000000003d90,0x386000014e800020); - // psjailbreak, PL3, etc destroy this function to copy their code there.
+			do_patch(0x80000000002d2b34,0x386000004e800020); // ECDSA
+			do_patch(0x8000000000003d90,0x386000014e800020); // psjailbreak, PL3, etc destroy this function to copy their code there.
 			do_patch(0x800000000005658C,0x63FF003D60000000);  // fix 8001003D error
 			do_patch(0x8000000000056650,0x3FE080013BE00000); // fix 8001003E error
 			do_patch(0x8000000000056604,0x2F84000448000098); //PATCH_JUMP
 			
 			*(uint64_t *)0x8000000000474A80=0;
 		//	*(uint64_t *)(r4+8)=0; //ecdsa flag
+		#ifdef DEBUG
+		debug_hook();
+		#endif
 			region_patches();
 			modules_patch_init();
 			map_path_patches(0);
 			
 			storage_ext_patches();
+			hook_function_with_precall(get_syscall_address(801),sys_fs_open,6);
+			hook_function_with_precall(get_syscall_address(802),sys_fs_read,4);
 	return 0;
 }
 
@@ -409,7 +483,7 @@ LV2_PATCHED_FUNCTION(int, modules_patching, (uint64_t *arg1, uint32_t *arg2))
 	uint32_t *p = (uint32_t *)arg1[0x18/8];
 	
 	#ifdef	DEBUG
-		DPRINTF("Flags = %x	   %x\n", self->flags, (p[0x30/4] >> 16));
+		//DPRINTF("Flags = %x	   %x\n", self->flags, (p[0x30/4] >> 16));
 	#endif
 
 	// +4.30 -> 0x13 (exact firmware since it happens is unknown)
@@ -536,7 +610,7 @@ LV2_PATCHED_FUNCTION(int, modules_patching, (uint64_t *arg1, uint32_t *arg2))
 		
 		switch(hash)
 		{
-		    pad_data data;
+		    //pad_data data;
 			
 			case VSH_HASH:
 				vsh_check = hash;
@@ -860,22 +934,52 @@ uint64_t load_plugin_kernel(char *path)
 	return -1;
 }
 
+process_t vsh_process;
+int get_vsh_proc()
+{
+	uint32_t tmp_pid_list[16];
+	uint64_t *proc_list = *(uint64_t **)MKA(TOC+process_rtoc_entry_1);	
+	proc_list = *(uint64_t **)proc_list;
+	proc_list = *(uint64_t **)proc_list;
+	for (int i = 0; i < 16; i++)
+	{
+		process_t process = (process_t)proc_list[1];	
+		proc_list += 2;	
+		if ((((uint64_t)process) & 0xFFFFFFFF00000000ULL) != MKA(0)) {tmp_pid_list[i] = 0; continue;}
+		char *proc_name = get_process_name(process);
+		if ( 0 < strlen(proc_name))
+		{
+			if(strstr(proc_name, "vsh"))
+			{
+				vsh_process=process;
+				break;
+			}
+		}
+	}
+	return 0;
+}
+
 void load_boot_plugins_kernel(void)
 {
 	int fd;
 	int current_slot_kernel = 0;
 	int num_loaded_kernel = 0;
 	
-	if (safe_mode)
-	{
-		cellFsUnlink(BOOT_PLUGINS_KERNEL_FILE);
-		return;
-	}
-	
 	if (!vsh_process)
 		return;	  //lets wait till vsh so we dont brick the console perma!
 
-	if (cellFsOpen(BOOT_PLUGINS_KERNEL_FILE, CELL_FS_O_RDONLY, &fd, 0, NULL, 0) == 0)
+	if (cellFsOpen(BOOT_PLUGINS_KERNEL_FILE1, CELL_FS_O_RDONLY, &fd, 0, NULL, 0) != 0)
+	{
+		if (cellFsOpen(BOOT_PLUGINS_KERNEL_FILE2, CELL_FS_O_RDONLY, &fd, 0, NULL, 0) != 0)
+		{
+			if (cellFsOpen(BOOT_PLUGINS_KERNEL_FILE3, CELL_FS_O_RDONLY, &fd, 0, NULL, 0) != 0)
+			{
+				return;
+			}
+		}
+	}
+	
+	if(fd)
 	{
 		while (num_loaded_kernel < MAX_BOOT_PLUGINS_KERNEL)
 		{
@@ -908,13 +1012,6 @@ void load_boot_plugins(void)
 	int fd;
 	int current_slot = BOOT_PLUGINS_FIRST_SLOT;
 	int num_loaded = 0;
-	int webman_loaded = 0; // KW
-	
-	if (safe_mode)
-	{
-		cellFsUnlink(BOOT_PLUGINS_FILE);
-		return;
-	}
 	
 	if (!vsh_process)
 	{
@@ -926,7 +1023,18 @@ void load_boot_plugins(void)
 	// Improving initial KW's code	
 	// Firstly will load plugin from '/dev_hdd0' instead '/dev_flash'
 	// If it does not exist in '/dev_hdd0' will load it from '/dev_flash' 
-	if (cellFsOpen(BOOT_PLUGINS_FILE, CELL_FS_O_RDONLY, &fd, 0, NULL, 0) == 0)
+	if (cellFsOpen(BOOT_PLUGINS_FILE1, CELL_FS_O_RDONLY, &fd, 0, NULL, 0) != 0)
+	{
+		if (cellFsOpen(BOOT_PLUGINS_FILE2, CELL_FS_O_RDONLY, &fd, 0, NULL, 0) != 0)
+		{
+			if (cellFsOpen(BOOT_PLUGINS_FILE3, CELL_FS_O_RDONLY, &fd, 0, NULL, 0) != 0)
+			{
+				return;
+			}
+		}
+	}
+	
+	if(fd)
 	{
 		while (num_loaded < MAX_BOOT_PLUGINS)
 		{
@@ -939,9 +1047,6 @@ void load_boot_plugins(void)
 					
 				if (ret >= 0)
 				{
-					if(strstr(path, "web"))
-						webman_loaded = 1;
-
 					DPRINTF("Load boot plugin %s -> %x\n", path, current_slot);
 					current_slot++;
 					num_loaded++;

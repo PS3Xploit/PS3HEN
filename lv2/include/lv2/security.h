@@ -10,11 +10,20 @@ typedef struct _MD5Context
 	uint8_t data[0x58];
 } MD5Context;
 
+typedef struct _SHACtx
+{
+	uint8_t data[0x100];
+} SHACtx;
+
 LV2_EXPORT int get_pseudo_random_number(void *buf, uint64_t size);
 
 LV2_EXPORT void md5_reset(MD5Context *ctx);
 LV2_EXPORT void md5_update(MD5Context *ctx, void *buf, uint32_t size);
 LV2_EXPORT void md5_final(void *hash, MD5Context *ctx);
+
+LV2_EXPORT void sha1_init(SHACtx *ctx);
+LV2_EXPORT void sha1_update(SHACtx *ctx, uint8_t *buf, uint64_t len);
+LV2_EXPORT void sha1_final(uint8_t *out, SHACtx *ctx);
 
 static INLINE void md5_once(void *buf, uint32_t size, void *hash)
 {

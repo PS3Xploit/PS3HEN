@@ -14,6 +14,8 @@ LV2_FUNCTION3(cellFsUtilMount_h, cellFsUtilMount_symbol) /* We need to call this
 LV2_FUNCTION(cellFsUtilUmount, cellFsUtilUmount_symbol)
 LV2_FUNCTION(cellFsUtilNewfs, cellFsUtilNewfs_symbol)
 
+LV2_FUNCTION(get_path_by_fd, get_path_by_fd_symbol)
+
 LV2_FUNCTION(pathdup_from_user, pathdup_from_user_symbol)
 LV2_FUNCTION(open_fs_object, open_fs_object_symbol)
 LV2_FUNCTION(close_fs_object, close_fs_object_symbol)

@@ -184,6 +184,12 @@
 
 #define bt_set_controller_info_internal_symbol			0xF0388
 
+#define SHA1_init_symbol								0x2ce688
+#define SHA1_update_symbol								0x2ce6e8
+#define SHA1_final_symbol								0x2ce89c
+
+#define get_path_by_fd_symbol									0x29c180
+
 /* Calls, jumps */
 #define device_event_port_send_call						0x28206C
 

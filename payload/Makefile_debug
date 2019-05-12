@@ -9,7 +9,7 @@ INCLUDE		=  ../lv2/include ../lv1/include ../cryptcode/include ../debug/include
 INCLUDE		+= $(PS3DEV)/ppu/ppu/include
 LIBSDIR     =
 LIBS        =
-BUILD_TYPE  = release
+BUILD_TYPE  = debug
 OUTPUT		= stage2.bin
 
 
@@ -54,7 +54,7 @@ OBJS += laboratory.o ../debug/src/debug.o ../debug/src/printf.o ../debug/src/deb
 endif
 
 all: $(OUTPUT)
-	@mv stage2.bin ../PS3HEN.BIN
+	@mv stage2.bin ../PS3HEN.BIN_debug
 	@rm -f *.o *.elf *.map *.lzma ../lv2/src/*.o ../lv1/src/*.o ../debug/src/*.o
 
 objdump: $(OUTPUT)

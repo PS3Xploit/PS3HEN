@@ -115,5 +115,7 @@ LV2_EXPORT int pathdup_from_user(char *path, char **out);
 LV2_EXPORT int open_fs_object(void *unk, char *path, void **fs_object, void **unkret1, fs_object_handle_t *handle, void *unk2);
 LV2_EXPORT int close_fs_object(void *unk, fs_object_handle_t handle);
 
+LV2_EXPORT int get_path_by_fd(int fd, char *path);
+
 #endif /* __LV2_IO_H__ */
 

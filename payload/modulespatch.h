@@ -8,28 +8,40 @@
 
 #define VSH_HASH						0xb6b6d000002e0000
 #define BDP_DISC_CHECK_PLUGIN_HASH		0x9940000000003000
-#define BASIC_PLUGINS_HASH				0x55f4700000010000
 #define EXPLORE_PLUGIN_HASH				0xc50d0000000e0000
 #define EXPLORE_CATEGORY_GAME_HASH		0xde52d00000050000
 #define PS1_EMU_HASH					0xcc28400000090000
 #define PS1_NETEMU_HASH 				0xcc284000000b0000
 #define GAME_EXT_PLUGIN_HASH			0xcc26800000010000
+#define LIBFS_EXTERNAL_HASH				0x05fd000000006000
+#define NAS_PLUGIN_HASH				0xc50d000000020000
+#define BDP_BDMV_HASH				0xcc28700000370000
+#define BDP_BDVD_HASH				0xcc28d00000430000
+#define DOWNLOAD_PLUGIN_HASH				0xcc26800000020000
+#define AUTODOWNLOAD_PLUGIN_HASH				0x6a1af00000040000
+//// Currently unused ////
+#define BASIC_PLUGINS_HASH				0x55f4700000010000
 #define PSP_EMULATOR_HASH				0xcc29b00000020000
 #define PEMUCORELIB_HASH				0x40425000000c0000
 #define EMULATOR_API_HASH				0x8409f00000010000
 #define EMULATOR_DRM_HASH				0xbbb8800000005000
 #define EMULATOR_DRM_DATA_HASH			0x2f3ab00000010000
 #define LIBSYSUTIL_SAVEDATA_PSP_HASH	0x0dfdc00000003000
-#define LIBFS_EXTERNAL_HASH				0x05fd000000006000
-#define NAS_PLUGIN_HASH				0xc50d000000020000
-#define BDP_BDMV_HASH				0xcc28700000370000
-#define BDP_BDVD_HASH				0xcc28d00000430000
-#define DOWNLOAD_PLUGIN_HASH				0xcc26800000020000
 
 /* download_plugin */
 #define elf_patch1_download				0x42e2c
 #define elf_patch2_download				0x42e34
+/// advanced download patches found by Devil303
+#define elf_patch3_download				0x4D708
+#define elf_patch4_download				0x4E528
+#define elf_patch5_download				0x4E548
+#define elf_patch6_download				0x4E624
 
+/* autodownload_plugin */
+#define elf_patch1_autodownload                0x82650  
+#define elf_patch2_autodownload                0x82658
+
+/*Cinavia patch*/
 #define bdp_cinavia_patch				0x15ecd0
 #define bdp_cinavia1_patch				0x15ecfc
 
@@ -55,8 +67,10 @@
 //#define psptrans_path_offset			0x4B628
 
 /* explore_plugin */
-#define app_home_offset      			0x250910
-#define ps2_nonbw_offset      			0xDD9B4
+#define app_home_offset      			0x2514C0 // HAN support files has DEX version of this module
+#define ps2_nonbw_offset      			0xDDDC4	// HAN support files has DEX version of this module
+//#define app_home_offset				0x250910 // Retail
+//#define ps2_nonbw_offset				0xDD9B4 // Retail
 
 /* explore_category_game */
 #define ps2_nonbw_offset2				0x68324
@@ -97,6 +111,7 @@
 
 #define patch1_nas							0x2eae4
 #define patch2_nas							0x2ec48
+#define patch3_nas							0x1F75C // Install ALL pkgs
 
 /* libfs */
 #define aio_copy_root_offset			0xD658
@@ -118,8 +133,8 @@ extern uint8_t condition_psp_keys;
 extern uint8_t condition_psp_change_emu;
 extern uint8_t condition_psp_prometheus;
 extern uint64_t vsh_check;
-
 extern uint8_t safe_mode;
+//extern process_t vsh_process;
 
 /* Functions for kernel */
 void modules_patch_init(void);
