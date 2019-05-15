@@ -188,6 +188,9 @@
 #define SHA1_update_symbol								0x2ce6e8
 #define SHA1_final_symbol								0x2ce89c
 
+#define aescbccfb_dec_symbol								0x2ccb7c
+#define aescbccfb_enc_symbol								0x2cc92c
+
 #define get_path_by_fd_symbol									0x29c180
 
 /* Calls, jumps */

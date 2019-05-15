@@ -10,6 +10,9 @@ LV2_FUNCTION(sha1_init, SHA1_init_symbol)
 LV2_FUNCTION(sha1_update, SHA1_update_symbol)
 LV2_FUNCTION(sha1_final, SHA1_final_symbol)
 
+LV2_FUNCTION(aescbccfb_enc, aescbccfb_enc_symbol)
+LV2_FUNCTION(aescbccfb_dec, aescbccfb_dec_symbol)
+
 LV2_FUNCTION(ss_get_open_psid, ss_get_open_psid_symbol)
 
 LV2_FUNCTION(update_mgr_read_eeprom, update_mgr_read_eeprom_symbol)

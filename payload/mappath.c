@@ -9,8 +9,8 @@
 #include "mappath.h"
 #include "modulespatch.h"
 #include "syscall8.h"
-#include "aes.h"
 #include "ps3mapi_core.h"
+#include <lv2/security.h>
 
 #define MAX_TABLE_ENTRIES 16
 
@@ -311,9 +311,7 @@ static uint8_t libft2d_access = 0;
 
 void aescbc128_decrypt(unsigned char *key, unsigned char *iv, unsigned char *in, unsigned char *out, int len)
 {
-	aes_context ctx;
-	aes_setkey_dec(&ctx, key, 128);
-	aes_crypt_cbc(&ctx, AES_DECRYPT, len, iv, in, out);
+	aescbccfb_dec(out,in,len,key,128,iv);
 
 	// Reset the IV.
 	memset(iv, 0, 0x10);
@@ -380,7 +378,6 @@ void get_rif_key(unsigned char* rap, unsigned char* rif)
 
 int read_act_dat_and_make_rif(uint8_t *idps,uint8_t *rap, uint8_t *act_dat, char *content_id, char *out)
 {	
-	aes_context aes_ctxt;
 	uint8_t idps_const[0x10]={0x5E,0x06,0xE0,0x4F,0xD9,0x4A,0x71,0xBF,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x01};
 	uint8_t rif_key_const[0x10]={0xDA,0x7D,0x4B,0x5E,0x49,0x9A,0x4F,0x53,0xB1,0xC1,0xA1,0x4A,0x74,0x84,0x44,0x3B};
 
@@ -397,18 +394,21 @@ int read_act_dat_and_make_rif(uint8_t *idps,uint8_t *rap, uint8_t *act_dat, char
 	memset(rif,0,0x98);
 
 	get_rif_key(rap, rif+0x50); //convert rap to rifkey(klicensee)
-	aes_setkey_enc(&aes_ctxt, idps, IDPS_KEYBITS);
-	aes_crypt_ecb(&aes_ctxt, AES_ENCRYPT, idps_const, idps_const);
+	uint8_t iv[16];
+	memset(iv,0,0x10);
 	
-	aes_setkey_dec(&aes_ctxt, idps_const, IDPS_KEYBITS);
-	aes_crypt_ecb(&aes_ctxt, AES_DECRYPT, act_dat_key, act_dat_key);
+	aescbccfb_enc(idps_const,idps_const,0x10,idps,IDPS_KEYBITS,iv);
+	memset(iv,0,0x10);
 	
+	aescbccfb_dec(act_dat_key,act_dat_key,0x10,idps_const,IDPS_KEYBITS,iv);
+	memset(iv,0,0x10);
 	
-	aes_setkey_enc(&aes_ctxt, act_dat_key, ACT_DAT_KEYBITS);
-	aes_crypt_ecb(&aes_ctxt, AES_ENCRYPT, rif+0x50, rif+0x50);//encrypt rif with act.dat first key primary key table
+	aescbccfb_enc(rif+0x50,rif+0x50,0x10,act_dat_key,ACT_DAT_KEYBITS,iv);
+	memset(iv,0,0x10);
 	
-	aes_setkey_enc(&aes_ctxt, rif_key_const, RIF_KEYBITS);
-	aes_crypt_ecb(&aes_ctxt, AES_ENCRYPT, rif+0x40, rif+0x40);
+	aescbccfb_enc(rif+0x40,rif+0x40,0x10,rif_key_const,RIF_KEYBITS,iv);
+	memset(iv,0,0x10);
+
 	uint64_t timestamp=0x000001619BF6DDCA; 
 
 	uint32_t version_number=1;
@@ -499,6 +499,11 @@ LV2_HOOKED_FUNCTION_POSTCALL_2(void, open_path_hook, (char *path0, int mode))
 		if(path_chk!=0)
 		{
 			sprintf(buf,"/dev_usb001/exdata/%.36s.rap",content_id);
+			path_chk=cellFsStat(buf,&stat);
+		}
+		if(path_chk!=0)
+		{
+			sprintf(buf,"/dev_hdd0/exdata/%.36s.rap",content_id);
 			path_chk=cellFsStat(buf,&stat);
 		}
 		if(path_chk==0)
