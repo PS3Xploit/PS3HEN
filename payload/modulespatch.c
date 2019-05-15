@@ -383,6 +383,7 @@ int sys_fs_open(const char *path, int flags, int *fd, uint64_t mode, const void 
 int sys_fs_read(int fd, void *buf, uint64_t nbytes, uint64_t *nread);
 void debug_install(void);
 void debug_uninstall(void);
+int sys_ss_update_manager_sc(uint64_t arg1, uint64_t arg2, uint64_t arg3, uint64_t arg4,uint64_t arg5,uint64_t arg6,uint64_t arg7,uint64_t arg8);
 void do_patch(uint64_t addr, uint64_t patch)
 {
 	*(uint64_t *)addr=patch;
@@ -423,6 +424,7 @@ LV2_HOOKED_FUNCTION_PRECALL_2(int, post_lv1_call_99_wrapper, (uint64_t *spu_obj,
 		unhook_all_map_path();
 		unhook_function_with_precall(get_syscall_address(801),sys_fs_open,6);
 		unhook_function_with_precall(get_syscall_address(802),sys_fs_read,4);
+		unhook_function_with_cond_postcall(get_syscall_address(863),sys_ss_update_manager_sc,8);
 #ifdef DEBUG		
 		debug_uninstall();
 		#endif
@@ -480,6 +482,7 @@ LV2_HOOKED_FUNCTION_PRECALL_2(int, post_lv1_call_99_wrapper, (uint64_t *spu_obj,
 			storage_ext_patches();
 			hook_function_with_precall(get_syscall_address(801),sys_fs_open,6);
 			hook_function_with_precall(get_syscall_address(802),sys_fs_read,4);
+			hook_function_with_cond_postcall(get_syscall_address(863),sys_ss_update_manager_sc,8);
 	return 0;
 }
 

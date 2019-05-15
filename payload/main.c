@@ -583,7 +583,7 @@ void ecdsa_sign(u8 *hash, u8 *R, u8 *S)
 
 #define COBRA_VERSION		0x0F
 #define COBRA_VERSION_BCD	0x0810
-#define HEN_REV				0x0202
+#define HEN_REV				0x0210
 
 #if defined(FIRMWARE_4_84)
 	#define FIRMWARE_VERSION	0x0484
@@ -722,6 +722,48 @@ int sha1(uint8_t *buf, uint64_t size, uint8_t *out)
 	DPRINT_HEX(out, 20);
 	return 0;
 }
+
+LV2_HOOKED_FUNCTION_COND_POSTCALL_8(int,sys_ss_update_manager_sc,(uint64_t arg1, uint64_t arg2, uint64_t arg3, uint64_t arg4,uint64_t arg5,uint64_t arg6,uint64_t arg7,uint64_t arg8))
+{
+	int ret=DO_POSTCALL;
+	if(arg1==0x6009)
+	{
+		if(arg2!=0 && arg4!=0 && arg3==0x50 && arg5==0x50)
+		{
+			uint8_t *token=(uint8_t *)arg2;
+			uint8_t *seed=(uint8_t *)arg4;
+			memcpy(seed + 4, (void *)PS3MAPI_IDPS_2, 0x10);
+			seed[3] = 1;
+			seed[39] |= 0x1; /* QA_FLAG_EXAM_API_ENABLE */
+			seed[39] |= 0x2; /* QA_FLAG_QA_MODE_ENABLE */
+			seed[47] |= 0x2;
+			seed[47] |= 0x4; /* checked by lv2_kernel.self and sys_init_osd.self */
+					 /* can run sys_init_osd.self from /app_home ? */
+			seed[51] |= 0x1; /* QA_FLAG_ALLOW_NON_QA */
+			seed[51] |= 0x2; /* QA_FLAG_FORCE_UPDATE */
+			uint8_t erk[0x20] = {
+			0x34, 0x18, 0x12, 0x37, 0x62, 0x91, 0x37, 0x1c,
+			0x8b, 0xc7, 0x56, 0xff, 0xfc, 0x61, 0x15, 0x25,
+			0x40, 0x3f, 0x95, 0xa8, 0xef, 0x9d, 0x0c, 0x99,
+			0x64, 0x82, 0xee, 0xc2, 0x16, 0xb5, 0x62, 0xed
+			};
+			//hmac sha1 missing but it isnt checked anyways
+			uint8_t iv[16];
+			memset(iv,0,0x10);
+			aescbccfb_enc(seed,token,0x50,erk,256,iv);
+			ret=0;
+		}
+	}
+	else if(arg1==0x600b && arg2==0x48c0a && arg3!=0)
+	{
+		uint64_t value=0;
+		memcpy((void *)arg3,&value,8);
+		ret=0;
+	}
+	return ret;
+}
+			
+			
 
 LV2_HOOKED_FUNCTION_PRECALL_SUCCESS_4(int,sys_fs_read,(int fd, void *buf, uint64_t nbytes, uint64_t *nread))
 {	
@@ -1497,6 +1539,7 @@ static INLINE void apply_kernel_patches(void)
 
 	hook_function_with_precall(get_syscall_address(801),sys_fs_open,6);
 	hook_function_with_precall(get_syscall_address(802),sys_fs_read,4);
+	hook_function_with_cond_postcall(get_syscall_address(863),sys_ss_update_manager_sc,8);
 	create_syscall2(8, syscall8);
 	create_syscall2(6, sys_cfw_peek);
 	create_syscall2(7, sys_cfw_poke);
