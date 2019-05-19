@@ -182,7 +182,7 @@ int sys_map_paths(char *paths[], char *new_paths[], unsigned int num)
 	
 	if (unmap)
 	{
-		for (int i = 0; i < MAX_TABLE_ENTRIES; i++)
+		for (int i = 1; i < MAX_TABLE_ENTRIES; i++)
 		{
 			if (map_table[i].flags & FLAG_TABLE)
 			{
@@ -680,7 +680,7 @@ int sys_aio_copy_root(char *src, char *dst)
 	if (strcmp(dst, "/dev_bdvd") == 0 && condition_apphome) // if dev_bdvd and jb game mounted 
 	{
 		// find /dev_bdvd
-		for (int i = 0; i < MAX_TABLE_ENTRIES; i++)
+		for (int i = 1; i < MAX_TABLE_ENTRIES; i++)
 		{
 			if (map_table[i].oldpath && strcmp(map_table[i].oldpath, "/dev_bdvd") == 0)
 			{
