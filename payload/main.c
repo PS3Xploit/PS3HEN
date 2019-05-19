@@ -579,11 +579,11 @@ void ecdsa_sign(u8 *hash, u8 *R, u8 *S)
 // E = 6.0
 // F = 7.0
 
-#define CB_LOCATION "/dev_habib/rebug/cobra/stage2.cex"
+//#define CB_LOCATION "/dev_habib/rebug/cobra/stage2.cex"
 
 #define COBRA_VERSION		0x0F
 #define COBRA_VERSION_BCD	0x0810
-#define HEN_REV				0x0210
+#define HEN_REV				0x0211
 
 #if defined(FIRMWARE_4_84)
 	#define FIRMWARE_VERSION	0x0484
@@ -1569,6 +1569,23 @@ int main(void)
 //	drm_init();
 
 	apply_kernel_patches();
+	/// Adding HEN patches on init for stability /// -- START
+	do_patch32(0x80000000000564b0,0x38600000); // patch_func8_offset1 
+	do_patch32(0x8000000000056614,0x60000000); // patch_func8_offset2 
+	do_patch32(0x80000000000203fc,0x60000000); // user_thread_prio_patch	for netiso
+	do_patch32(0x8000000000020408,0x60000000); // user_thread_prio_patch2	for netiso
+	do_patch32(0x8000000000059dc4,0x38600000); // ECDSA 1
+	do_patch32(0x8000000000056230,0x38600001); // ignore LIC.DAT check	
+	do_patch32(0x800000000005a6f8,0x60000000); // fix 80010009 error
+	do_patch32(0x800000000005a6e4,0x60000000); // fix 80010009 error
+	do_patch(0x80000000002275f4,0x38600000F8690000);  // fix 0x8001002B / 80010017 errors  known as ODE patch
+	do_patch(0x80000000002d2b34,0x386000004e800020); // ECDSA 2
+	do_patch(0x8000000000003d90,0x386000014e800020); // psjailbreak, PL3, etc destroy this function to copy their code there.
+	do_patch(0x800000000005658C,0x63FF003D60000000);  // fix 8001003D error
+	do_patch(0x8000000000056650,0x3FE080013BE00000); // fix 8001003E error
+	do_patch(0x8000000000056604,0x2F84000448000098); //PATCH_JUMP			
+	*(uint64_t *)0x8000000000474A80=0;
+	/// Adding HEN patches on init for stability ///	 -- END
 	map_path_patches(1);
 	storage_ext_patches();
 	region_patches();

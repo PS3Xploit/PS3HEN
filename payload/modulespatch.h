@@ -145,6 +145,8 @@ extern uint8_t safe_mode;
 //extern process_t vsh_process;
 
 /* Functions for kernel */
+void do_patch();
+void do_patch32();
 void modules_patch_init(void);
 void load_boot_plugins(void);
 int prx_load_vsh_plugin(unsigned int slot, char *path, void *arg, uint32_t arg_size);

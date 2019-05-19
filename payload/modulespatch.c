@@ -399,23 +399,20 @@ void do_patch32(uint64_t addr, uint32_t patch)
 
 LV2_HOOKED_FUNCTION_PRECALL_2(int, post_lv1_call_99_wrapper, (uint64_t *spu_obj, uint64_t *spu_args))
 {
-	// This replaces an original patch of psjailbreak, since we need to do more things
-		do_patch32(0x800000000005a6f8,0x419e00ac);
-		do_patch32(0x80000000000564b0,0x7FE307B4);
-		do_patch32(0x8000000000056614,0x48216FB5);
-		do_patch32(0x80000000000203fc,0x419DFF84);
-		do_patch32(0x8000000000020408,0x419D0258);
-		
-		
-		do_patch32(0x800000000005a6e4,0x419e00ac);
-		do_patch32(0x8000000000059dc4,0x7FE307B4);
-		do_patch32(0x8000000000056230,0x48240EED);
-		do_patch(0x80000000002275f4,0xE86900007C6307B4);
-		do_patch(0x80000000002d2b34,0xF821FE617CE802A6);
-		do_patch(0x8000000000003d90,0xF821FEB17C0802A6);
-		do_patch(0x800000000005658C,0x63FF003D419EFFD4);
-		do_patch(0x8000000000056650,0x3FE0800163FF003E);
-		do_patch(0x8000000000056604,0x2F840004409C0048);
+		do_patch32(0x80000000000564b0,0x7FE307B4); // patch_func8_offset1 
+		do_patch32(0x8000000000056614,0x48216FB5); // patch_func8_offset2 
+		do_patch32(0x80000000000203fc,0x419DFF84); // user_thread_prio_patch	for netiso
+		do_patch32(0x8000000000020408,0x419D0258); // user_thread_prio_patch2	for netiso
+		do_patch32(0x8000000000059dc4,0x7FE307B4); // ECDSA 1 
+		do_patch32(0x8000000000056230,0x48240EED); // ignore LIC.DAT check			
+		do_patch32(0x800000000005a6f8,0x419e00ac); // fix 80010009 error
+		do_patch32(0x800000000005a6e4,0x419e00ac); // fix 80010009 error
+		do_patch(0x80000000002275f4,0xE86900007C6307B4); // fix 0x8001002B / 80010017 errors  known as ODE patch
+		do_patch(0x80000000002d2b34,0xF821FE617CE802A6); // ECDSA 2
+		do_patch(0x8000000000003d90,0xF821FEB17C0802A6); // psjailbreak, PL3, etc destroy this function to copy their code there.
+		do_patch(0x800000000005658C,0x63FF003D419EFFD4);  // fix 8001003D error
+		do_patch(0x8000000000056650,0x3FE0800163FF003E); // fix 8001003E error
+		do_patch(0x8000000000056604,0x2F840004409C0048); //PATCH_JUMP
 
 		*(uint64_t *)0x8000000000474A80=0;
 		unhook_all_modules();
@@ -458,16 +455,16 @@ LV2_HOOKED_FUNCTION_PRECALL_2(int, post_lv1_call_99_wrapper, (uint64_t *spu_obj,
 			timer_usleep(700000);
 		}
 	}
-				do_patch32(0x80000000000564b0,0x38600000); // patch_func8_offset1 
+			do_patch32(0x80000000000564b0,0x38600000); // patch_func8_offset1 
 			do_patch32(0x8000000000056614,0x60000000); // patch_func8_offset2 
 			do_patch32(0x80000000000203fc,0x60000000); // user_thread_prio_patch	for netiso
-			do_patch32(0x8000000000020408,0x60000000); // user_thread_prio_patch2	net iso
-			do_patch32(0x8000000000059dc4,0x38600000);// patch_func2_offset (modules_patching)
+			do_patch32(0x8000000000020408,0x60000000); // user_thread_prio_patch2	for netiso
+			do_patch32(0x8000000000059dc4,0x38600000); // ECDSA 1
 			do_patch32(0x8000000000056230,0x38600001); // ignore LIC.DAT check	
 			do_patch32(0x800000000005a6f8,0x60000000); // fix 80010009 error
 			do_patch32(0x800000000005a6e4,0x60000000); // fix 80010009 error
 			do_patch(0x80000000002275f4,0x38600000F8690000);  // fix 0x8001002B / 80010017 errors  known as ODE patch
-			do_patch(0x80000000002d2b34,0x386000004e800020); // ECDSA
+			do_patch(0x80000000002d2b34,0x386000004e800020); // ECDSA 2
 			do_patch(0x8000000000003d90,0x386000014e800020); // psjailbreak, PL3, etc destroy this function to copy their code there.
 			do_patch(0x800000000005658C,0x63FF003D60000000);  // fix 8001003D error
 			do_patch(0x8000000000056650,0x3FE080013BE00000); // fix 8001003E error
