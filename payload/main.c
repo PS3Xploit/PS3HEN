@@ -1533,7 +1533,23 @@ LV2_SYSCALL2(int, sm_get_fan_policy_sc,(uint8_t id, uint8_t *st, uint8_t *policy
 
 static INLINE void apply_kernel_patches(void)
 {
-
+	/// Adding HEN patches on init for stability /// -- START
+	do_patch32(0x80000000000564b0,0x38600000); // patch_func8_offset1 
+	do_patch32(0x8000000000056614,0x60000000); // patch_func8_offset2 
+	do_patch32(0x80000000000203fc,0x60000000); // user_thread_prio_patch	for netiso
+	do_patch32(0x8000000000020408,0x60000000); // user_thread_prio_patch2	for netiso
+	do_patch32(0x8000000000059dc4,0x38600000); // ECDSA 1
+	do_patch32(0x8000000000056230,0x38600001); // ignore LIC.DAT check	
+	do_patch32(0x800000000005a6f8,0x60000000); // fix 80010009 error
+	do_patch32(0x800000000005a6e4,0x60000000); // fix 80010009 error
+	do_patch(0x80000000002275f4,0x38600000F8690000);  // fix 0x8001002B / 80010017 errors  known as ODE patch
+	do_patch(0x80000000002d2b34,0x386000004e800020); // ECDSA 2
+	do_patch(0x8000000000003d90,0x386000014e800020); // psjailbreak, PL3, etc destroy this function to copy their code there.
+	do_patch(0x800000000005658C,0x63FF003D60000000);  // fix 8001003D error
+	do_patch(0x8000000000056650,0x3FE080013BE00000); // fix 8001003E error
+	do_patch(0x8000000000056604,0x2F84000448000098); //PATCH_JUMP			
+	*(uint64_t *)0x8000000000474A80=0;
+	/// Adding HEN patches on init for stability ///	 -- END
 	hook_function_with_precall(get_syscall_address(801),sys_fs_open,6);
 	hook_function_with_precall(get_syscall_address(802),sys_fs_read,4);
 	hook_function_with_cond_postcall(0x2253dc,um_if_get_token,5);
@@ -1569,23 +1585,6 @@ int main(void)
 //	drm_init();
 
 	apply_kernel_patches();
-	/// Adding HEN patches on init for stability /// -- START
-	do_patch32(0x80000000000564b0,0x38600000); // patch_func8_offset1 
-	do_patch32(0x8000000000056614,0x60000000); // patch_func8_offset2 
-	do_patch32(0x80000000000203fc,0x60000000); // user_thread_prio_patch	for netiso
-	do_patch32(0x8000000000020408,0x60000000); // user_thread_prio_patch2	for netiso
-	do_patch32(0x8000000000059dc4,0x38600000); // ECDSA 1
-	do_patch32(0x8000000000056230,0x38600001); // ignore LIC.DAT check	
-	do_patch32(0x800000000005a6f8,0x60000000); // fix 80010009 error
-	do_patch32(0x800000000005a6e4,0x60000000); // fix 80010009 error
-	do_patch(0x80000000002275f4,0x38600000F8690000);  // fix 0x8001002B / 80010017 errors  known as ODE patch
-	do_patch(0x80000000002d2b34,0x386000004e800020); // ECDSA 2
-	do_patch(0x8000000000003d90,0x386000014e800020); // psjailbreak, PL3, etc destroy this function to copy their code there.
-	do_patch(0x800000000005658C,0x63FF003D60000000);  // fix 8001003D error
-	do_patch(0x8000000000056650,0x3FE080013BE00000); // fix 8001003E error
-	do_patch(0x8000000000056604,0x2F84000448000098); //PATCH_JUMP			
-	*(uint64_t *)0x8000000000474A80=0;
-	/// Adding HEN patches on init for stability ///	 -- END
 	map_path_patches(1);
 	storage_ext_patches();
 	region_patches();
