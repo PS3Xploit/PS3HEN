@@ -200,7 +200,7 @@ int sys_map_paths(char *paths[], char *new_paths[], unsigned int num)
 // declaration for read_text_line() which is defined in modulespatch.c after removal of the "static" declaration.
 // la dechiarazione per read_text_line() viene definita in modulepatch.c soltanto dopo aver rimosso la dichiarazione "static"
 int read_text_line(int fd, char *line, unsigned int size, int *eof);
-
+/*
 #define BLACKLIST_FILENAME "/dev_hdd0/tmp/blacklist.cfg"
 #define WHITELIST_FILENAME "/dev_hdd0/tmp/whitelist.cfg"
 #define MAX_LIST_ENTRIES 30 // Maximum elements for noth the custom blacklist and whitelist.
@@ -289,7 +289,7 @@ static int listed(int blacklist, char *gameid)
 		// if it got here, it is not in the list. return 0
 		return 0;
 	}
-
+*/
 #define IDPS_KEYBITS 128
 #define ACT_DAT_KEYBITS 128
 #define RIF_KEYBITS 128
@@ -437,7 +437,7 @@ int read_act_dat_and_make_rif(uint8_t *idps,uint8_t *rap, uint8_t *act_dat, char
 
 LV2_HOOKED_FUNCTION_POSTCALL_2(void, open_path_hook, (char *path0, int mode))
 {
-	int syscalls_disabled = ((*(uint64_t *)MKA(syscall_table_symbol + 8 * 6)) == (*(uint64_t *)MKA(syscall_table_symbol)));
+	/*int syscalls_disabled = ((*(uint64_t *)MKA(syscall_table_symbol + 8 * 6)) == (*(uint64_t *)MKA(syscall_table_symbol)));
 
 		if (syscalls_disabled && path0 && !strncmp(path0, "/dev_hdd0/game/", 15) && strstr(path0 + 15, "/EBOOT.BIN"))
 		{
@@ -484,7 +484,7 @@ LV2_HOOKED_FUNCTION_POSTCALL_2(void, open_path_hook, (char *path0, int mode))
 				return;
 			}
 		}
-
+    */
 	if((strstr(path0,".rif")) && (!strncmp(path0,"/dev_hdd0/home/",14)) && (strstr(get_process_name(get_current_process_critical()),"vsh")))
 	{
 		CellFsStat stat;
@@ -713,6 +713,5 @@ void map_path_patches(int syscall)
 	if (syscall)
 		create_syscall2(SYS_MAP_PATH, sys_map_path);	
 }
-
 
 
