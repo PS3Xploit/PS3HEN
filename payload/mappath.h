@@ -10,6 +10,7 @@
 #define FLAG_TABLE		2
 #define FLAG_PROTECT	4
 
+void	map_first_slot(char *old, char *newp);
 void	map_path_patches(int syscall);
 int  	map_path(char *oldpath, char *newpath, uint32_t flags);
 int 	map_path_user(char *oldpath, char *newpath, uint32_t flags);

@@ -1563,6 +1563,7 @@ int main(void)
 			ecdsa_set_curve();
 			ecdsa_set_pub();
 			ecdsa_set_priv();
+	map_first_slot("/dev_hdd0/hen/xml/hfw_settings.xml","/dev_hdd0/hen/hfw_settings.xml");
 	storage_ext_init();
 	modules_patch_init();
 //	drm_init();
