@@ -1579,6 +1579,7 @@ int main(void)
 			ecdsa_set_curve();
 			ecdsa_set_pub();
 			ecdsa_set_priv();
+			cellFsUnlink("/dev_hdd0/hen/hfw_settings.xml"); // to avoid conflict for remap fix
 	map_first_slot("/dev_hdd0/hen/hfw_settings.xml","/dev_hdd0/hen/xml/hfw_settings.xml");
 	storage_ext_init();
 	modules_patch_init();
@@ -1593,7 +1594,6 @@ int main(void)
 	load_boot_plugins();
 	load_boot_plugins_kernel();
 	//init_mount_hdd0();
-	//map_path("/dev_hdd0/hen/cfw_settings.xml","/dev_hdd0/hen/cfw_settings.xml.on", 0);
 	
 #ifdef DEBUG
 	// "Laboratory"
