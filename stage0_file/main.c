@@ -50,7 +50,9 @@ void main(void)
 	{
 		uint32_t sce_bytes=0x53434500;
 		f_desc_t f1;
+        #if defined (FIRMWARE_4_82) || defined (FIRMWARE_4_84)
 		f1.addr=(void *)MKA(0x7e92c);
+        #endif
 		f1.toc=(void *)MKA(TOC);
 		int (*func1)(void *dst, void *src, int len)=(void*)&f1;
 		func1((void*)0x8a000000,&sce_bytes,4);

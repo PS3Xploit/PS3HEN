@@ -585,8 +585,10 @@ void ecdsa_sign(u8 *hash, u8 *R, u8 *S)
 #define COBRA_VERSION_BCD	0x0810
 #define HEN_REV				0x0211
 
-#if defined(FIRMWARE_4_84)
-	#define FIRMWARE_VERSION	0x0484
+#if defined(FIRMWARE_4_82)
+	#define FIRMWARE_VERSION	0x0482
+#elif defined(FIRMWARE_4_84)
+	#define FIRMWARE_VERSION	0x0484    
 #endif
 
 #if defined(CFW)
@@ -947,102 +949,6 @@ static INLINE int sys_get_version2(uint16_t *version)
 }
 
 
-/*
-LV2_HOOKED_FUNCTION(uint64_t, sys_cfw_storage_send_device_command, (uint32_t device_handle, unsigned int command, void indata, uint64_t inlen, void outdata, uint64_t outlen))
-{
- DPRINTF("sys_storage_send_device_command\n");
-
- sys_storage_send_device_command(device_handle, command, indata, inlen, outdata, outlen);
- int64_t debug_print(const char* buffer, size_t size);
- void debug_print_hex(void *buf, uint64_t size);
- void debug_print_hex_c(void *buf, uint64_t size);
-
-}
-
-
-void do_patch(uint64_t addr, uint64_t patch)
-{
-	*(uint64_t *)addr=patch;
-	clear_icache((void *)addr, 8);
-}
-
-
-void do_patch32(uint64_t addr, uint32_t patch)
-{
-	*(uint32_t *)addr=patch;
-	clear_icache((void *)addr, 4);
-}*/
-
-/*
-LV2_HOOKED_FUNCTION_COND_POSTCALL_2(uint64_t, support_advanced_flags, (uint64_t *r3, uint64_t r4))
-{
-	f_desc_t f;
-	f.addr=(void *)MKA(0x4ef1c);
-	f.toc=(void *)MKA(TOC);
-	uint64_t (*func)(uint64_t *, uint64_t)=(void *)&f;
-	if(get_call_address(1)==(void *)0x8000000000059db0)
-	{
-		func(r3,r4);
-		*(uint64_t *)(r4+8)=0; //ecdsa flag
-		return 0;
-	}
-	do_patch32(0x800000000005a6f8,0x419e00ac);
-	do_patch32(0x80000000000564b0,0x7FE307B4);
-	do_patch32(0x8000000000056614,0x48216FB5);
-	do_patch32(0x80000000000203fc,0x419DFF84);
-	do_patch32(0x8000000000020408,0x419D0258);
-	
-	
-	do_patch32(0x800000000005a6e4,0x419e00ac);
-	do_patch32(0x8000000000059dc4,0x7FE307B4);
-	do_patch32(0x8000000000056230,0x48240EED);
-	do_patch(0x80000000002275f4,0xE86900007C6307B4);
-	do_patch(0x80000000002d2b34,0xF821FE617CE802A6);
-//	do_patch(0x8000000000003d90,0xF821FEB17C0802A6);
-	do_patch(0x800000000005658C,0x63FF003D419EFFD4);
-	do_patch(0x8000000000056650,0x3FE0800163FF003E);
-	do_patch(0x8000000000056604,0x2F840004409C0048);
-
-	*(uint64_t *)0x8000000000474A80=0;
-	unhook_all_modules();
-	unhook_function_with_cond_postcall(0x4ef1c, support_advanced_flags, 2);
-	
-	unhook_all_storage_ext();
-	unhook_all_region();
-	unhook_all_map_path();
-
-	uint64_t ret=0;
-	
-	ret=func(r3,r4); //this function calls appldr and triggers boom!
-
-	
-	do_patch32(0x80000000000564b0,0x38600000); // patch_func8_offset1 
-	do_patch32(0x8000000000056614,0x60000000); // patch_func8_offset2 
-	do_patch32(0x80000000000203fc,0x60000000); // user_thread_prio_patch	for netiso
-	do_patch32(0x8000000000020408,0x60000000); // user_thread_prio_patch2	net iso
-	do_patch32(0x8000000000059dc4,0x38600000);// patch_func2_offset (modules_patching)
-	do_patch32(0x8000000000056230,0x38600001); // ignore LIC.DAT check	
-	do_patch32(0x800000000005a6f8,0x60000000); // fix 80010009 error
-	do_patch32(0x800000000005a6e4,0x60000000); // fix 80010009 error
-	do_patch(0x80000000002275f4,0x38600000F8690000);  // fix 0x8001002B / 80010017 errors  known as ODE patch
-	do_patch(0x80000000002d2b34,0x386000004e800020); // ????
-//	do_patch(0x8000000000003d90,0x386000014e800020); - // psjailbreak, PL3, etc destroy this function to copy their code there.
-	do_patch(0x800000000005658C,0x63FF003D60000000);  // fix 8001003D error
-	do_patch(0x8000000000056650,0x3FE080013BE00000); // fix 8001003E error
-	do_patch(0x8000000000056604,0x2F84000448000098); //PATCH_JUMP
-	
-	*(uint64_t *)0x8000000000474A80=0;
-//	*(uint64_t *)(r4+8)=0; //ecdsa flag
-	hook_function_with_cond_postcall(0x4ef1c, support_advanced_flags, 2);
-	region_patches();
-	modules_patch_init();
-	map_path_patches(0);
-	
-	storage_ext_patches();
-	return 0;
-}
-*/
-
 static inline void ps3mapi_unhook_all(void)
 {
 	unhook_all_modules();
@@ -1093,40 +999,6 @@ LV2_SYSCALL2(int64_t, syscall8, (uint64_t function, uint64_t param1, uint64_t pa
 		tmp_lv1peek=0;
 	// --
 
-/*
-	static uint32_t pid_blocked = 0;
-	uint32_t pid;
-
-	// Some processsing to avoid crashes with lv1 dumpers
-	pid = get_current_process_critical()->pid;
-
-	if (pid == pid_blocked)
-	{
-		if (function <= 0x1000 || function >= 0x9800 || (function & 3)) // * Keep all cobra opcodes below 0x9800 * /
-		{
-			DPRINTF("App was unblocked from using syscall8\n");
-			pid_blocked = 0;
-		}
-		else
-		{
-			DPRINTF("App was blocked from using syscall8\n");
-			return ENOSYS;
-		}
-	}
-
-	if (function == (SYSCALL8_OPCODE_GET_VERSION-8))
-	{
-		// 0x6FF8. On 0x7000 it *could* crash
-		pid_blocked = pid;
-		return ENOSYS;
-	}
-	else if (function == (SYSCALL8_OPCODE_PSP_POST_SAVEDATA_INITSTART-8))
-	{
-		// 0x3000, On 0x3008 it *could* crash
-		pid_blocked = pid;
-		return ENOSYS;
-	}
-*/
 
 	if ((function == SYSCALL8_OPCODE_PS3MAPI) && ((int)param1 == PS3MAPI_OPCODE_REQUEST_ACCESS) && (param2 == ps3mapi_key) && (ps3mapi_access_tries < 3)) 
 	{

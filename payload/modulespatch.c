@@ -514,7 +514,7 @@ LV2_PATCHED_FUNCTION(int, modules_patching, (uint64_t *arg1, uint32_t *arg2))
 
 	// +4.30 -> 0x13 (exact firmware since it happens is unknown)
 	// 3.55 -> 0x29
-#if defined(FIRMWARE_4_84)
+#if defined(FIRMWARE_4_82) || defined(FIRMWARE_4_84)
 	if ((p[0x30/4] >> 16) == 0x13)
 #endif
 	{	
@@ -693,7 +693,7 @@ LV2_PATCHED_FUNCTION(int, modules_patching, (uint64_t *arg1, uint32_t *arg2))
 	return 0;
 }
 
-#if defined (FIRMWARE_4_84)
+#if defined (FIRMWARE_4_82) || defined(FIRMWARE_4_84)
 LV2_HOOKED_FUNCTION_COND_POSTCALL_2(int, pre_modules_verification, (uint32_t *ret, uint32_t error))
 {
 /*
