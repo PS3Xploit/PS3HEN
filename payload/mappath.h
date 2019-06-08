@@ -16,6 +16,7 @@ int  	map_path(char *oldpath, char *newpath, uint32_t flags);
 int 	map_path_user(char *oldpath, char *newpath, uint32_t flags);
 int 	sys_map_path(char *oldpath, char *newpath);
 int 	sys_map_paths(char *paths[], char *new_paths[], unsigned int num);
+int get_map_path(unsigned int num, char *path, char *new_path);
 /*int	sys_map_game(char *path);
 int	sys_hermes_pathtable(uint64_t pathtable);*/
 

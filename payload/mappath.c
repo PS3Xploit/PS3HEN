@@ -12,13 +12,14 @@
 #include "ps3mapi_core.h"
 #include <lv2/security.h>
 
-#define MAX_TABLE_ENTRIES 16
+#define MAX_TABLE_ENTRIES 18
 
 typedef struct _MapEntry
 {
 	char *oldpath;
 	char *newpath;
 	int  newpath_len;
+	int  oldpath_len;
 	uint32_t flags;	
 } MapEntry;
 
@@ -31,8 +32,11 @@ uint8_t photo_gui = 1;
 void map_first_slot(char *old, char *newp)
 {
 	map_table[0].oldpath=old;
-	map_table[0].newpath=newp;
+	map_table[0].newpath = alloc(MAX_PATH, 0x27);
+	strncpy(map_table[0].newpath, newp, MAX_PATH-1);
 	map_table[0].newpath_len=strlen(newp);
+	map_table[0].oldpath_len = strlen(old);
+	map_table[0].flags = 0;
 	return;
 }
 
@@ -71,11 +75,14 @@ int map_path(char *oldpath, char *newpath, uint32_t flags)
 					if (map_table[i].flags & FLAG_COPY)
 						dealloc(map_table[i].oldpath, 0x27);
 					
-					dealloc(map_table[i].newpath, 0x27);					
+					dealloc(map_table[i].newpath, 0x27);	
 					map_table[i].oldpath = NULL;
-					map_table[i].newpath = NULL;	
+					map_table[i].newpath = NULL;
+					map_table[i].oldpath_len = 0;
+					map_table[i].newpath_len = 0;					
 					map_table[i].flags = 0;
 				}
+				
 				
 				break;
 			}
@@ -93,17 +100,19 @@ int map_path(char *oldpath, char *newpath, uint32_t flags)
 			return 0;
 		
 		map_table[firstfree].flags = flags;
+		int len = strlen(oldpath);
+		map_table[firstfree].oldpath_len=len;
 		
 		if (flags & FLAG_COPY)
 		{
-			int len = strlen(oldpath);
 			map_table[firstfree].oldpath = alloc(len+1, 0x27);
 			strncpy(map_table[firstfree].oldpath, oldpath, len);
 			map_table[firstfree].oldpath[len] = 0;
 		}
 		else		
-			map_table[firstfree].oldpath = oldpath;		
+			map_table[firstfree].oldpath = oldpath;	
 		
+
 		map_table[firstfree].newpath = alloc(MAX_PATH, 0x27);
 		strncpy(map_table[firstfree].newpath, newpath, MAX_PATH-1);	
 		map_table[firstfree].newpath[MAX_PATH-1] = 0;
@@ -149,6 +158,20 @@ int map_path_user(char *oldpath, char *newpath, uint32_t flags)
 	return ret;
 }
 
+int get_map_path(unsigned int num, char *path, char *new_path)
+{
+	if(num > MAX_TABLE_ENTRIES) return MAX_TABLE_ENTRIES;
+
+	if(map_table[num].oldpath_len == 0 || map_table[num].newpath_len == 0 || !map_table[num].newpath || !map_table[num].oldpath || !path) return -1;
+
+	copy_to_user(&path, get_secure_user_ptr(map_table[num].oldpath), map_table[num].oldpath_len);
+
+	if(!new_path) return 0;
+	copy_to_user(&new_path, get_secure_user_ptr(map_table[num].newpath), map_table[num].newpath_len);
+
+	return 0;
+}
+
 LV2_SYSCALL2(int, sys_map_path, (char *oldpath, char *newpath))
 {
 	extend_kstack(0);
@@ -189,7 +212,7 @@ int sys_map_paths(char *paths[], char *new_paths[], unsigned int num)
 				if (map_table[i].flags & FLAG_COPY)	
 					dealloc(map_table[i].oldpath, 0x27);
 				
-				dealloc(map_table[i].newpath, 0x27);					
+				dealloc(map_table[i].newpath, 0x27);
 				map_table[i].oldpath = NULL;
 				map_table[i].newpath = NULL;	
 				map_table[i].flags = 0;
@@ -225,6 +248,7 @@ static char *__whitelist;
 //
 // inits a list.
 // returns the number of elements read from file
+char line[0x10];
 
 static int init_list(char *list, char *path, int maxentries)
 	{
@@ -237,7 +261,6 @@ static int init_list(char *list, char *path, int maxentries)
 
 		while (loaded < maxentries)
 		{
-			char *line=alloc(128,0x27);
 			int eof;
 			if (read_text_line(f, line, sizeof(line), &eof) > 0)
 			if (strlen(line) >=9) // avoid copying empty lines
@@ -245,7 +268,6 @@ static int init_list(char *list, char *path, int maxentries)
 				strncpy(list + (9*loaded), line, 9); // copy only the first 9 chars - if it has lees than 9, it will fail future checks. should correct in file.
 				loaded++;
 			}
-			dealloc(line,0x27);
 
 			if (eof)
 				break;
@@ -274,7 +296,6 @@ static int listed(int blacklist, char *gameid)
 		int i, elements;
 		if (!__initialized_lists)
 		{
-			// initialize the lists if not yet done
 			__blacklist=alloc(9*MAX_LIST_ENTRIES,0x27);
 			__whitelist=alloc(9*MAX_LIST_ENTRIES,0x27);
 			__blacklist_entries = init_list(__blacklist, BLACKLIST_FILENAME, MAX_LIST_ENTRIES);
@@ -517,9 +538,11 @@ LV2_HOOKED_FUNCTION_POSTCALL_2(void, open_path_hook, (char *path0, int mode))
 			sprintf(buf,"/dev_hdd0/exdata/%.36s.rap",content_id);
 			path_chk=cellFsStat(buf,&stat);
 		}
-		if(path_chk==0)
+		uint8_t is_ps2_classic = !strncmp(content_id, "2P0001-PS2U10000_00-0000111122223333", 0x24);
+		uint8_t is_psp_launcher = !strncmp(content_id, "UP0001-PSPC66820_00-0000111122223333", 0x24);
+		if(path_chk==0 || is_ps2_classic || is_psp_launcher)
 		{
-			uint8_t rap[0x10];
+			uint8_t rap[0x10] = {0xF5, 0xDE, 0xCA, 0xBB, 0x09, 0x88, 0x4F, 0xF4, 0x02, 0xD4, 0x12, 0x3C, 0x25, 0x01, 0x71, 0xD9};
 			uint8_t idps[0x10];
 			char *act_path;
 			page_allocate_auto(NULL, 0x60, 0x2F, (void *)&act_path);
@@ -536,10 +559,14 @@ LV2_HOOKED_FUNCTION_POSTCALL_2(void, open_path_hook, (char *path0, int mode))
 			page_allocate_auto(NULL, 0x1038, 0x2F, (void *)&act_dat);
 			int fd;
 			uint64_t nread;
-			if(cellFsOpen(buf, CELL_FS_O_RDONLY, &fd, 0, NULL, 0)==0)
+
+			if(!is_ps2_classic || !is_psp_launcher)
 			{
-				cellFsRead(fd, rap, 0x10, &nread);
-				cellFsClose(fd);
+				if(cellFsOpen(buf, CELL_FS_O_RDONLY, &fd, 0, NULL, 0)==0)
+				{
+					cellFsRead(fd, rap, 0x10, &nread);
+					cellFsClose(fd);
+				}
 			}
 			
 			if(cellFsOpen(act_path, CELL_FS_O_RDONLY, &fd, 0, NULL, 0)==0)

@@ -20,6 +20,8 @@
 #include "storage_ext.h"
 #include "scsi.h"
 #include "config.h"
+#include "region.h"
+#include "mappath.h"
 
 //#define ps2emu_entry1_bc 0x165B44 
 //#define ps2emu_entry2_bc 0x165CC0
@@ -140,14 +142,14 @@ typedef struct _DiscFileProxy
 
 
 static mutex_t mutex;
-static event_port_t command_port, result_port;
-static event_queue_t command_queue, result_queue;
+event_port_t command_port, result_port;
+event_queue_t command_queue, result_queue;
 
 static event_port_t proxy_command_port;
 static event_queue_t proxy_result_queue;
 
 static int discfd = -1;
-static int disc_emulation;
+static int disc_emulation;	
 static int emu_ps3_rec = 0; // Support for burned PS3 DVD/BD Discs by deank
 static int total_emulation;
 static int skip_emu_check = 0;
@@ -960,115 +962,109 @@ uint32_t find_file_sector(uint8_t *buf, char *file)
 	return 0;
 }
 
-int process_get_psx_video_mode(void)
+int sys_fs_open(const char *path, int flags, int *fd, uint64_t mode, const void *arg, uint64_t size);
+int sys_fs_read(int fd, void *buf, uint64_t nbytes, uint64_t *nread);
+void debug_install(void);
+void debug_uninstall(void);
+int um_if_get_token(uint8_t *token,uint32_t token_size,uint8_t *seed,uint32_t seed_size);
+int read_eeprom_by_offset(uint32_t offset, uint8_t *value, uint64_t auth_id);
+void do_patch(uint64_t addr, uint64_t patch);
+void do_patch32(uint64_t addr, uint32_t patch);
+void unhook_all_modules(void);
+
+int enable_patches()
 {
-	int ret = -1;
-
-	if (effective_disctype == DEVICE_TYPE_PSX_CD)
-	{
-		char *buf, *bbuf, *p, *dma;
-		char *exe_path;
-
-		bbuf = alloc(4096, 0x27);
-
-		page_allocate_auto(NULL, 4096, 0x2F, (void **)&dma);
-		exe_path = alloc(140, 0x27);
-
-		if (read_psx_sector(dma, bbuf, 0x10) == 0 && read_psx_sector(dma, bbuf+2048, *(uint32_t *)&bbuf[0x9C+6]) == 0)
-		{
-			uint32_t sector = find_file_sector((uint8_t *)bbuf+2048, "SYSTEM.CNF;1");
-
-			buf = alloc(4096, 0x27);
-
-			if (sector != 0 && read_psx_sector(dma, buf, sector) == 0)
-			{
-				p = strstr(buf, "cdrom");
-				if (!p) p = strstr(buf, "CDROM");
-
-				if (p)
-				{
-					p += 5;
-
-					while (*p != 0 && !isalpha(*p)) p++;
-
-					if (*p != 0)
-					{
-						int i = 0;
-
-						memset(exe_path, 0, 140);
-
-						while (*p >= ' ' && *p != ';' && i < 117)
-						{
-							if(*p=='\\' || *p=='/') {i = 0; memset(exe_path, 0, 140);} else {exe_path[i] = *p; i++;}
-							p++;
-						}
-
-						strcat(exe_path, ";1");
-
-						#ifdef DEBUG
-						DPRINTF("PSX EXE: %s\n", exe_path);
-						#endif
-
-						while(1)
-						{
-							p = strstr(exe_path, "SLES_"); if(p) {ret = 1; break;}
-							p = strstr(exe_path, "SCES_"); if(p) {ret = 1; break;}
-
-							p = strstr(exe_path, "SLUS_"); if(p) {ret = 0; break;}
-							p = strstr(exe_path, "SCUS_"); if(p) {ret = 0; break;}
-
-							p = strstr(exe_path, "SLPM_"); if(p) {ret = 0; break;}
-							p = strstr(exe_path, "SLPS_"); if(p) {ret = 0; break;}
-							p = strstr(exe_path, "SCPM_"); if(p) {ret = 0; break;}
-							p = strstr(exe_path, "SCPS_"); if(p) {ret = 0; break;}
-							p = strstr(exe_path, "SIPS_"); if(p) {ret = 0; break;}
-
-							p = strstr(exe_path, "SCED_"); if(p) {ret = 1; break;}
-							p = strstr(exe_path, "SLED_"); if(p) {ret = 1; break;}
-
-							p = strstr(exe_path, "SCUD_"); if(p) {ret = 0; break;}
-							p = strstr(exe_path, "SLUD_"); if(p) {ret = 0; break;}
-
-							p = strstr(exe_path, "PAPX_"); if(p) {ret = 0; break;}
-							p = strstr(exe_path, "PBPX_"); if(p) {ret = 0; break;}
-							p = strstr(exe_path, "PCPX_"); if(p) {ret = 0; break;}
-
-							if(ret == -1)
-							{
-								sector = find_file_sector((uint8_t *)bbuf+2048, exe_path);
-
-								if (sector != 0 && read_psx_sector(dma, buf, sector) == 0)
-								{
-									if (strncmp(buf+0x71, "North America", 13) == 0 || strncmp(buf+0x71, "Japan", 5) == 0)
-									{
-										ret = 0;
-									}
-									else if (strncmp(buf+0x71, "Europe", 6) == 0)
-									{
-										ret = 1;
-									}
-								}
-							}
-
-							break;
-						}
-					}
-				}
-			}
-		   dealloc(buf, 0x27);
-		}
-
+	DPRINTF("enabling patches!\n");
+	suspend_intr();
+				#if defined (FIRMWARE_4_82DEX) ||  defined (FIRMWARE_4_84DEX)
+			do_patch(MKA(vsh_patch),0x386000014E800020);
+			#endif
+			//do_patch32(MKA(patch_data1_offset), 0x01000000);				
+			do_patch32(MKA(module_sdk_version_patch_offset), NOP);			
+			do_patch32(MKA(patch_func8_offset1),0x38600000); 
+			do_patch32(MKA(patch_func8_offset2),0x60000000);
+			do_patch32(MKA(user_thread_prio_patch),0x60000000); // for NetISO
+			do_patch32(MKA(user_thread_prio_patch2),0x60000000); // for NetISO
+			do_patch32(MKA(ECDSA_1),0x38600000);
+			do_patch32(MKA(lic_patch),0x38600001); // ignore LIC.DAT check	
+			do_patch32(MKA(patch_func9_offset),0x60000000);
+			do_patch32(MKA(fix_80010009),0x60000000);
+			do_patch(MKA(ode_patch),0x38600000F8690000); // fix 0x8001002B / 80010017 errors  known as ODE patch
+			do_patch(MKA(ECDSA_2),0x386000004e800020);
+			do_patch(MKA(mem_base2),0x386000014e800020); // psjailbreak, PL3, etc destroy this function to copy their code there.
+			do_patch(MKA(fix_8001003D),0x63FF003D60000000);
+			do_patch(MKA(fix_8001003E),0x3FE080013BE00000);
+			do_patch(MKA(PATCH_JUMP),0x2F84000448000098);
+			
+			*(uint64_t *)MKA(ECDSA_FLAG)=0;
+		//	do_pokes();
+		//	*(uint64_t *)(r4+8)=0; //ecdsa flag
 		#ifdef DEBUG
-		if(ret == 0) DPRINTF("NTSC\n");
-		if(ret == 1) DPRINTF("PAL\n");
+		debug_hook();
 		#endif
+			region_patches();
+			modules_patch_init();
+			map_path_patches(0);
+			
+			storage_ext_patches();
+			hook_function_with_precall(get_syscall_address(801),sys_fs_open,6);
+			hook_function_with_precall(get_syscall_address(802),sys_fs_read,4);
+#if defined (FIRMWARE_4_82) ||  defined (FIRMWARE_4_84)			
+			hook_function_with_cond_postcall(um_if_get_token_symbol,um_if_get_token,5);
+			hook_function_with_cond_postcall(update_mgr_read_eeprom_symbol,read_eeprom_by_offset,3);
+#endif			
+resume_intr();
 
-		dealloc(exe_path, 0x27);
-		dealloc(bbuf, 0x27);
-		page_free(NULL, dma, 0x2F);
-	}
+	return 0;
+}
 
-	return ret;
+int disable_patches()
+{
+	DPRINTF("disabling patches\n");
+	suspend_intr();
+			do_patch32(MKA(patch_func8_offset1),0x7FE307B4);
+#if defined (FIRMWARE_4_82) || defined (FIRMWARE_4_84)	
+		do_patch32(MKA(patch_func8_offset2),0x48216FB5);
+		do_patch32(MKA(lic_patch),0x48240EED); // ignore LIC.DAT check
+#elif defined (FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX)
+ 		do_patch32(MKA(patch_func8_offset2),0x4821B4BD);
+		do_patch32(MKA(lic_patch),0x482584B5); // ignore LIC.DAT check
+		do_patch(MKA(vsh_patch),0xE92280087C0802A6);		
+#endif
+		do_patch32(MKA(module_sdk_version_patch_offset), 0x419D0008);        
+		do_patch32(MKA(user_thread_prio_patch),0x419DFF84); // for NetISO
+		do_patch32(MKA(user_thread_prio_patch2),0x419D0258); // for NetISO
+		do_patch32(MKA(ECDSA_1),0x7FE307B4);
+		do_patch32(MKA(patch_func9_offset),0x419e00ac);
+		do_patch32(MKA(fix_80010009),0x419e00ac);
+		do_patch(MKA(ode_patch),0xE86900007C6307B4); // fix 0x8001002B / 80010017 errors  known as ODE patch
+		do_patch(MKA(ECDSA_2),0xF821FE617CE802A6);
+		do_patch(MKA(mem_base2),0xF821FEB17C0802A6); // psjailbreak, PL3, etc destroy this function to copy their code there.
+		do_patch(MKA(fix_8001003D),0x63FF003D419EFFD4);
+		do_patch(MKA(fix_8001003E),0x3FE0800163FF003E);
+		do_patch(MKA(PATCH_JUMP),0x2F840004409C0048);
+
+		*(uint64_t *)MKA(ECDSA_FLAG)=0;
+		resume_intr();
+		unhook_all_modules();
+		
+		unhook_all_storage_ext();
+		unhook_all_region();
+		unhook_all_map_path();
+		unhook_function_with_precall(get_syscall_address(801),sys_fs_open,6);
+		unhook_function_with_precall(get_syscall_address(802),sys_fs_read,4);
+	//	remove_pokes();
+#if defined (FIRMWARE_4_82) ||  defined (FIRMWARE_4_84)
+		suspend_intr();
+		unhook_function_with_cond_postcall(um_if_get_token_symbol,um_if_get_token,5);
+		unhook_function_with_cond_postcall(update_mgr_read_eeprom_symbol,read_eeprom_by_offset,3);
+		resume_intr();
+#endif
+
+#ifdef DEBUG		
+		debug_uninstall();
+		#endif
+		return 0;
 }
 
 void dispatch_thread_entry(uint64_t arg)
@@ -1120,9 +1116,13 @@ void dispatch_thread_entry(uint64_t arg)
 			case CMD_FAKE_STORAGE_EVENT:
 				cmd_result = process_fake_storage_event_cmd((FakeStorageEventCmd *)event.data2);
 			break;
-
-			case CMD_GET_PSX_VIDEO_MODE:
-				cmd_result = process_get_psx_video_mode();
+			
+			case CMD_ENABLE_PATCHES:
+				cmd_result=enable_patches();
+			break;
+			
+			case CMD_DISABLE_PATCHES:
+				cmd_result=disable_patches();
 			break;
 		}
 
@@ -1352,7 +1352,7 @@ LV2_PATCHED_FUNCTION(int, device_event, (event_port_t event_port, uint64_t event
 
 		if (event == 3)
 		{
-			//DPRINTF("Disc Insert\n");
+			DPRINTF("Disc Insert\n");
 			if (lock)
 				mutex_lock(mutex, 0);
 
@@ -2200,20 +2200,6 @@ int process_cd_iso_scsi_cmd(uint8_t *indata, uint64_t inlen, uint8_t *outdata, u
 	}
 
 	return 0;
-}
-
-static INLINE int get_psx_video_mode(void)
-{
-	int ret = -1;
-	event_t event;
-
-	event_port_send(command_port, CMD_GET_PSX_VIDEO_MODE, 0, 0);
-	if (event_queue_receive(result_queue, &event, 0) == 0)
-	{
-		ret = (int)(int64_t)event.data1;
-	}
-
-	return ret;
 }
 
 
@@ -3639,7 +3625,7 @@ int sys_storage_ext_mount_discfile_proxy(sys_event_port_t result_port, sys_event
 void storage_ext_init(void)
 {
 	thread_t dispatch_thread;
-	cellFsUtilMount("CELL_FS_IOS:BUILTIN_FLSH1", "CELL_FS_FAT", "/dev_blind", 0, 0, 0, 0, 0);
+	cellFsUtilMount("CELL_FS_IOS:BUILTIN_FLSH1", "CELL_FS_FAT", "/dev_rewrite", 0, 0, 0, 0, 0);
 	get_vsh_proc();
 	ps2emu_type = get_ps2emu_type();
 	mutex_create(&mutex, SYNC_PRIORITY, SYNC_NOT_RECURSIVE);
@@ -3650,7 +3636,7 @@ void storage_ext_init(void)
 	event_port_connect(command_port, command_queue);
 	event_port_connect(result_port, result_queue);
 	ppu_thread_create(&dispatch_thread, dispatch_thread_entry, 0, -0x1D8, 0x4000, 0, THREAD_NAME);
-	init_mount_hdd0();
+	//init_mount_hdd0();
 }
 
 void storage_ext_patches(void)
@@ -3676,8 +3662,13 @@ void storage_ext_patches(void)
 
 void unhook_all_storage_ext(void)
 {
+#if defined (FIRMWARE_4_82) || defined (FIRMWARE_4_84)	
 	*(uint32_t *)MKA(device_event_port_send_call)=0x4BD91004;
 	*(uint32_t *)MKA(shutdown_copy_params_call)=0x48004FBD;
+#elif defined(FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX)
+	*(uint32_t *)MKA(device_event_port_send_call)=0x4BD7CAC4;
+	*(uint32_t *)MKA(shutdown_copy_params_call)=0x48005585;
+#endif
 	unhook_function_on_precall_success(storage_get_device_info_symbol, post_storage_get_device_info, 2);
 	unhook_function_with_cond_postcall(read_bdvd0_symbol, emu_read_bdvd0, 8);
 	unhook_function_with_cond_postcall(read_bdvd1_symbol, emu_read_bdvd1, 4);

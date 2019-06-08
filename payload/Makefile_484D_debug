@@ -15,7 +15,7 @@ OUTPUT		= stage2.bin
 
 CFLAGS = -ffunction-sections -fdata-sections -Os -m64 -fno-builtin -fno-exceptions \
 			   -Os -Wall -Wno-strict-aliasing -Wno-multichar $(foreach dir,$(INCLUDE),-I$(dir)) \
-			   -DLV2 -DFIRMWARE_4_84 -DCFW -ffreestanding 
+			   -DLV2 -DFIRMWARE_4_84DEX -DCFW -ffreestanding 
 CFLAGS += --std=gnu99
 
 ifeq ($(BUILD_TYPE), debug)
@@ -54,8 +54,8 @@ OBJS += laboratory.o ../debug/src/debug.o ../debug/src/printf.o ../debug/src/deb
 endif
 
 all: $(OUTPUT)
-	@mv stage2.bin ../stage2.bin_debug_484C
-	@rm -f *.o *.elf *.map *.lzma ../lv2/src/*.o ../lv1/src/*.o ../debug/src/*.o
+	@mv stage2.bin ../stage2.bin_debug_484D
+	@rm -f *.o *.map *.lzma ../lv2/src/*.o ../lv1/src/*.o ../debug/src/*.o
 
 objdump: $(OUTPUT)
 	$(OBJDUMP) -D -EB -b binary -m powerpc:common64 $(OUTPUT)	

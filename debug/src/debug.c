@@ -39,6 +39,7 @@ see file COPYING or http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt
 static int bus_id;
 static int dev_id;
 
+uint64_t *ttywrite_sc;
 static u64 bus_addr;
 
 struct ethhdr 
@@ -115,10 +116,18 @@ void debug_uninstall(void)
 
 LV2_SYSCALL2(int, ttyWrite, (int channel, const char* message, int length, int* written))
 {
-	debug_print(message, length);	
-	if (written)
-		*written = length;	
-
+	debug_print(message, length);
+	if(written)
+		*written=length;
+	
+	#ifdef DEBUG
+	f_desc_t f;
+	f.addr=(void*)ttywrite_sc;
+	f.toc=(void*)MKA(TOC);
+	int (*func)(int, const char *, int, int *)=(void *)&f;
+    return func(channel, message, length, written);
+	#endif
+	
 	return 0;
 }
 
@@ -158,6 +167,11 @@ void debug_uninstall(void)
 
 int64_t debug_init(void)
 {
+	uint64_t **table = (uint64_t **)MKA(syscall_table_symbol);
+	f_desc_t *f = (f_desc_t *)table[SYS_TTY_WRITE];
+	ttywrite_sc = (uint64_t *)f->addr;
+	
+	
 	s64 result;
 	u64 v2;
 

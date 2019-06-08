@@ -23,11 +23,14 @@ enum STORAGE_COMMAND
 	CMD_READ_DISC,	
 	CMD_READ_CD_ISO_2352,
 	CMD_FAKE_STORAGE_EVENT,
-	CMD_GET_PSX_VIDEO_MODE
+	CMD_GET_PSX_VIDEO_MODE,
+	CMD_ENABLE_PATCHES,
+	CMD_DISABLE_PATCHES
 };
 
 void storage_ext_init(void);
 void storage_ext_patches(void);
+void init_mount_hdd0();
 
 int mount_ps3_discfile(unsigned int filescount, char *files[]);
 int mount_dvd_discfile(unsigned int filescount, char *files[]);
@@ -45,6 +48,7 @@ typedef struct
 } __attribute__((packed)) sys_emu_state_t;
 
 extern process_t vsh_process;
+void modules_patch_init(void);
 int get_vsh_proc();
 
 int sys_storage_ext_get_disc_type(unsigned int *real_disctype, unsigned int *effective_disctype, unsigned int *fake_disctype);

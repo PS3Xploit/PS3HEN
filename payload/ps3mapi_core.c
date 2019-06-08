@@ -56,6 +56,11 @@ int ps3mapi_get_all_processes_pid(process_id_t *pid_list)
 		}
 
 		char *proc_name = get_process_name(process);
+		if(((uint64_t)(proc_name) & 0xFF00000000000000ULL)!=MKA(0))
+		{
+			tmp_pid_list[i] = 0; //strlen crashing because proc name==NULL
+			continue;
+		}
 
 		if ( 0 < strlen(proc_name)) 
 			tmp_pid_list[i] = process->pid;	
@@ -182,6 +187,7 @@ int ps3mapi_get_process_mem(process_id_t pid, uint64_t addr, char *buf, int size
 
 #define MAX_MODULES 128
 
+
 int ps3mapi_get_all_process_modules_prx_id(process_id_t pid, sys_prx_id_t *prx_id_list)
 {
 	process_t process = ps3mapi_internal_get_process_by_pid(pid);
@@ -193,6 +199,7 @@ int ps3mapi_get_all_process_modules_prx_id(process_id_t pid, sys_prx_id_t *prx_i
 	sys_prx_id_t *list;
 	uint32_t *unk;
 	uint32_t n, unk2;
+
 	list = alloc(MAX_MODULES*sizeof(sys_prx_module_info_t), 0x35);
 
 	if (!list) 
@@ -202,7 +209,7 @@ int ps3mapi_get_all_process_modules_prx_id(process_id_t pid, sys_prx_id_t *prx_i
 
 	if (!unk) {dealloc(list, 0x35); 
 		return ENOMEM;}
-
+	
 	int ret = prx_get_module_list(process, list, unk, MAX_MODULES, &n, &unk2);
 	if (ret == SUCCEEDED)
 	{

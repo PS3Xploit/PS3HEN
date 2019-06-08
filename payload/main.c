@@ -27,6 +27,7 @@
 #include "storage_ext.h"
 #include "region.h"
 #include "config.h"
+#include "psp.h"
 #include "sm_ext.h"
 #include "laboratory.h"
 #include "ps3mapi_core.h"
@@ -583,12 +584,16 @@ void ecdsa_sign(u8 *hash, u8 *R, u8 *S)
 
 #define COBRA_VERSION		0x0F
 #define COBRA_VERSION_BCD	0x0810
-#define HEN_REV				0x0211
+#define HEN_REV				0x0221
 
 #if defined(FIRMWARE_4_82)
 	#define FIRMWARE_VERSION	0x0482
+#elif defined(FIRMWARE_4_82DEX)
+	#define FIRMWARE_VERSION	0x0482    
 #elif defined(FIRMWARE_4_84)
 	#define FIRMWARE_VERSION	0x0484    
+#elif defined(FIRMWARE_4_84DEX)
+	#define FIRMWARE_VERSION	0x0484        
 #endif
 
 #if defined(CFW)
@@ -662,7 +667,10 @@ int inst_and_run_kernel_dynamic(uint8_t *payload, int size, uint64_t *residence)
 	if(!payload)
 		return -2;
 	
-	void *skprx=alloc(size, 0x27);
+	void *skprx=NULL;
+
+	skprx=alloc(size,0x27);
+	
 	if(skprx)
 	{
 		memcpy(skprx, get_secure_user_ptr(payload), size);
@@ -698,12 +706,12 @@ LV2_HOOKED_FUNCTION_PRECALL_SUCCESS_6(int,sys_fs_open,(const char *path, int fla
 	int path_len=strlen(path);
 	if(strstr(path,".rif"))
 	{
-		DPRINTF("RIF fd open called:%s %x %x %x %x %x \n",path,flags,*fd,mode,arg,size);
+		DPRINTF("RIF fd open called:%s\n",path);
 		rif_fd=*fd;
 	}
 	else if(strstr(path,"act.dat"))
 	{
-		DPRINTF("act.dat fd open called:%s %x %x %x %x %x \n",path,flags,*fd,mode,arg,size);
+		DPRINTF("act.dat fd open called:%s\n",path);
 		act_fd=*fd;
 	}
 	else if((strstr(path,".edat")) || (strstr(path,".EDAT")) || (strstr(path,"ISO.BIN.ENC")) || (strstr(path+path_len-7,"CONFIG")))
@@ -725,6 +733,107 @@ int sha1(uint8_t *buf, uint64_t size, uint8_t *out)
 	return 0;
 }
 
+/////// 2.1.2 Encryption fix & hmac hash validation ///// START
+#define SHA_BLOCKSIZE   (64)
+#define SHA_DIGEST_LENGTH	(20)
+
+/**
+* Function to compute the digest
+*
+* @param k   Secret key
+* @param lk  Length of the key in bytes
+* @param d   Data
+* @param ld  Length of data in bytes
+* @param out Digest output
+* @param t   Size of digest output
+*/
+void hmac_sha1(const uint8_t *k,  /* secret key */
+        size_t lk,       /* length of the key in bytes */
+        const uint8_t *d,  /* data */
+        size_t ld,       /* length of data in bytes */
+        uint8_t *out)      /* output buffer */ {
+    SHACtx *ictx=alloc(0x100,0x27);
+	SHACtx *octx=alloc(0x100,0x27);
+    uint8_t isha[SHA_DIGEST_LENGTH];
+    uint8_t key[SHA_DIGEST_LENGTH];
+    uint8_t buf[SHA_BLOCKSIZE];
+    size_t i;
+
+    if (lk > SHA_BLOCKSIZE) {
+        SHACtx *tctx=alloc(0x100,0x27);
+
+        sha1_init(tctx);
+        sha1_update(tctx, k, lk);
+        sha1_final(key, tctx);
+		dealloc(tctx,0x27);
+
+        k = key;
+        lk = SHA_DIGEST_LENGTH;
+    }
+
+    /**** Inner Digest ****/
+
+    sha1_init(ictx);
+
+    /* Pad the key for inner digest */
+    for (i = 0; i < lk; ++i) {
+        buf[i] = k[i] ^ 0x36;
+    }
+    for (i = lk; i < SHA_BLOCKSIZE; ++i) {
+        buf[i] = 0x36;
+    }
+
+    sha1_update(ictx, buf, SHA_BLOCKSIZE);
+    sha1_update(ictx, d, ld);
+
+    sha1_final(isha, ictx);
+
+    /**** Outer Digest ****/
+
+    sha1_init(octx);
+
+    /* Pad the key for outter digest */
+
+    for (i = 0; i < lk; ++i) {
+        buf[i] = k[i] ^ 0x5c;
+    }
+    for (i = lk; i < SHA_BLOCKSIZE; ++i) {
+        buf[i] = 0x5c;
+    }
+
+    sha1_update(octx, buf, SHA_BLOCKSIZE);
+    sha1_update(octx, isha, SHA_DIGEST_LENGTH);
+
+    sha1_final(out, octx);
+
+	dealloc(ictx,0x27);
+	dealloc(octx,0x27);
+}
+
+uint8_t erk[0x20] = {
+	0x34, 0x18, 0x12, 0x37, 0x62, 0x91, 0x37, 0x1c,
+	0x8b, 0xc7, 0x56, 0xff, 0xfc, 0x61, 0x15, 0x25,
+	0x40, 0x3f, 0x95, 0xa8, 0xef, 0x9d, 0x0c, 0x99,
+	0x64, 0x82, 0xee, 0xc2, 0x16, 0xb5, 0x62, 0xed
+};
+
+uint8_t hmac[0x40] = {
+	0xcc, 0x30, 0xc4, 0x22, 0x91, 0x13, 0xdb, 0x25,
+	0x73, 0x35, 0x53, 0xaf, 0xd0, 0x6e, 0x87, 0x62,
+	0xb3, 0x72, 0x9d, 0x9e, 0xfa, 0xa6, 0xd5, 0xf3,
+	0x5a, 0x6f, 0x58, 0xbf, 0x38, 0xff, 0x8b, 0x5f,
+	0x58, 0xa2, 0x5b, 0xd9, 0xc9, 0xb5, 0x0b, 0x01,
+	0xd1, 0xab, 0x40, 0x28, 0x67, 0x69, 0x68, 0xea,
+	0xc7, 0xf8, 0x88, 0x33, 0xb6, 0x62, 0x93, 0x5d,
+	0x75, 0x06, 0xa6, 0xb5, 0xe0, 0xf9, 0xd9, 0x7a
+};
+
+uint8_t iv_qa[0x10] = {
+	0xe8, 0x66, 0x3a, 0x69, 0xcd, 0x1a, 0x5c, 0x45,
+	0x4a, 0x76, 0x1e, 0x72, 0x8c, 0x7c, 0x25, 0x4e
+};
+/////// 2.1.2 Encryption fix & hmac hash validation ///// END
+
 LV2_HOOKED_FUNCTION_COND_POSTCALL_5(int,um_if_get_token,(uint8_t *token,uint32_t token_size,uint8_t *seed,uint32_t seed_size))
 {
 	if(seed!=0 && token!=0 && token_size==0x50 && seed_size==0x50)
@@ -738,16 +847,11 @@ LV2_HOOKED_FUNCTION_COND_POSTCALL_5(int,um_if_get_token,(uint8_t *token,uint32_t
 				 /* can run sys_init_osd.self from /app_home ? */
 		seed[51] |= 0x1; /* QA_FLAG_ALLOW_NON_QA */
 		seed[51] |= 0x2; /* QA_FLAG_FORCE_UPDATE */
-		uint8_t erk[0x20] = {
-		0x34, 0x18, 0x12, 0x37, 0x62, 0x91, 0x37, 0x1c,
-		0x8b, 0xc7, 0x56, 0xff, 0xfc, 0x61, 0x15, 0x25,
-		0x40, 0x3f, 0x95, 0xa8, 0xef, 0x9d, 0x0c, 0x99,
-		0x64, 0x82, 0xee, 0xc2, 0x16, 0xb5, 0x62, 0xed
-		};
-		//hmac sha1 missing but it isnt checked anyways
-		uint8_t iv[16];
-		memset(iv,0,0x10);
-		aescbccfb_enc(seed,token,0x50,erk,256,iv);
+        /// 2.1.2 QA flag - hmac hash check - START
+        hmac_sha1(hmac,64,seed,60,seed+60);
+		aescbccfb_enc(token,seed,0x50,erk,256,iv_qa);
+		DPRINT_HEX_C(seed,60);
+         /// 2.1.2 QA flag - hmac hash check - END
 		return 0;
 	}
 
@@ -768,7 +872,7 @@ LV2_HOOKED_FUNCTION_PRECALL_SUCCESS_4(int,sys_fs_read,(int fd, void *buf, uint64
 {	
 	if(rif_fd==fd)
 	{
-		DPRINTF("RIF fd read called:%x %x %x %x\n",fd,buf,nbytes,nread);
+		DPRINTF("RIF fd read called:%x %p %016lx %p\n",fd,buf,nbytes,nread);
 		if(*nread==0x98)
 		{
 			DPRINTF("generating rif ECDSA\n");
@@ -790,7 +894,7 @@ LV2_HOOKED_FUNCTION_PRECALL_SUCCESS_4(int,sys_fs_read,(int fd, void *buf, uint64
 	}
 	else if(act_fd==fd)
 	{
-		DPRINTF("act fd read called:%x %x %x %x\n",fd,buf,nbytes,nread);
+		DPRINTF("act fd read called:%x %p %016lx %p\n\n",fd,buf,nbytes,nread);
 		if(*nread==0x1038)
 		{
 			DPRINTF("generating act ECDSA\n");
@@ -833,10 +937,9 @@ LV2_HOOKED_FUNCTION_PRECALL_SUCCESS_4(int,sys_fs_read,(int fd, void *buf, uint64
 	return 0;
 }
 
-
 int unload_plugin_kernel(uint64_t residence)
 {
-	dealloc((void *)residence, 0x27);
+	dealloc((void*)residence,0x27);
 	return 0;
 }
 
@@ -853,19 +956,6 @@ LV2_SYSCALL2(uint64_t, sys_cfw_peek, (uint64_t *addr))
 
 	uint64_t ret = *addr;
 
-	// Fix compatibilty issue with prx loader. It searches for a string... that is also in this payload, and then lv2_peek((vsh_str + 0x70)) crashes the system.
-	if (ret == 0x5F6D61696E5F7673)
-	{
-		extern uint64_t _start;
-		extern uint64_t __self_end;
-
-		if ((uint64_t)addr >= (uint64_t)&_start && (uint64_t)addr < (uint64_t)&__self_end)
-		{
-			DPRINTF("peek to addr %p blocked for compatibility.\n", addr);
-			return 0;
-		}
-	}
-
 	return ret;
 }
 
@@ -875,7 +965,7 @@ void _sys_cfw_poke(uint64_t *addr, uint64_t value);
 
 LV2_HOOKED_FUNCTION(void, sys_cfw_new_poke, (uint64_t *addr, uint64_t value))
 {
-	//DPRINTF("New poke called\n");
+	DPRINTF("New poke called\n");
 
 	_sys_cfw_poke(addr, value);
 	asm volatile("icbi 0,%0; isync" :: "r"(addr));
@@ -894,15 +984,64 @@ LV2_HOOKED_FUNCTION(void *, sys_cfw_memcpy, (void *dst, void *src, uint64_t len)
 	return memcpy(dst, src, len);
 }
 
+/*
+#define MAX_POKES	0x100
+POKES pokes[MAX_POKES];
+int poke_count;
+*/
+
 LV2_SYSCALL2(void, sys_cfw_poke, (uint64_t *ptr, uint64_t value))
 {
 	DPRINTF("LV2 poke %p %016lx\n", ptr, value);
 	uint64_t addr=(uint64_t)ptr;
-	if(addr>0x8000000000352230)
+	if (addr >= MKA(syscall_table_symbol))
+	{
+		uint64_t syscall_num = (addr-MKA(syscall_table_symbol)) / 8;
+
+		if ((syscall_num >= 6 && syscall_num <= 10) || syscall_num == 35)
+		{
+			uint64_t sc_null = *(uint64_t *)MKA(syscall_table_symbol);
+			uint64_t syscall_not_impl = *(uint64_t *)sc_null;
+
+			if (((value == sc_null) ||(value == syscall_not_impl)) && (syscall_num != 8)) //Allow removing protected syscall 6 7 9 10 35 NOT 8
+			{
+				DPRINTF("HB remove syscall %ld\n", syscall_num);
+				*ptr=value;
+				return;
+			}
+			else //Prevent syscall 6 7 9 10 and 35 from being re-written
+			{
+				DPRINTF("HB has been blocked from rewritting syscall %ld\n", syscall_num);
+				return;
+			}
+		}
+	}
+	
+	if(addr>MKA(hash_checked_area))
 	{
 		*ptr=value;
 		return;
 	}
+	
+/*	if(poke_count)
+	{
+		for(int i=0;i<poke_count;i++)
+		{
+			if(pokes[i].addr==addr)
+			{
+				pokes[i].poke_val=value;
+				*ptr=value;
+				return;
+			}
+		}
+	}
+	
+	pokes[poke_count].addr=addr;
+	pokes[poke_count].poke_val=value;
+	pokes[poke_count].orig_val=*ptr;
+	poke_count++;
+	
+	*ptr=value;*/
 }
 
 LV2_SYSCALL2(void, sys_cfw_lv1_poke, (uint64_t lv1_addr, uint64_t lv1_value))
@@ -971,7 +1110,7 @@ LV2_SYSCALL2(int64_t, syscall8, (uint64_t function, uint64_t param1, uint64_t pa
 {
 	extend_kstack(0);
 
-	//DPRINTF("Syscall 8 -> %lx\n", function);
+	DPRINTF("Syscall 8 -> %lx\n", function);
 	
 	// -- AV: temporary disable cobra syscall (allow dumpers peek 0x1000 to 0x9800)
 	static uint8_t tmp_lv1peek = 0;
@@ -1045,7 +1184,7 @@ LV2_SYSCALL2(int64_t, syscall8, (uint64_t function, uint64_t param1, uint64_t pa
 		case SYSCALL8_OPCODE_PS3MAPI:
 			switch ((int)param1)
 			{
-				//DPRINTF("syscall8: PS3M_API function 0x%x\n", (int)param1);
+				DPRINTF("syscall8: PS3M_API function 0x%x\n", (int)param1);
 
 				//----------
 				//CORE
@@ -1079,7 +1218,7 @@ LV2_SYSCALL2(int64_t, syscall8, (uint64_t function, uint64_t param1, uint64_t pa
 					return *(uint64_t *)param2;
 				break;
 				case PS3MAPI_OPCODE_LV2_POKE:
-					if(param2>0x8000000000352230)
+					if(param2>MKA(hash_checked_area))
 					{
 						*(uint64_t *)param2=param3;
 					}
@@ -1306,6 +1445,38 @@ LV2_SYSCALL2(int64_t, syscall8, (uint64_t function, uint64_t param1, uint64_t pa
 			//return sys_cobra_usb_command(param1, param2, param3, (void *)param4, param5);
 			return 0;
 		break;
+		
+		case SYSCALL8_OPCODE_SET_PSP_UMDFILE:
+			return sys_psp_set_umdfile((char *)param1, (char *)param2, param3);
+		break;
+
+		case SYSCALL8_OPCODE_SET_PSP_DECRYPT_OPTIONS:
+			return sys_psp_set_decrypt_options(param1, param2, (uint8_t *)param3, param4, param5, (uint8_t *)param6, param7);
+		break;
+
+		case SYSCALL8_OPCODE_READ_PSP_HEADER:
+			return sys_psp_read_header(param1, (char *)param2, param3, (uint64_t *)param4);
+		break;
+
+		case SYSCALL8_OPCODE_READ_PSP_UMD:
+			return sys_psp_read_umd(param1, (void *)param2, param3, param4, param5);
+		break;
+
+		case SYSCALL8_OPCODE_PSP_PRX_PATCH:
+			return sys_psp_prx_patch((uint32_t *)param1, (uint8_t *)param2, (void *)param3);
+		break;
+
+		case SYSCALL8_OPCODE_PSP_CHANGE_EMU:
+			return sys_psp_set_emu_path((char *)param1);
+		break;
+
+		case SYSCALL8_OPCODE_PSP_POST_SAVEDATA_INITSTART:
+			return sys_psp_post_savedata_initstart(param1, (void *)param2);
+		break;
+
+		case SYSCALL8_OPCODE_PSP_POST_SAVEDATA_SHUTDOWNSTART:
+			return sys_psp_post_savedata_shutdownstart();
+		break;
 
 		case SYSCALL8_OPCODE_AIO_COPY_ROOT:
 			return sys_aio_copy_root((char *)param1, (char *)param2);
@@ -1329,6 +1500,10 @@ LV2_SYSCALL2(int64_t, syscall8, (uint64_t function, uint64_t param1, uint64_t pa
 
 		case SYSCALL8_OPCODE_SEND_POWEROFF_EVENT:
 			return sys_sm_ext_send_poweroff_event((int)param1);
+		break;
+		
+		case SYSCALL8_OPCODE_GET_MAP_PATH:
+			return get_map_path((unsigned int)param1, (char *)param2, (char *)param3);
 		break;
 
 #ifdef DEBUG
@@ -1367,10 +1542,10 @@ LV2_SYSCALL2(int64_t, syscall8, (uint64_t function, uint64_t param1, uint64_t pa
 LV2_SYSCALL2(int, sm_set_fan_policy_sc,(uint8_t arg1, uint8_t arg2, uint8_t arg3))
 {
 	f_desc_t f;
-	f.addr=(void*)MKA(0x264734);
+	f.addr=(void*)MKA(sm_set_fan_policy);
 	f.toc=(void *)MKA(TOC);
 	int(*func)(uint64_t, uint8_t,uint8_t,uint8_t)=(void*)&f;
-	return func(0x8000000000474C38,arg1,arg2,arg3);
+	return func(MKA(sysmem_obj),arg1,arg2,arg3);
 }
 
 LV2_SYSCALL2(int, sm_get_fan_policy_sc,(uint8_t id, uint8_t *st, uint8_t *policy, uint8_t * mode, uint8_t *duty))
@@ -1380,10 +1555,10 @@ LV2_SYSCALL2(int, sm_get_fan_policy_sc,(uint8_t id, uint8_t *st, uint8_t *policy
 	uint8_t mode1;
 	uint8_t duty1;
 	f_desc_t f;
-	f.addr=(void*)MKA(0x26293c);
+	f.addr=(void*)MKA(sm_get_fan_policy);
 	f.toc=(void *)MKA(TOC);
 	int(*func)(uint64_t, uint8_t,uint8_t *,uint8_t *,uint8_t *,uint8_t *,uint64_t)=(void*)&f;
-	int ret=func(0x8000000000474C38,id,&st1,&policy1,&mode1,&duty1,10000000);
+	int ret=func(MKA(sysmem_obj),id,&st1,&policy1,&mode1,&duty1,10000000);
 	if(ret==0)
 	{
 		ret=copy_to_user(&st1, st,1);
@@ -1405,27 +1580,34 @@ LV2_SYSCALL2(int, sm_get_fan_policy_sc,(uint8_t id, uint8_t *st, uint8_t *policy
 
 static INLINE void apply_kernel_patches(void)
 {
-	/// Adding HEN patches on init for stability /// -- START
-	do_patch32(0x80000000000564b0,0x38600000); // patch_func8_offset1 
-	do_patch32(0x8000000000056614,0x60000000); // patch_func8_offset2 
-	do_patch32(0x80000000000203fc,0x60000000); // user_thread_prio_patch	for netiso
-	do_patch32(0x8000000000020408,0x60000000); // user_thread_prio_patch2	for netiso
-	do_patch32(0x8000000000059dc4,0x38600000); // ECDSA 1
-	do_patch32(0x8000000000056230,0x38600001); // ignore LIC.DAT check	
-	do_patch32(0x800000000005a6f8,0x60000000); // fix 80010009 error
-	do_patch32(0x800000000005a6e4,0x60000000); // fix 80010009 error
-	do_patch(0x80000000002275f4,0x38600000F8690000);  // fix 0x8001002B / 80010017 errors  known as ODE patch
-	do_patch(0x80000000002d2b34,0x386000004e800020); // ECDSA 2
-	do_patch(0x8000000000003d90,0x386000014e800020); // psjailbreak, PL3, etc destroy this function to copy their code there.
-	do_patch(0x800000000005658C,0x63FF003D60000000);  // fix 8001003D error
-	do_patch(0x8000000000056650,0x3FE080013BE00000); // fix 8001003E error
-	do_patch(0x8000000000056604,0x2F84000448000098); //PATCH_JUMP			
-	*(uint64_t *)0x8000000000474A80=0;
+    /// Adding HEN patches on init for stability /// -- START
+		#if defined (FIRMWARE_4_82DEX) ||  defined (FIRMWARE_4_84DEX)
+		do_patch(MKA(vsh_patch),0x386000014E800020);
+		#endif
+	//do_patch32(MKA(patch_data1_offset), 0x01000000);	
+	do_patch32(MKA(module_sdk_version_patch_offset), NOP);
+	do_patch32(MKA(patch_func8_offset1),0x38600000); 
+	do_patch32(MKA(patch_func8_offset2 ),0x60000000);
+	do_patch32(MKA(user_thread_prio_patch),0x60000000);
+	do_patch32(MKA(user_thread_prio_patch2),0x60000000);
+	do_patch32(MKA(ECDSA_1),0x38600000);
+	do_patch32(MKA(lic_patch),0x38600001); // ignore LIC.DAT check	
+	do_patch32(MKA(patch_func9_offset),0x60000000);
+	do_patch32(MKA(fix_80010009),0x60000000);
+	do_patch(MKA(ode_patch),0x38600000F8690000);  // fix 0x8001002B / 80010017 errors  known as ODE patch
+	do_patch(MKA(ECDSA_2),0x386000004e800020);
+	do_patch(MKA(mem_base2),0x386000014e800020); // psjailbreak, PL3, etc destroy this function to copy their code there.
+	do_patch(MKA(fix_8001003D),0x63FF003D60000000);
+	do_patch(MKA(fix_8001003E),0x3FE080013BE00000);
+	do_patch(MKA(PATCH_JUMP),0x2F84000448000098);
+	*(uint64_t *)MKA(ECDSA_FLAG)=0;
 	/// Adding HEN patches on init for stability ///	 -- END
 	hook_function_with_precall(get_syscall_address(801),sys_fs_open,6);
 	hook_function_with_precall(get_syscall_address(802),sys_fs_read,4);
-	hook_function_with_cond_postcall(0x2253dc,um_if_get_token,5);
-	hook_function_with_cond_postcall(0x223a78,read_eeprom_by_offset,3);
+	#if defined (FIRMWARE_4_82) ||  defined (FIRMWARE_4_84)
+	hook_function_with_cond_postcall(um_if_get_token_symbol,um_if_get_token,5);
+	hook_function_with_cond_postcall(update_mgr_read_eeprom_symbol,read_eeprom_by_offset,3);
+	#endif
 	create_syscall2(8, syscall8);
 	create_syscall2(6, sys_cfw_peek);
 	create_syscall2(7, sys_cfw_poke);
@@ -1437,6 +1619,23 @@ static INLINE void apply_kernel_patches(void)
 	create_syscall2(409, sm_get_fan_policy_sc);
 }
 
+void cleanup_thread(uint64_t arg0)
+{
+	timer_usleep(SECONDS(2));
+	memset((void *)MKA(0x7e0000),0,0x100);
+	memset((void *)MKA(0x7f0000),0,0x1000);
+	ppu_thread_exit(0);
+}
+
+/*void enable_ingame_screenshot()
+{
+	f_desc_t f;
+	f.addr=(void*)0x19531c;
+	f.toc=(void*)0x6F5558;
+	int(*set_SSHT)(int)=(void*)&f;
+	set_SSHT(1);
+}*/
+
 int main(void)
 {
 #ifdef DEBUG
@@ -1447,7 +1646,8 @@ int main(void)
 	DPRINTF("PS3HEN loaded (load base = %p, end = %p) (version = %08X)\n", &_start, &__self_end, MAKE_VERSION(COBRA_VERSION, FIRMWARE_VERSION, IS_CFW));
 #endif
 
-//	hook_function_with_cond_postcall(0x4ef1c, support_advanced_flags, 2);
+//	poke_count=0;
+
 			ecdsa_set_curve();
 			ecdsa_set_pub();
 			ecdsa_set_priv();
@@ -1462,10 +1662,12 @@ int main(void)
 	storage_ext_patches();
 	region_patches();
 //	permissions_patches();
-	
+	init_mount_hdd0();
 	load_boot_plugins();
 	load_boot_plugins_kernel();
-	//init_mount_hdd0();
+//	enable_ingame_screenshot();
+	thread_t my_thread;
+	ppu_thread_create(&my_thread, cleanup_thread, 0, -0x1D8, 0x4000, 0, "Cleanup Thread");
 	
 #ifdef DEBUG
 	// "Laboratory"
