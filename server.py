@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 
 """
 	Main web server.
@@ -7,8 +7,8 @@
 import os
 import sys
 import socket
-import SocketServer, SimpleHTTPServer
-import urlparse, urllib2
+import socketserver, http.server
+import urllib.parse, urllib.request, urllib.error, urllib.parse
 from capstone import Cs, CS_ARCH_PPC, CS_MODE_BIG_ENDIAN
 
 PORT = 8080
@@ -20,10 +20,10 @@ DUMP_PATH = "dumps"
 def display_mexport(addr, data, libname):
 	m = module.ModExport(data)
 
-	print "--------------------------------------------------------------------"
-	print "- Module Export: %s 0x%x -"%(libname, addr)
-	print m
-	print "--------------------------------------------------------------------"
+	print("--------------------------------------------------------------------")
+	print("- Module Export: %s 0x%x -"%(libname, addr))
+	print(m)
+	print("--------------------------------------------------------------------")
 
 """
 	Display module imports
@@ -35,17 +35,17 @@ def display_mimport(addr, data, libname):
 	if (addr & 0xE0000000) == 0xE0000000:
 		m = module.ModImportSmall(data)
 		
-		print "--------------------------------------------------------------------"
-		print "- Module Import (Small): %s 0x%x -"%(libname, addr)
-		print m
-		print "--------------------------------------------------------------------"
+		print("--------------------------------------------------------------------")
+		print("- Module Import (Small): %s 0x%x -"%(libname, addr))
+		print(m)
+		print("--------------------------------------------------------------------")
 	else:
 		m = module.ModImport(data)
 		
-		print "--------------------------------------------------------------------"
-		print "- Module Import: %s 0x%x -"%(libname, addr)
-		print m
-		print "--------------------------------------------------------------------"  
+		print("--------------------------------------------------------------------")
+		print("- Module Import: %s 0x%x -"%(libname, addr))
+		print(m)
+		print("--------------------------------------------------------------------")  
 
 """
 	Display module info
@@ -56,15 +56,15 @@ def display_minfo(addr, data):
 	nexports = (m.ent_end - m.ent_top) / module.MODX_SIZE
 	nimports = (m.stub_end - m.stub_top) / module.MODIM_SIZE
 
-	print "--------------------------------------------------------------------"
-	print "- Module Info: %s 0x%x -"%(m.modname, addr)
-	print "-> Base address: 0x%x"%(base_addr)
-	print "-> # Exports: 0x%x"%(nexports)
-	print "-> Export table at: 0x%x"%(base_addr + m.ent_top)
-	print "-> # Imports: 0x%x"%(nimports)
-	print "-> Import table at: 0x%x"%(base_addr + m.stub_top)
-	print m
-	print "--------------------------------------------------------------------"
+	print("--------------------------------------------------------------------")
+	print("- Module Info: %s 0x%x -"%(m.modname, addr))
+	print("-> Base address: 0x%x"%(base_addr))
+	print("-> # Exports: 0x%x"%(nexports))
+	print("-> Export table at: 0x%x"%(base_addr + m.ent_top))
+	print("-> # Imports: 0x%x"%(nimports))
+	print("-> Import table at: 0x%x"%(base_addr + m.stub_top))
+	print(m)
+	print("--------------------------------------------------------------------")
 
 """
 	Dump data
@@ -114,7 +114,7 @@ def remove_directory(dir_name):
 def display_data(addr, src, length = 8, n = 8):
 	filter_=''.join([(len(repr(chr(x)))==3) and chr(x) or '.' for x in range(256)])
 	result=[]
-	for i in xrange(0, len(src), length):
+	for i in range(0, len(src), length):
 	   s = src[i:i+length]
 	   hexa = ''.join(["%02X"%ord(x) for x in s])
 	   hexa = ' '.join(["".join(hexa[j:j+n]) for j in range(0, len(hexa), n)])
@@ -132,35 +132,35 @@ def disassemble(addr, data):
 	disassed = md.disasm(data, addr)
 	for i in disassed:
 		none = 1
-		print "0x%x:\t%s\t%s" %(i.address, i.mnemonic, i.op_str)
+		print("0x%x:\t%s\t%s" %(i.address, i.mnemonic, i.op_str))
 	if none != 1:
-		print "Couldn't disassemble at 0x%x"%(addr)
+		print("Couldn't disassemble at 0x%x"%(addr))
 
 """
 	Web Server
 """
-class PS3WebServer(SimpleHTTPServer.SimpleHTTPRequestHandler):
+class PS3WebServer(http.server.SimpleHTTPRequestHandler):
 	"""
 		GET Request Handler
 		Used for debugging and interactive shell stuff
 	"""
 	def do_GET(self):
 		if self.path.startswith('/Debug'):
-			print '[+] DBG: ',
-			parsed = urlparse.parse_qs(urlparse.urlparse(self.path).query)
+			print('[+] DBG: ', end=' ')
+			parsed = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
 			dbg = parsed['dbg'][0]
-			print dbg
+			print(dbg)
 		# handle dump
 		elif self.path == '/Command':
 			sockfd = self.request
 			self.send_response(200)
 			self.send_header('Content-type', 'text/html')
 			self.end_headers()
-			cmd = raw_input("%> ")
+			cmd = input("%> ")
 			self.wfile.write(cmd)
 		# normal requests
 		else:
-			SimpleHTTPServer.SimpleHTTPRequestHandler.do_GET(self)
+			http.server.SimpleHTTPRequestHandler.do_GET(self)
 
 	"""
 		POST Request Handler
@@ -170,23 +170,23 @@ class PS3WebServer(SimpleHTTPServer.SimpleHTTPRequestHandler):
 		length = int(self.headers.getheader('content-length'))
 		if length:
 			rdata = self.rfile.read(length)
-			rdata = urlparse.parse_qs(rdata)
+			rdata = urllib.parse.parse_qs(rdata)
 			addr = 0
 			extra = ""
 
 			try:
 				addr = int(rdata['addr'][0], 0)
 			except KeyError:
-				print "[+] Warning: addr not received"
+				print("[+] Warning: addr not received")
 			try:
 				data = rdata['data'][0]
 			except KeyError:
-				print "[+] Error: dump not received"
+				print("[+] Error: dump not received")
 				return
 			try:
 				typ = rdata['type'][0]
 			except KeyError:
-				print "[+] Error: msg type not received"
+				print("[+] Error: msg type not received")
 				return
 
 			try:
@@ -195,7 +195,7 @@ class PS3WebServer(SimpleHTTPServer.SimpleHTTPRequestHandler):
 				pass
 
 			if(typ == 'read'):
-				print display_data(addr, data.decode('hex'))
+				print(display_data(addr, data.decode('hex')))
 
 			if(typ == 'disasm'):
 				disassemble(addr, data.decode('hex'))
@@ -234,11 +234,11 @@ s.connect(("gmail.com", 80))
 localIP = s.getsockname()[0]
 s.close()
 
-print "Starting server on " + localIP + ":" + str(PORT)
+print("Starting server on " + localIP + ":" + str(PORT))
 
 """
 	Start server
 """
-SocketServer.TCPServer.allow_reuse_address = True
-server = SocketServer.TCPServer(('', PORT), PS3WebServer)
+socketserver.TCPServer.allow_reuse_address = True
+server = socketserver.TCPServer(('', PORT), PS3WebServer)
 server.serve_forever()
