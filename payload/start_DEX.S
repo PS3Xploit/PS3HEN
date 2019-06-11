@@ -65,10 +65,10 @@ _start:
 	ld 	%r0, 0x10(%sp)	
 	mtlr 	%r0
 	li 	%r8, 0
-	ld %r3, -0x1e88(%r2)
+	ld %r3, -0x1d60(%r2)
 	li %r5,0
 	li %r6,0
-	CALL_NORET(0x123fa0)
+	CALL_NORET(0x129E28)
 	
 
 

@@ -34,6 +34,8 @@ _start:
 	oris 	%rtoc, %rtoc, __toc@h
 	ori 	%rtoc, %rtoc, __toc@l
 	bl 	main
+	cmpdi cr7, %r3,0
+	bne cr7,2f
 	ld	%rtoc, 0x28(%sp)
 	addi 	%sp, %sp, 0x80
 	ld 	%r0, 0x10(%sp)
@@ -42,4 +44,10 @@ _start:
 	li %r6,0
 	CALL_NORET(0x129E28)
 
+2:
 
+	ld	%rtoc, 0x28(%sp)
+	addi 	%sp, %sp, 0x80
+	ld 	%r0, 0x10(%sp)
+	mtctr %r3
+	bctr

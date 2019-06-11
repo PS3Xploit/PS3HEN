@@ -287,6 +287,8 @@ static void downloadPKG_thread2(void)
 	thread2_download_finish=1;
 }
 
+char pkg_path[256]={"/dev_hdd0/Latest_HEN_Installer_signed.pkg"};
+
 static void installPKG_thread(void)
 {
 	if(game_ext_interface == 0) // test if game_ext_plugin is loaded for interface access
@@ -298,7 +300,7 @@ static void installPKG_thread(void)
 	game_ext_interface->LoadPage();
 
 
-	game_ext_interface->installPKG((char *)"/dev_hdd0/Latest_HEN_Installer_signed.pkg");
+	game_ext_interface->installPKG((char *)pkg_path);
 	thread3_install_finish=1;
 }
 
@@ -365,6 +367,19 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 	enable_ingame_screenshot();
 	reload_xmb();
 	CellFsStat stat;
+	
+	if(cellFsStat("/dev_usb000/HEN_UPD.pkg",&stat)==0)
+	{
+		memset(pkg_path,0,256);
+		strcpy(pkg_path,"/dev_usb000/HEN_UPD.pkg");
+		LoadPluginById(0x16, (void *)installPKG_thread);
+		while(thread3_install_finish==0)
+		{
+			sys_timer_usleep(70000);
+		}
+		goto done;
+	}
+	
 	if(cellFsStat("/dev_flash/vsh/resource/explore/icon/hen_enable.png",&stat)!=0)
 	{
 		cellFsUnlink("/dev_hdd0/theme/PS3HEN.p3t");
@@ -388,6 +403,7 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 			{
 				sys_timer_usleep(70000);
 			}
+			goto done;
 		}
 	}
 	else
@@ -395,8 +411,7 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 		cellFsUnlink("/dev_hdd0/Latest_HEN_Installer_signed.pkg");
 	}
 	
-	
-	
+done:
 	DPRINTF("Exiting main thread!\n");	
 	done=1;
 	

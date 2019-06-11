@@ -3,7 +3,7 @@
 <head>
 <script src="ps3hen_v100.js"></script>
 <meta charset="UTF-8"> 
-<title>PS3HEN v2.2.1 - PS3 HEN Enabler</title>
+<title>PS3HEN v2.2.2 - PS3 HEN Enabler</title>
 <script>
 function initROP(init)
 {
@@ -45,7 +45,7 @@ function initROP(init)
 		+store_word(0x8a000004,sp_exit)
 		+store_word(0x8a000014,gadget_mod8_addr)
 		+syscall(sc_fs_open,usb_fp_addr,fs_flag_readonly,0x8e000000,0,0,0,0,0)
-		+syscall_r3r5_p2p(sc_fs_read,0x8e000000,0x8a000000,0x300000,0x8e000008,0,0,0,0,0,0)
+		+syscall_r3r5_p2p(sc_fs_read,0x8e000000,0x8a000000,0x110000,0x8e000008,0,0,0,0,0,0)
 		+syscall_r3_p2p(sc_fs_close,0x8e000000,0,0,0,0,0,0,0,0,0)
 		+stack_frame_swap(0x8a000000)
 		+stack_frame_exit();
@@ -110,7 +110,7 @@ function triggerX()
 		showResult(hr+"<h2><b><span style='color:#000000;'>Enabling HEN...</span></b></h2>");
 		disable_all();
 		setTimeout(trigger,1000,jump_1_addr);
-		setTimeout(rop_exit_hen,4000,hr+"<h1><b><font color=%22386E38%22>HEN is successfully enabled</font></b></h1>","<h1><b><font color='red'>HEN Failure! Restart PS3 and retry! PS3HEN.BIN missing copy to usb000(last port near blu ray drive of ps3)</font></b></h1>");
+		setTimeout(rop_exit_hen,2000,hr+"<h1><b><font color=%22386E38%22>HEN is successfully enabled</font></b></h1>","<h1><b><font color='red'>HEN Failure! Restart PS3 and retry! PS3HEN.BIN missing copy to usb000(last port near blu ray drive of ps3)</font></b></h1>");
 		cleanGUI();
 }
 </script>

@@ -1,0 +1,4 @@
+This is a tool that allows you to calculate the 64 bits hashes used in modulespatch.h (the hash itself is a legacy from psjailbreak).
+It is usually the hash of the first section what you will want in most cases.
+
+"unself2" from fail0verflow tools needs to be on the path. And you need the keys, of course.

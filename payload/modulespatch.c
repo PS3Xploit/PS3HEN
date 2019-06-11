@@ -586,9 +586,81 @@ event_t event;
 uint64_t res;
 extern event_port_t command_port;
 extern event_queue_t result_queue;
+//f_desc_t func_sleep;
+volatile int sleep_done;
+
+LV2_PATCHED_FUNCTION(uint64_t, syscall_handler, (uint64_t r3, uint64_t r4, uint64_t r5, uint64_t r6, uint64_t r7, uint64_t r8, uint64_t r9, uint64_t r10))
+{
+	register uint64_t r11 asm("r11");
+	register uint64_t r13 asm("r13");
+	uint64_t num, p;
+	f_desc_t func;
+		
+	num = r11/8;
+	p = r13;	
+	
+	func.addr = (void *)p;
+	func.toc = (void *)MKA(TOC);
+	uint64_t (* syscall)() = (void *)&func;	
+	
+	suspend_intr();
+	
+	if (1)
+	{
+		/*if (num == 378)
+		{
+			uint64_t *p1, *p2, *p3;
+			
+			p1 = (uint64_t *)r3;
+			p2 = (uint64_t *)r4;
+			p3 = (uint64_t *)r5;
+			
+			resume_intr();
+			uint64_t ret = syscall(r3, r4, r5, r6);
+			
+			DPRINTF("ret=%lx r3 %016lx r4 %016lx r5 %016lx\n", ret, *p1, *p2, *p3);
+			// r3 = 3 -> power off button pressed
+			if (*p1 == 3)
+			{
+				// Change to reboot :)
+				*p1 = 5; *p2 = 2;
+			}
+			return ret;
+		}*/
+		// Prepare your self for a big amount of data in your terminal!
+		// And big ps3 slowdown
+		// Uncomment the if to skip some too common syscalls and make things faster and smaller
+		
+	//	if (num != 378 && num != 173 && num != 178 && num != 130 && num != 138 && num != 104 && num != 102 && num != 579 && num != 122 && num != 124
+	//		&& num != 113 && num != 141 && num != 125 && num != 127 && num != 141) 
+		
+//		if(num<60)
+//		{
+	//		DPRINTF("syscall %ld %lx %lx %lx %lx %lx %lx %lx %lx\n", num, r3, r4, r5, r6, r7, r8, r9, r10);
+//		}
+		while(sleep_done==0)
+		{}
+	}		
+	
+	resume_intr();
+	
+	return syscall(r3, r4, r5, r6, r7, r8, r9, r10);
+}
+
+void remove_syscall_handler(void)
+{
+	*(uint32_t*)MKA(syscall_call_offset)=0x4e800021;
+	clear_icache((void*)MKA(syscall_call_offset),4);
+	return;
+}
+void do_hook_all_syscalls(void)
+{
+	set_syscall_handler(syscall_handler);
+}
 	
 LV2_HOOKED_FUNCTION_PRECALL_2(int, post_lv1_call_99_wrapper, (uint64_t *spu_obj, uint64_t *spu_args))
 {
+	sleep_done=1;
 	process_t process = get_current_process();
 
 	saved_buf = (void *)spu_args[0x20/8];
@@ -611,6 +683,7 @@ LV2_HOOKED_FUNCTION_PRECALL_2(int, post_lv1_call_99_wrapper, (uint64_t *spu_obj,
 	{
 		if((*(uint64_t *)(saved_sce_hdr+0x48)>=0x200) || (*(uint64_t *)(saved_sce_hdr+0x48)==0x130))
 		{
+			sleep_done=0;
 			event_port_send(command_port, CMD_DISABLE_PATCHES, (uint64_t)&res,0);
 			event_queue_receive(result_queue, &event, 0);
 			DPRINTF("SELF loading!\n");
@@ -618,9 +691,14 @@ LV2_HOOKED_FUNCTION_PRECALL_2(int, post_lv1_call_99_wrapper, (uint64_t *spu_obj,
 			uint64_t state = spin_lock_irqsave();
 			DPRINTF("interrupt suspended! 6:20am\n");;
 			current_ticks=get_ticks();
-			target_ticks=current_ticks+0x2500000; // Testing
+			target_ticks=current_ticks+0x2800000; // Testing
 			while(get_ticks()<target_ticks)
 			{}
+//			func_sleep.addr=(void*)MKA(get_syscall_address(141));
+//			func_sleep.toc=(void*)MKA(TOC);
+//			uint64_t (*sleep_thread_user)(uint64_t usecs)=(void*)&func_sleep;
+//			sleep_thread_user(500000);
+			sleep_done=1;
 			DPRINTF("sleep finished!\n");
 			spin_unlock_irqrestore(state);
 			resume_intr();
@@ -763,6 +841,15 @@ LV2_PATCHED_FUNCTION(int, modules_patching, (uint64_t *arg1, uint32_t *arg2))
 	{
 		uint64_t hash = 0;
 
+#if defined(FIRMWARE_4_84)
+		for (int i = 0; i < 0x100; i++)
+		{
+			hash ^= buf[i];			
+		}
+			
+		hash = (hash << 32) | (total&0xfffff000);
+
+#else
 		for(int i = 0; i < 0x8; i++)  //0x20 bytes only		
 			hash ^= buf[i+0xb0];  //unique location in all files+static hashes between firmware		
 
@@ -772,11 +859,11 @@ LV2_PATCHED_FUNCTION(int, modules_patching, (uint64_t *arg1, uint32_t *arg2))
 			total = (total & 0xff0000); //copy third byte		
 		
 		hash = ((hash << 32) & 0xfffff00000000000) | (total);  //20 bits check, prevent diferent hash just because of minor changes
-
+#endif
 		total = 0;
 		
 		#ifdef	DEBUG
-			//DPRINTF("hash = %lx\n", hash);
+			DPRINTF("hash = %lx\n", hash);
 		#endif
 		
 		switch(hash)

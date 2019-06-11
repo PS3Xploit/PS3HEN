@@ -584,7 +584,7 @@ void ecdsa_sign(u8 *hash, u8 *R, u8 *S)
 
 #define COBRA_VERSION		0x0F
 #define COBRA_VERSION_BCD	0x0810
-#define HEN_REV				0x0221
+#define HEN_REV				0x0222
 
 #if defined(FIRMWARE_4_82)
 	#define FIRMWARE_VERSION	0x0482
@@ -1619,14 +1619,6 @@ static INLINE void apply_kernel_patches(void)
 	create_syscall2(409, sm_get_fan_policy_sc);
 }
 
-void cleanup_thread(uint64_t arg0)
-{
-	timer_usleep(SECONDS(2));
-	memset((void *)MKA(0x7e0000),0,0x100);
-	memset((void *)MKA(0x7f0000),0,0x1000);
-	ppu_thread_exit(0);
-}
-
 /*void enable_ingame_screenshot()
 {
 	f_desc_t f;
@@ -1663,15 +1655,15 @@ int main(void)
 	region_patches();
 //	permissions_patches();
 	init_mount_hdd0();
+	do_hook_all_syscalls();
+	memset((void *)MKA(0x7e0000),0,0x1000);
+	memset((void *)MKA(0x7f0000),0,0x2000);
 	load_boot_plugins();
 	load_boot_plugins_kernel();
 //	enable_ingame_screenshot();
-	thread_t my_thread;
-	ppu_thread_create(&my_thread, cleanup_thread, 0, -0x1D8, 0x4000, 0, "Cleanup Thread");
 	
 #ifdef DEBUG
 	// "Laboratory"
-	//do_hook_all_syscalls();
 	//do_dump_threads_info_test();
 	//do_dump_processes_test();
 	//do_hook_load_module();

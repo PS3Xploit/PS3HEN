@@ -7,8 +7,8 @@
 #include <lv1/lv1.h>
 
 //#define STAGE2_FILE_STAT	0x8e000050
-#define STAGE2_FILE_NREAD	0x8e000008
-#define STAGE2_LOCATION		0x8a110000
+//#define STAGE2_FILE_NREAD	0x8e000008
+#define STAGE2_LOCATION		0x8a080000
 #define SPRX_LOCATION		0x8a070000
 
 typedef struct hen_config
@@ -20,11 +20,11 @@ typedef struct hen_config
 	uint32_t service_hdl4; //only on dex atm
 } HEN_CONFIG;
 
-void main(void)
+void *main(void)
 {
 	void *stage2 = NULL;
-	f_desc_t f;
-	int (* func)(void);	
+//	f_desc_t f;
+//	int (* func)(void);	
 	HEN_CONFIG CONFIG;
 	CONFIG.config_hdl=*(uint32_t *)0x8d000500;
 	CONFIG.service_hdl1=*(uint32_t *)0x8D0FF050;
@@ -57,10 +57,9 @@ void main(void)
 
 	uint64_t size;
 //	size=stat->st_size;
-	size=*(uint64_t *)STAGE2_FILE_NREAD;
-	if(size>0x110000) // Thanks to @aldostools, this will prevent hang if binary does not have stage2
+	size=*(uint64_t *)(STAGE2_LOCATION-8);
+	if(size) // Thanks to @aldostools, this will prevent hang if binary does not have stage2
 	{
-		size=size-0x110000;
 		stage2=alloc(size,0x27);
 		if (stage2)
 		{		
@@ -80,10 +79,12 @@ void main(void)
 			cellFsWrite(dst, (void*)SPRX_LOCATION, size, &size);
 			cellFsClose(dst);
 		}
-		f.addr = stage2;	
-		f.toc = (void *)MKA(TOC);
-		func = (void *)&f;	
-		func();		
+//		f.addr = stage2;	
+//		f.toc = (void *)MKA(TOC);
+//		func = (void *)&f;	
+//		func();		
+		return stage2;
 	}
 
+	return NULL;
 }

@@ -23,64 +23,6 @@
 
 #include "common.h"
 
-LV2_PATCHED_FUNCTION(uint64_t, syscall_handler, (uint64_t r3, uint64_t r4, uint64_t r5, uint64_t r6, uint64_t r7, uint64_t r8, uint64_t r9, uint64_t r10))
-{
-	register uint64_t r11 asm("r11");
-	register uint64_t r13 asm("r13");
-	uint64_t num, p;
-	f_desc_t func;
-		
-	num = r11/8;
-	p = r13;	
-	
-	func.addr = (void *)p;
-	func.toc = (void *)MKA(TOC);
-	uint64_t (* syscall)() = (void *)&func;	
-	
-	suspend_intr();
-	
-	if (1)
-	{
-		/*if (num == 378)
-		{
-			uint64_t *p1, *p2, *p3;
-			
-			p1 = (uint64_t *)r3;
-			p2 = (uint64_t *)r4;
-			p3 = (uint64_t *)r5;
-			
-			resume_intr();
-			uint64_t ret = syscall(r3, r4, r5, r6);
-			
-			DPRINTF("ret=%lx r3 %016lx r4 %016lx r5 %016lx\n", ret, *p1, *p2, *p3);
-			// r3 = 3 -> power off button pressed
-			if (*p1 == 3)
-			{
-				// Change to reboot :)
-				*p1 = 5; *p2 = 2;
-			}
-			return ret;
-		}*/
-		// Prepare your self for a big amount of data in your terminal!
-		// And big ps3 slowdown
-		// Uncomment the if to skip some too common syscalls and make things faster and smaller
-		
-		/*if (num != 378 && num != 173 && num != 178 && num != 130 && num != 138 && num != 104 && num != 102 && num != 579 && num != 122 && num != 124
-			&& num != 113 && num != 141 && num != 125 && num != 127 && num != 141) */
-		
-		DPRINTF("syscall %ld %lx %lx %lx %lx %lx %lx %lx %lx\n", num, r3, r4, r5, r6, r7, r8, r9, r10);			
-	}		
-	
-	resume_intr();
-	
-	return syscall(r3, r4, r5, r6, r7, r8, r9, r10);
-}
-
-void do_hook_all_syscalls(void)
-{
-	set_syscall_handler(syscall_handler);
-}
-
 static void dump_threads_info(void)
 {
 	uint8_t *thread_info = (uint8_t *)MKA(thread_info_symbol);

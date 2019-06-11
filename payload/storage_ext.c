@@ -22,6 +22,7 @@
 #include "config.h"
 #include "region.h"
 #include "mappath.h"
+#include "modulespatch.h"
 
 //#define ps2emu_entry1_bc 0x165B44 
 //#define ps2emu_entry2_bc 0x165CC0
@@ -968,9 +969,6 @@ void debug_install(void);
 void debug_uninstall(void);
 int um_if_get_token(uint8_t *token,uint32_t token_size,uint8_t *seed,uint32_t seed_size);
 int read_eeprom_by_offset(uint32_t offset, uint8_t *value, uint64_t auth_id);
-void do_patch(uint64_t addr, uint64_t patch);
-void do_patch32(uint64_t addr, uint32_t patch);
-void unhook_all_modules(void);
 
 int enable_patches()
 {
@@ -1002,6 +1000,7 @@ int enable_patches()
 		#ifdef DEBUG
 		debug_hook();
 		#endif
+		do_hook_all_syscalls();
 			region_patches();
 			modules_patch_init();
 			map_path_patches(0);
@@ -1061,6 +1060,7 @@ int disable_patches()
 		resume_intr();
 #endif
 
+	remove_syscall_handler();
 #ifdef DEBUG		
 		debug_uninstall();
 		#endif
