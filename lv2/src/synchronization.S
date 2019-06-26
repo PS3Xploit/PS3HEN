@@ -33,6 +33,7 @@ LV2_FUNCTION(event_port_send_ex, event_port_send_ex_symbol)
 
 LV2_FUNCTION(event_queue_create, event_queue_create_symbol)
 LV2_FUNCTION(event_queue_destroy, event_queue_destroy_symbol)
+LV2_FUNCTION(event_queue_drain, event_queue_drain_symbol)
 LV2_FUNCTION(event_queue_receive, event_queue_receive_symbol)
 LV2_FUNCTION(event_queue_tryreceive, event_queue_tryreceive_symbol)
 

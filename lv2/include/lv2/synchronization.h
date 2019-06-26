@@ -90,6 +90,7 @@ LV2_EXPORT int event_port_send_ex(event_port_t, uint64_t data1, uint64_t data2, 
 
 LV2_EXPORT int event_queue_create(event_queue_t *event_queue, uint32_t attr_protocol, uint64_t event_queue_key, int size);
 LV2_EXPORT int event_queue_destroy(event_queue_t event_queue);
+LV2_EXPORT int event_queue_drain(event_queue_t event_queue);
 LV2_EXPORT int event_queue_receive(event_queue_t event_queue, event_t *event, uint64_t timeout);
 LV2_EXPORT int event_queue_tryreceive(event_queue_t event_queue, event_t *event_array, int size, int *number);
 

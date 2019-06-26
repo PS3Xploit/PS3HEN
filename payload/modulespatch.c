@@ -227,10 +227,10 @@ SprxPatch download_plugin_patches[] =
 	{elf_patch3_download,0x78000000 , &condition_true},	
 	{elf_patch3_download+0x9A,0x78000000 , &condition_true},		// allow XML files to be downloaded
 	{elf_patch4_download,0x78787800 , &condition_true},	
-	{elf_patch5_download,0 , &condition_true},	
+	/*{elf_patch5_download,0 , &condition_true},	
 	{elf_patch5_download+8,0 , &condition_true},	
 	{elf_patch5_download+0x0C,0 , &condition_true},	
-	{elf_patch5_download+0x10,0 , &condition_true},		
+	{elf_patch5_download+0x10,0 , &condition_true},*/		
 	{elf_patch6_download,0x6F637465 , &condition_true},	
 	{elf_patch6_download+4,0x742D7374 , &condition_true},		
 	{elf_patch6_download+8,0x7265616D , &condition_true},	
@@ -578,6 +578,22 @@ void remove_pokes()
 	}
 }*/
 
+#if defined(FIRMWARE_4_82) || defined(FIRMWARE_4_84)
+/*LV2_PATCHED_FUNCTION(int, vtable_ioctl,(uint64_t socket, uint64_t unk_11,uint64_t flags, void *kmem, uint64_t unk_0,uint64_t unk, uint64_t function_ptr, uint64_t unk2))
+{
+//	f_desc_t f;
+//	f.addr=(void *)function_ptr;
+//	f.toc=(void*)MKA(TOC); //proper way to check is by void *socket=get_socket_by_fd(num); but register 29 is overwritten so lets just do this instead. its sufficient for us
+//	uint64_t(*err_func)(uint64_t,uint64_t,uint64_t,void*,uint64_t,uint64_t,uint64_t,uint64_t)=(void*)&f;
+//	if((function_ptr>0x8000000000650000) && (function_ptr<0x8000000000700000))
+//	{
+		return 0;
+//	}
+	
+//	return err_func(socket,unk_11,flags,kmem,unk_0,unk,function_ptr,unk2);
+}*/
+#endif
+
 uint64_t state;
 uint64_t current_ticks;
 uint64_t target_ticks; 
@@ -589,62 +605,19 @@ extern event_queue_t result_queue;
 //f_desc_t func_sleep;
 volatile int sleep_done;
 
-LV2_PATCHED_FUNCTION(uint64_t, syscall_handler, (uint64_t r3, uint64_t r4, uint64_t r5, uint64_t r6, uint64_t r7, uint64_t r8, uint64_t r9, uint64_t r10))
+LV2_CONTEXT_SC_HANDLER(uint64_t, syscall_handler, (uint64_t r3, uint64_t r4, uint64_t r5, uint64_t r6, uint64_t r7, uint64_t r8, uint64_t r9, uint64_t r10))
 {
-	register uint64_t r11 asm("r11");
-	register uint64_t r13 asm("r13");
-	uint64_t num, p;
-	f_desc_t func;
-		
-	num = r11/8;
-	p = r13;	
-	
-	func.addr = (void *)p;
-	func.toc = (void *)MKA(TOC);
-	uint64_t (* syscall)() = (void *)&func;	
-	
 	suspend_intr();
 	
 	if (1)
 	{
-		/*if (num == 378)
-		{
-			uint64_t *p1, *p2, *p3;
-			
-			p1 = (uint64_t *)r3;
-			p2 = (uint64_t *)r4;
-			p3 = (uint64_t *)r5;
-			
-			resume_intr();
-			uint64_t ret = syscall(r3, r4, r5, r6);
-			
-			DPRINTF("ret=%lx r3 %016lx r4 %016lx r5 %016lx\n", ret, *p1, *p2, *p3);
-			// r3 = 3 -> power off button pressed
-			if (*p1 == 3)
-			{
-				// Change to reboot :)
-				*p1 = 5; *p2 = 2;
-			}
-			return ret;
-		}*/
-		// Prepare your self for a big amount of data in your terminal!
-		// And big ps3 slowdown
-		// Uncomment the if to skip some too common syscalls and make things faster and smaller
-		
-	//	if (num != 378 && num != 173 && num != 178 && num != 130 && num != 138 && num != 104 && num != 102 && num != 579 && num != 122 && num != 124
-	//		&& num != 113 && num != 141 && num != 125 && num != 127 && num != 141) 
-		
-//		if(num<60)
-//		{
-	//		DPRINTF("syscall %ld %lx %lx %lx %lx %lx %lx %lx %lx\n", num, r3, r4, r5, r6, r7, r8, r9, r10);
-//		}
 		while(sleep_done==0)
 		{}
 	}		
 	
 	resume_intr();
 	
-	return syscall(r3, r4, r5, r6, r7, r8, r9, r10);
+	return 1;
 }
 
 void remove_syscall_handler(void)
@@ -684,14 +657,16 @@ LV2_HOOKED_FUNCTION_PRECALL_2(int, post_lv1_call_99_wrapper, (uint64_t *spu_obj,
 		if((*(uint64_t *)(saved_sce_hdr+0x48)>=0x200) || (*(uint64_t *)(saved_sce_hdr+0x48)==0x130))
 		{
 			sleep_done=0;
+			event_queue_drain(result_queue);
 			event_port_send(command_port, CMD_DISABLE_PATCHES, (uint64_t)&res,0);
 			event_queue_receive(result_queue, &event, 0);
+			event_queue_drain(result_queue);
 			DPRINTF("SELF loading!\n");
 			suspend_intr();
 			uint64_t state = spin_lock_irqsave();
 			DPRINTF("interrupt suspended! 6:20am\n");;
 			current_ticks=get_ticks();
-			target_ticks=current_ticks+0x2800000; // Testing
+			target_ticks=current_ticks+0x3000000; // Testing
 			while(get_ticks()<target_ticks)
 			{}
 //			func_sleep.addr=(void*)MKA(get_syscall_address(141));
@@ -704,6 +679,7 @@ LV2_HOOKED_FUNCTION_PRECALL_2(int, post_lv1_call_99_wrapper, (uint64_t *spu_obj,
 			resume_intr();
 			event_port_send(command_port, CMD_ENABLE_PATCHES, (uint64_t)&res,0);
 			event_queue_receive(result_queue, &event, 0);
+			event_queue_drain(result_queue);
 		}
 	}
 
@@ -712,6 +688,8 @@ LV2_HOOKED_FUNCTION_PRECALL_2(int, post_lv1_call_99_wrapper, (uint64_t *spu_obj,
 
 LV2_PATCHED_FUNCTION(int, modules_patching, (uint64_t *arg1, uint32_t *arg2))
 {
+	while(sleep_done==0)
+	{}
 	static unsigned int total = 0;
 	static uint32_t *buf;
 	static uint8_t keys[16];
@@ -1029,7 +1007,25 @@ int prx_load_vsh_plugin(unsigned int slot, char *path, void *arg, uint32_t arg_s
 
 	CellFsStat stat;
 	if (cellFsStat(path, &stat) != 0 || stat.st_size < 0x230) return EINVAL; // prevent a semi-brick (black screen on start up) if the sprx is 0 bytes (due a bad ftp transfer).
+	int file;
+	uint8_t size_check[0x20];
+	uint64_t nread;
+	if (cellFsOpen(path, CELL_FS_O_RDONLY, &file, 0, NULL, 0)==0)
+	{
+		cellFsRead(file, size_check, 0x20, &nread);
+		cellFsClose(file);
+	}
+	else
+	{
+		return EINVAL;
+	}
 
+	uint64_t header_len=*(uint64_t *)(size_check+0x10);
+	uint64_t data_len=*(uint64_t *)(size_check+0x18);
+	uint64_t size=header_len+data_len;
+	if(stat.st_size<size)
+		return EINVAL;
+	
 	loading_vsh_plugin = 1;
 	prx = prx_load_module(vsh_process, 0, 0, path);
 	loading_vsh_plugin  = 0;
@@ -1325,7 +1321,7 @@ void load_boot_plugins(void)
 			prx_start_module_with_thread(prx, vsh_process, 0, 0);
 		}
 	}
-	cellFsUnlink("/dev_hdd0/HENplugin.sprx");
+	//cellFsUnlink("/dev_hdd0/HENplugin.sprx");
 
 	// EVILNAT START
 	// KW / Special thanks to KW for providing an awesome source
@@ -1402,20 +1398,28 @@ void modules_patch_init(void)
 	patch_call(patch_func2_offset, modules_patching);
 	hook_function_with_cond_postcall(modules_verification_symbol, pre_modules_verification, 2);
 	hook_function_with_postcall(map_process_memory_symbol, pre_map_process_memory, 7);
+	do_patch32(MKA(decrypt_func_symbol+0x40),0x60000000);
+#if defined(FIRMWARE_4_82) || defined(FIRMWARE_4_84)
+//	patch_call(0x123f38, ioctl_patched);
+#endif
 }
 
 void unhook_all_modules(void)
 {
 	suspend_intr();
-#if defined (FIRMWARE_4_82) || defined (FIRMWARE_4_84)		
+#if defined(FIRMWARE_4_82) || defined(FIRMWARE_4_84)
 	*(uint32_t *)MKA(patch_func2_offset)=0x4BFDABC1;
-#elif defined(FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX)	
+#elif defined(FIRMWARE_4_82DEX) || defined(FIRMWARE_4_84DEX)	
 	*(uint32_t *)MKA(patch_func2_offset)=0x4BFDAB11;
 #endif
 	clear_icache((void *)MKA(patch_func2_offset),4);
+	do_patch32(MKA(decrypt_func_symbol+0x40),0x419e0020);
 	unhook_function_with_precall(lv1_call_99_wrapper_symbol, post_lv1_call_99_wrapper, 2);
 	unhook_function_with_cond_postcall(modules_verification_symbol, pre_modules_verification, 2);
-	unhook_function_with_postcall(map_process_memory_symbol, pre_map_process_memory, 7);		
+	unhook_function_with_postcall(map_process_memory_symbol, pre_map_process_memory, 7);
+#if defined(FIRMWARE_4_82) || defined(FIRMWARE_4_84)
+//	do_patch32(MKA(0x123f38), 0xE97C0018);
+#endif
 	resume_intr();
 }
 

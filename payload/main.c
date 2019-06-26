@@ -584,7 +584,7 @@ void ecdsa_sign(u8 *hash, u8 *R, u8 *S)
 
 #define COBRA_VERSION		0x0F
 #define COBRA_VERSION_BCD	0x0810
-#define HEN_REV				0x0222
+#define HEN_REV				0x0230
 
 #if defined(FIRMWARE_4_82)
 	#define FIRMWARE_VERSION	0x0482
@@ -692,6 +692,14 @@ int inst_and_run_kernel_dynamic(uint8_t *payload, int size, uint64_t *residence)
 int rif_fd;
 int act_fd;
 int misc_fd;
+
+LV2_HOOKED_FUNCTION_COND_POSTCALL_3(int,bnet_ioctl,(int socket,uint32_t flags, void* buffer))
+{
+	if(flags==0x10007300)
+		return 0;
+	else
+		return DO_POSTCALL;
+}
 
 LV2_HOOKED_FUNCTION_PRECALL_SUCCESS_6(int,sys_fs_open,(const char *path, int flags, int *fd, uint64_t mode, const void *arg, uint64_t size))
 {
@@ -1603,6 +1611,7 @@ static INLINE void apply_kernel_patches(void)
 	*(uint64_t *)MKA(ECDSA_FLAG)=0;
 	/// Adding HEN patches on init for stability ///	 -- END
 	hook_function_with_precall(get_syscall_address(801),sys_fs_open,6);
+	hook_function_with_cond_postcall(get_syscall_address(724),bnet_ioctl,3);
 	hook_function_with_precall(get_syscall_address(802),sys_fs_read,4);
 	#if defined (FIRMWARE_4_82) ||  defined (FIRMWARE_4_84)
 	hook_function_with_cond_postcall(um_if_get_token_symbol,um_if_get_token,5);
@@ -1656,8 +1665,8 @@ int main(void)
 //	permissions_patches();
 	init_mount_hdd0();
 	do_hook_all_syscalls();
-	memset((void *)MKA(0x7e0000),0,0x1000);
-	memset((void *)MKA(0x7f0000),0,0x2000);
+	memset((void *)MKA(0x7e0000),0,0x100);
+	memset((void *)MKA(0x7f0000),0,0x1000);
 	load_boot_plugins();
 	load_boot_plugins_kernel();
 //	enable_ingame_screenshot();

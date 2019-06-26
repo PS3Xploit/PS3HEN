@@ -37,7 +37,7 @@
 /// advanced download patches found by Devil303
 #define elf_patch3_download				0x4D708
 #define elf_patch4_download				0x4E528
-#define elf_patch5_download				0x4E548
+#define elf_patch5_download				0x4E548 // tmp and downloader, currently disabled to prevent side effects
 #define elf_patch6_download				0x4E624
 
 /* autodownload_plugin */

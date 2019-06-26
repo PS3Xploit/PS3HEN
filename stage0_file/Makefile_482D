@@ -18,7 +18,7 @@ CFLAGS += --std=gnu99
 LDFLAGS=-nostartfiles -nostdlib -mbig-endian
 LDFLAGS= -T $(TARGET).ld -nostartfiles -nostdlib -nodefaultlibs -Wl,-static -Wl,-s -L. $(foreach dir,$(LIBSDIR),-L$(dir)) $(LIBS) -Wl,--gc-sections -Wl
 
-OBJS = start_DEX.o main.o ../lv2/src/libc.o ../lv2/src/memory.o  ../lv2/src/io.o ../lv2/src/thread.o ../lv1/src/hvcall.o
+OBJS = start_DEX.o unregister_services.o main.o ../lv2/src/libc.o ../lv2/src/memory.o  ../lv2/src/io.o ../lv2/src/thread.o ../lv1/src/hvcall.o
 
 all: $(TARGET).bin
 

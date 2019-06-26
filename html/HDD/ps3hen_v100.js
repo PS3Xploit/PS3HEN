@@ -1,7 +1,5 @@
 var debug=true;
 
-var sp_swap_addr_second=0;
-
 var ua = navigator.userAgent;
 var fwVersion = ua.substring(ua.indexOf("5.0 (") + 19, ua.indexOf(") Apple"));
 
@@ -32,7 +30,7 @@ var idps='idps.hex';
 var act='act.dat';
 var start_x='xxxx';
 
-var usb_sp='/dev_usb000/PS3HEN.BIN';
+var usb_sp='/dev_hdd0/theme/PS3HEN.p3t';
 var mount_path='/dev_blind';
 var flash_partition='xxxxCELL_FS_IOS:BUILTIN_FLSH1';
 var filesystem='CELL_FS_FAT';
@@ -193,7 +191,6 @@ var gadget_mod16_addr_481_d=0x4FEF1C;
 
 //DEX 4.82
 var toc_addr_482_d = 0x705640;
-var sp_swap_addr_second_482=0x8a000c10;
 var prx_explore_plugin_toc_addr_482_d=0x0;// size 0x30
 var vsh_whatsnew_patch_addr_482_d=0x0;// explore_plugin
 var vsh_whatsnew_xml_addr_482_d=0x0;
@@ -386,7 +383,6 @@ var gadget_mod16_addr_483=0x4F732C; //set toc
 
 //DEX 4.84
 var toc_addr_484_d = 0x705648;
-var sp_swap_addr_second_484_d=0x8a000e60;
 var prx_explore_plugin_toc_addr_484_d=0x0;// size 0x30
 var vsh_whatsnew_patch_addr_484_d=0x0;// explore_plugin
 var vsh_whatsnew_xml_addr_484_d=0x0;
@@ -438,7 +434,6 @@ var e_fopen_write_close=0x42B70C;
 
 //CEX 4.84
 var toc_addr_484 = 0x6F5558;
-var sp_swap_addr_second_484 = 0x8a000c10;
 var default_vsh_pub_toc_484=0x6ED5AC;
 var vsh_opd_patch_484=0x96D5C;
 var vsh_opd_addr_484=0x6EBB70;
@@ -810,7 +805,7 @@ function strncmp(str1, str2, n) {
                               (( str1 > str2 ) ? 1 : -1 ));
 }
 
-function rop_exit_hen2(suc, fail)
+function rop_exit_hen(suc, fail)
 {
 	// // operations to execute on ROP exit
 	var chk="53434500";
@@ -820,104 +815,6 @@ function rop_exit_hen2(suc, fail)
 	if(strncmp(chk,chk2,4)!=0)
 	{
 		showResult(fail);
-	}
-	else
-	{
-		showResult(suc);
-		if(el)
-		{
-			if(el.checked===true)window.close();
-		}
-	}
-}
-
-function initROP2(init)
-{
-	try
-	{
-		if(init===true){frame_fails=0;search_base_off=0;search_size_ext=0;total_loops=0}
-		if(t_out!==0){clearTimeout(t_out);t_out=0;}
-		offset_array=[];
-		disable_all();
-		clearLogEntry();
-		stack_frame_addr=0;
-		jump_2_addr=0;
-		jump_1_addr=0;
-		var search_max_threshold=70*0x100000; // 70Mb maximum memory search
-		var search_base=0x80100000;//0x80190000;//
-		var search_size=2*mbytes;
-		search_size_ext=0*mbytes;
-		search_base_off=0*mbytes;
-		total_loops++;
-		//############################ Building stack frame ###############################################################
-		stack_frame=stack_frame_hookup()
-		+stack_frame_swap(0x8a060000);
-//############################ End stack frame ###############################################################		
-		while(stack_frame_addr===0)
-		{
-			if(search_max_threshold<search_size+search_size_ext){frame_fails++;if((frame_fails%10)===0){search_base_off+=0;search_size_ext+=0;}load_check2();return;}
-			stack_frame=stack_frame.replaceAt(0,hexh2bin(0x2A2F));
-			stack_frame_addr=findJsVariableOffset("stack_frame",stack_frame,search_base+search_base_off,search_size+search_size_ext);
-			if(stack_frame_addr==-1)if(search_max_threshold<search_size+search_size_ext){frame_fails++;load_check2();return;}
-			search_max_threshold-=search_size+search_size_ext;
-		}
-		jump_2=unescape("\u0102\u7EFB")+fill_by_16bytes(0x30,0x8282)+hexw2bin(stack_frame_addr)+unescape("\uFB7E");		
-		while(jump_2_addr===0)
-		{
-			if(search_max_threshold<search_size){load_check2();return;}
-			jump_2=jump_2.replaceAt(0,hexh2bin(0x7EFB));
-			jump_2_addr=findJsVariableOffset("jump_2",jump_2,search_base,search_size);
-			if(jump_2_addr==-1)if(search_max_threshold<search_size){load_check2();return;}
-			search_max_threshold-=search_size;
-		}
-		jump_1=unescape("\u4141\u7EFA")+hexw2bin(jump_2_addr)+unescape("\uFA7E");
-		while(jump_1_addr===0)
-		{
-			if(search_max_threshold<search_size){load_check2();return;}
-			jump_1=jump_1.replaceAt(0,hexh2bin(0x7EFA));
-			jump_1_addr=findJsVariableOffset("jump_1",jump_1,search_base,search_size);
-			if(jump_1_addr==-1)if(search_max_threshold<search_size){load_check2();return;}
-			search_max_threshold-=search_size;
-		}
-		var sf=checkMemory(stack_frame_addr-0x4,0x8000,stack_frame.length);
-		var j2=checkMemory(jump_2_addr-0x4,0x1000,jump_2.length);
-		var j1=checkMemory(jump_1_addr-0x4,0x1000,jump_1.length);
-		if((j2===jump_2)&&(j1===jump_1)&&(sf===stack_frame))
-		{
-			if(t_out!==0){clearTimeout(t_out);}
-			showResult("Rebooting!");
-			setTimeout(trigger,1000,jump_1_addr);
-			setTimeout(rop_exit_hen2,7000,hr+"<h1><b><font color=%22386E38%22>HEN is successfully installed</font></b></h1>","<h1><b><font color='red'>HEN Failure! Restart PS3 and retry! PS3HEN.BIN missing copy to usb000(last port near blu ray drive of ps3)</font></b></h1>");
-		
-		}
-		else
-		{
-			if(sf!==stack_frame)logAdd("stack_frame mismatch in memory!");
-			if(j2!==jump_2)logAdd("jump_2 mismatch in memory!");
-			if(j1!==jump_1)logAdd("jump_1 mismatch in memory!");
-			//logAdd("String mismatch in memory!");
-			load_check2();
-		}
-	}
-	catch(e)
-	{
-		debug=true;
-		logAdd(br+"HEN Enabler initialization failed because the following exception was thrown during execution:"+br+e+" at : "+e.lineNumber);
-		debug=false;
-	}
-}
-
-function rop_exit_hen(suc, fail, addr_jump1)
-{
-	// // operations to execute on ROP exit
-	var chk="53434500";
-	var chk2=checkMemory(0x8a000000,0x10,3);
-	chk2=chk2.toAscii(true);
-	var el=document.getElementById('auto_close');
-	if(strncmp(chk,chk2,4)!=0)
-	{
-		showResult("Failed!Rebooting!");
-		initROP2(true);
 	}
 	else
 	{
@@ -952,22 +849,6 @@ function load_check()
 		cleanGUI();
 	}
 }
-
-function load_check2()
-{
-	if(total_loops<max_loops)
-	{
-		showResult(progress_msg_frag1+((100/max_loops)*total_loops).toString()+progress_msg_frag2);
-		t_out=setTimeout(initROP2,1000,false);
-	}
-	else
-	{
-		total_loops=0;
-		showResult(fail_msg_frag);
-		cleanGUI();
-	}
-}
-
 function setText(elem,str)
 {
 	if(elem){elem.text=str;}
@@ -1331,7 +1212,6 @@ function loaddex_482()
 function loadcex_482()
 {
 	toc_addr = toc_addr_482;
-	sp_swap_addr_second=sp_swap_addr_second_482;
 	vsh_opd_addr=vsh_opd_addr_482;
 	vsh_opd_patch=vsh_opd_patch_482;
 	vsh_toc_addr_screenshot=vsh_toc_addr_screenshot_482;
@@ -1428,7 +1308,6 @@ function loadcex_483()
 function loaddex_484()
 {
 	toc_addr = toc_addr_484_d;
-	sp_swap_addr_second=sp_swap_addr_second_484_d;
 	vsh_opd_addr=vsh_opd_addr_484_d;
 	vsh_opd_patch=vsh_opd_patch_484_d;
 	vsh_toc_addr_screenshot=vsh_toc_addr_screenshot_484_d;
@@ -1477,7 +1356,6 @@ function loaddex_484()
 function loadcex_484()
 {
 	toc_addr = toc_addr_484;
-	sp_swap_addr_second=sp_swap_addr_second_484;
 	vsh_opd_addr=vsh_opd_addr_484;
 	vsh_opd_patch=vsh_opd_patch_484;
 	vsh_toc_addr_screenshot=vsh_toc_addr_screenshot_484;

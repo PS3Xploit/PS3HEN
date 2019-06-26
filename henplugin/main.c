@@ -33,6 +33,31 @@
 #include "game_ext_plugin.h"
 #include "xmb_plugin.h"
 
+#include <sys/sys_time.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <sys/syscall.h>
+#include <sys/timer.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <netdb.h>
+#include <netex/net.h>
+#include <netex/errno.h>
+#include <cell/fs/cell_fs_errno.h>
+#include <cell/fs/cell_fs_file_api.h>
+#include <ppu_intrinsics.h>
+#include <cstdlib>
+#pragma comment(lib, "net_stub")
+#pragma comment(lib, "netctl_stub")
+ 
+#define SERVER_PORT htons(80)
+#define HOST_SERVER "www.ps3xploit.com"
+ 
+int Socket;
+struct hostent *Host;
+struct sockaddr_in SocketAddress;
+char RequestBuffer[512];
+
 SYS_MODULE_INFO(HENPLUGIN, 0, 1, 0);
 SYS_MODULE_START(henplugin_start);
 SYS_MODULE_STOP(henplugin_stop);
@@ -53,6 +78,7 @@ extern uint32_t vshmain_EB757101(void);        // get running mode flag, 0 = XMB
 static sys_ppu_thread_t thread_id=-1;
 static int done = 0;
 
+uint16_t hen_version;
 int henplugin_start(uint64_t arg);
 
 extern int vshmain_87BB0001(int param);
@@ -189,18 +215,6 @@ static inline sys_prx_id_t prx_get_module_id_by_address(void *addr)
 	return (int)p1;
 }
 
-static int unregister_service(uint32_t config_hdl,uint32_t service_hdl)
-{
-	system_call_2(0x20a, config_hdl,service_hdl);
-	return (int)p1;
-}
-
-static inline int config_close(uint32_t config_hdl)
-{
-	system_call_1(0x205, config_hdl);
-	return (int)p1;
-}
-
 #define SC_STOP_PRX_MODULE 				(482)
 #define SC_UNLOAD_PRX_MODULE 			(483)
 #define SC_COBRA_SYSCALL8 8
@@ -222,15 +236,6 @@ static void stop_prx_module(void)
 	{system_call_6(SC_STOP_PRX_MODULE, (uint64_t)prx, 0, NULL, (uint64_t)(uint32_t)result, 0, NULL);}
 
 }
-
-typedef struct hen_config
-{
-	uint32_t config_hdl;
-	uint32_t service_hdl1;
-	uint32_t service_hdl2;
-	uint32_t service_hdl3;
-	uint32_t service_hdl4; //only dex atm 4th service
-} HEN_CONFIG;
 
 static int LoadPluginById(int id, void *handler)
 {
@@ -255,8 +260,6 @@ static int UnloadPluginById(int id, void *handler)
 //int is_hen_installed=0;
 int thread2_download_finish=0;
 int thread3_install_finish=0;
-uint16_t latest_hen_ver;
-uint16_t current_hen_ver;
 
 #define SYSCALL_PEEK	6
 	
@@ -327,30 +330,70 @@ static void unload_web_plugins(void)
 
 	explore_interface->ExecXMBcommand("close_all_list", 0, 0);
 }
+
+char server_reply[512];
+
+int hen_updater(void);
+int hen_updater(void)
+{
+	uint16_t latest_rev=0;
+	Host = gethostbyname(HOST_SERVER);
+    SocketAddress.sin_addr.s_addr = *((unsigned long*)Host->h_addr);
+    SocketAddress.sin_family = AF_INET;
+    SocketAddress.sin_port = SERVER_PORT;
+    Socket = socket(AF_INET, SOCK_STREAM, 0);
+    if (connect(Socket, (struct sockaddr *)&SocketAddress, sizeof(SocketAddress)) != 0) {
+		show_msg((char *)"Failed To Connect To Update Server!");
+        return -1;
+    }
+ 
+	strcpy(RequestBuffer, "GET ");
+    strcat(RequestBuffer, "/hen/hen_version.bin");
+    strcat(RequestBuffer, " HTTP/1.1\r\n");
+	strcat(RequestBuffer, "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/64.0.3282.140 Safari/537.36 Edge/17.17134\r\n");
+    strcat(RequestBuffer, "Accept-Language: en-US\r\n");
+    strcat(RequestBuffer, "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\r\n");
+    strcat(RequestBuffer, "Upgrade-Insecure-Requests: 1\r\n");
+    strcat(RequestBuffer, "HOST: "HOST_SERVER"\r\n");
+    strcat(RequestBuffer, "Connection: keep-alive\r\n");
+    strcat(RequestBuffer, "\r\n");
+    send(Socket, RequestBuffer, strlen(RequestBuffer), 0);
+ 
+	int reply_len=0;
+    while (1)
+    {
+		reply_len=recv(Socket, server_reply, sizeof(server_reply), 0);
+		if(reply_len>0)
+		{
+			if(strstr(server_reply,"200 OK"))
+			{
+				latest_rev=*(uint16_t *)(server_reply+reply_len-2);
+			}
+			else
+			{
+				show_msg((char *)"Update Server Responded With Error!");
+			}
+			break;
+		}
+        sys_timer_usleep(1000);
+    }
+	char msg[100];
+	sprintf(msg,"Latest PS3HEN available is %X.%X.%X",latest_rev>>8, (latest_rev & 0xF0)>>4, (latest_rev&0xF));
+	show_msg((char*)msg);
+	if(hen_version<latest_rev)
+	{
+		return 1;
+	}
+    socketclose(Socket);
+	return 0;
+}
+
 static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 {
-	HEN_CONFIG CONFIG;
-	int fd;
-	uint64_t nread;
-	if(cellFsOpen("/dev_hdd0/HENCONFIG", CELL_FS_O_RDONLY, &fd, NULL, 0)==0)
-	{
-		cellFsRead(fd, &CONFIG, sizeof(HEN_CONFIG), &nread);
-		cellFsClose(fd);
-		unregister_service(CONFIG.config_hdl,CONFIG.service_hdl1);
-		unregister_service(CONFIG.config_hdl,CONFIG.service_hdl2);
-		unregister_service(CONFIG.config_hdl,CONFIG.service_hdl3);
-		if(CONFIG.service_hdl4)
-		{
-			unregister_service(CONFIG.config_hdl,CONFIG.service_hdl4);
-		}
-		config_close(CONFIG.config_hdl);
-		cellFsUnlink("/dev_hdd0/HENCONFIG");
-	}
-	
 	View_Find = getNIDfunc("paf", 0xF21655F3, 0);
 	plugin_GetInterface = getNIDfunc("paf", 0x23AFB290, 0);
 	int view = View_Find("explore_plugin");
-	system_call_1(8, SYSCALL8_OPCODE_HEN_REV); uint16_t hen_version = (int)p1;
+	system_call_1(8, SYSCALL8_OPCODE_HEN_REV); hen_version = (int)p1;
 	char henver[0x30];
 	//sprintf(henver, "Welcome to PS3HEN %X.%02X", hen_version>>8, (hen_version & 0xFF));
 	sprintf(henver, "Welcome to PS3HEN %X.%X.%X", hen_version>>8, (hen_version & 0xF0)>>4, (hen_version&0xF));
@@ -379,8 +422,8 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 		}
 		goto done;
 	}
-	
-	if(cellFsStat("/dev_flash/vsh/resource/explore/icon/hen_enable.png",&stat)!=0)
+	int do_update=hen_updater();
+	if((cellFsStat("/dev_flash/vsh/resource/explore/icon/hen_enable.png",&stat)!=0) || (do_update==1))
 	{
 		cellFsUnlink("/dev_hdd0/theme/PS3HEN.p3t");
 		unload_web_plugins();
@@ -420,8 +463,8 @@ done:
 
 int henplugin_start(__attribute__((unused)) uint64_t arg)
 {
+	//sys_timer_sleep(40000);
 	sys_ppu_thread_create(&thread_id, henplugin_thread, 0, 3000, 0x4000, SYS_PPU_THREAD_CREATE_JOINABLE, THREAD_NAME);
-		
 	// Exit thread using directly the syscall and not the user mode library or we will crash
 	_sys_ppu_thread_exit(0);	
 	return SYS_PRX_RESIDENT;

@@ -47,8 +47,17 @@ int main(int argc, char **argv)
 	{
 		if(stat(argv[2],&buffer)==0)
 		{
-			uint8_t *stage2_buf=(uint8_t *)malloc(buffer.st_size);
+			if(buffer.st_size>0x1fff8)
+			{
+				printf("stage2 too big!EXITING!\n");
+				return -1;
+			}
+			uint8_t *stage2_buf=(uint8_t *)malloc(0x1fff8);
 			uint64_t size_stage2=swap64(buffer.st_size);
+			memset(stage2_buf,0,0x1fff8);
+			fseek(sp,0x80000,SEEK_SET);
+			fwrite(stage2_buf,0x1fff8,1,sp);
+			
 			fread(stage2_buf,buffer.st_size,1,stage2);
 			fclose(stage2);
 			fseek(sp,0x7fff8,SEEK_SET);
@@ -58,8 +67,17 @@ int main(int argc, char **argv)
 			free(stage2_buf);
 			if(stat(argv[3],&buffer)==0)
 			{
+				if(buffer.st_size>0xd000)
+				{
+					printf("stage0 too big!EXITING!\n");
+					return -1;
+				}
 				uint64_t size_stage0=swap64(buffer.st_size);
-				uint8_t *stage0_buf=(uint8_t *)malloc(buffer.st_size);
+				uint8_t *stage0_buf=(uint8_t *)malloc(0xd000);
+				memset(stage0_buf,0xff,0xd000);
+				fseek(sp,0x102000,SEEK_SET);
+				fwrite(stage0_buf,0xd000,1,sp);
+				
 				fread(stage0_buf,buffer.st_size,1,stage0);
 				fclose(stage0);
 				fseek(sp,0x102000,SEEK_SET);
@@ -69,7 +87,16 @@ int main(int argc, char **argv)
 				fwrite(&size_stage0,8,1,sp);
 				if(stat(argv[4],&buffer)==0)
 				{
-					uint8_t *sprx_buf=(uint8_t *)malloc(buffer.st_size);
+					if(buffer.st_size>0xfff8)
+					{
+						printf("sprx too big!EXITING!\n");
+						return -1;
+					}
+					uint8_t *sprx_buf=(uint8_t *)malloc(0xfff8);
+					memset(sprx_buf,0,0xfff8);
+					fseek(sp,0x70000,SEEK_SET);
+					fwrite(sprx_buf,0xfff8,1,sp);
+					
 					fread(sprx_buf,buffer.st_size,1,sprx);
 					fclose(sprx);
 					fseek(sp,0x70000,SEEK_SET);

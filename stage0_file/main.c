@@ -4,12 +4,14 @@
 #include <lv2/libc.h>
 #include <lv2/thread.h>
 #include <lv2/patch.h>
+#include <lv2/syscall.h>
 #include <lv1/lv1.h>
 
-//#define STAGE2_FILE_STAT	0x8e000050
-//#define STAGE2_FILE_NREAD	0x8e000008
 #define STAGE2_LOCATION		0x8a080000
 #define SPRX_LOCATION		0x8a070000
+#define SYS_EVENT_QUEUE_DESTROY_FORCE	1
+
+void syscall_unregister_service(void);
 
 typedef struct hen_config
 {
@@ -23,31 +25,61 @@ typedef struct hen_config
 void *main(void)
 {
 	void *stage2 = NULL;
-//	f_desc_t f;
-//	int (* func)(void);	
+	f_desc_t f;	
+	cellFsUnlink("/dev_hdd0/HENplugin.sprx");	
 	HEN_CONFIG CONFIG;
 	CONFIG.config_hdl=*(uint32_t *)0x8d000500;
 	CONFIG.service_hdl1=*(uint32_t *)0x8D0FF050;
 	CONFIG.service_hdl2=*(uint32_t *)0x8D0FF054;
 	CONFIG.service_hdl3=*(uint32_t *)0x8D0FF058;
-	
-	#if defined (FIRMWARE_4_82DEX) ||  defined (FIRMWARE_4_84DEX)
 	CONFIG.service_hdl4=*(uint32_t *)0x8D0FF05c;
-	#else
-	CONFIG.service_hdl4=0;
-	#endif
-	
-	uint64_t read;
-	int dst;
-	if(cellFsOpen("/dev_hdd0/HENCONFIG",CELL_FS_O_WRONLY|CELL_FS_O_CREAT|CELL_FS_O_TRUNC, &dst, 0666, NULL, 0)==0)
+	typedef uint32_t sys_event_queue_t;
+	sys_event_queue_t to_be_destroyed=*(uint32_t *)0x8D0FF060;
+
+	if(CONFIG.service_hdl1)
 	{
-		cellFsWrite(dst, &CONFIG, sizeof(HEN_CONFIG), &read);
-		cellFsClose(dst);
+		f.addr=syscall_unregister_service;
+		f.toc=(void*)MKA(TOC);
+		int (*unregister_service)(uint32_t config_hdl,uint32_t service_hdl)=(void*)&f;
+		unregister_service(CONFIG.config_hdl,CONFIG.service_hdl1);
+		unregister_service(CONFIG.config_hdl,CONFIG.service_hdl2);
+		unregister_service(CONFIG.config_hdl,CONFIG.service_hdl3);
+		unregister_service(CONFIG.config_hdl,CONFIG.service_hdl4); 
+		
+		
+		f.addr=(void*)MKA(get_syscall_address(0x205));
+		int(*config_close)(uint32_t hdl)=(void*)&f;
+		config_close(CONFIG.config_hdl);
+		
+		f.addr=(void*)MKA(get_syscall_address(0x81));
+		int(*event_queue_destroy_user)(sys_event_queue_t equeu_id, int mode)=(void*)&f;
+		event_queue_destroy_user(to_be_destroyed,SYS_EVENT_QUEUE_DESTROY_FORCE);
 	}
+	
+	*(uint32_t *)0x8d000500=0;
+	*(uint32_t *)0x8D0FF050=0;
+	*(uint32_t *)0x8D0FF054=0;
+	*(uint32_t *)0x8D0FF058=0;
+	*(uint32_t *)0x8D0FF05c=0;
+	*(uint32_t *)0x8D0FF060=0;
+	
+	uint64_t sc_null = *(uint64_t *)MKA(syscall_table_symbol);
+	uint64_t sc_8 = *(uint64_t *)((MKA(syscall_table_symbol))+8*8);
+	if(sc_8!=sc_null)
+	{
+		uint32_t sce_bytes=0x53434500;
+		*(uint32_t *)0x8a000000=sce_bytes; //hen check
+		return NULL;
+	}
+	
+/*	f.addr=(void*)MKA(get_syscall_address(8));
+	uint16_t (*hen_check)(uint64_t param)=(void*)&f;
+	if(hen_check(0x1337)==0x1337)
+		return NULL;*/
+	
+	int dst;
 
-//	CellFsStat *stat=(CellFsStat *)STAGE2_FILE_STAT;
-
-	for (int i = 0; i < 128; i++)
+	for (int i = 0; i < 127; i++)
 	{
 		uint64_t pte0 = *(uint64_t *)(MKA(0xf000000 | (i<<7)));
 		uint64_t pte1 = *(uint64_t *)(MKA(0xf000000 | ((i<<7)+8)));
@@ -56,7 +88,6 @@ void *main(void)
 	}
 
 	uint64_t size;
-//	size=stat->st_size;
 	size=*(uint64_t *)(STAGE2_LOCATION-8);
 	if(size) // Thanks to @aldostools, this will prevent hang if binary does not have stage2
 	{
@@ -69,21 +100,26 @@ void *main(void)
 	
 	if (stage2)
 	{
-		uint32_t sce_bytes=0x53434500;
-		*(uint32_t *)0x8a000000=sce_bytes; //hen check
 		uint64_t header_len=*(uint64_t *)(SPRX_LOCATION+0x10);
 		uint64_t data_len=*(uint64_t *)(SPRX_LOCATION+0x18);
 		uint64_t size=header_len+data_len;
-		if(cellFsOpen("/dev_hdd0/HENplugin.sprx",CELL_FS_O_WRONLY|CELL_FS_O_CREAT|CELL_FS_O_TRUNC, &dst, 0666, NULL, 0)==0)
+		uint64_t size1;
+		for(uint8_t retry = 0; retry < 10; retry++)
 		{
-			cellFsWrite(dst, (void*)SPRX_LOCATION, size, &size);
-			cellFsClose(dst);
+			timer_usleep(100000);
+			if(cellFsOpen("/dev_hdd0/HENplugin.sprx",CELL_FS_O_WRONLY|CELL_FS_O_CREAT|CELL_FS_O_TRUNC, &dst, 0666, NULL, 0)==0)
+			{
+				cellFsWrite(dst, (void*)SPRX_LOCATION, size, &size1);
+				cellFsClose(dst);
+				uint32_t sce_bytes=0x53434500;
+				*(uint32_t *)0x8a000000=sce_bytes; //hen check
+				timer_usleep(200000);
+				if(size1>=size)
+					return stage2;
+				else
+					break;
+			}
 		}
-//		f.addr = stage2;	
-//		f.toc = (void *)MKA(TOC);
-//		func = (void *)&f;	
-//		func();		
-		return stage2;
 	}
 
 	return NULL;
