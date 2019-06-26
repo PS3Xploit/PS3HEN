@@ -338,6 +338,11 @@ int hen_updater(void)
 {
 	uint16_t latest_rev=0;
 	Host = gethostbyname(HOST_SERVER);
+	if(!Host)
+	{
+		show_msg((char *)"Could not resolve update Host!\n");
+		return -1;
+	}
     SocketAddress.sin_addr.s_addr = *((unsigned long*)Host->h_addr);
     SocketAddress.sin_family = AF_INET;
     SocketAddress.sin_port = SERVER_PORT;
