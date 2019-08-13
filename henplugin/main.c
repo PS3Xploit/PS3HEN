@@ -415,6 +415,11 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 	enable_ingame_screenshot();
 	reload_xmb();
 	CellFsStat stat;
+
+	if(cellFsStat("/dev_hdd0/HEN_autoupdate.off",&stat)==0)
+	{
+		goto done;
+	}
 	
 	if(cellFsStat("/dev_usb000/HEN_UPD.pkg",&stat)==0)
 	{
