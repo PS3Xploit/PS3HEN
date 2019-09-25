@@ -584,16 +584,18 @@ void ecdsa_sign(u8 *hash, u8 *R, u8 *S)
 
 #define COBRA_VERSION		0x0F
 #define COBRA_VERSION_BCD	0x0810
-#define HEN_REV				0x0231
+#define HEN_REV				0x0232
 
 #if defined(FIRMWARE_4_82)
 	#define FIRMWARE_VERSION	0x0482
 #elif defined(FIRMWARE_4_82DEX)
-	#define FIRMWARE_VERSION	0x0482    
+	#define FIRMWARE_VERSION	0x0482
 #elif defined(FIRMWARE_4_84)
-	#define FIRMWARE_VERSION	0x0484    
+	#define FIRMWARE_VERSION	0x0484
 #elif defined(FIRMWARE_4_84DEX)
-	#define FIRMWARE_VERSION	0x0484        
+	#define FIRMWARE_VERSION	0x0484  
+#elif defined(FIRMWARE_4_85)
+	#define FIRMWARE_VERSION	0x0485
 #endif
 
 #if defined(CFW)
@@ -1613,7 +1615,7 @@ static INLINE void apply_kernel_patches(void)
 	hook_function_with_precall(get_syscall_address(801),sys_fs_open,6);
 	hook_function_with_cond_postcall(get_syscall_address(724),bnet_ioctl,3);
 	hook_function_with_precall(get_syscall_address(802),sys_fs_read,4);
-	#if defined (FIRMWARE_4_82) ||  defined (FIRMWARE_4_84)
+	#if defined (FIRMWARE_4_82) || defined (FIRMWARE_4_84) || defined (FIRMWARE_4_85)
 	hook_function_with_cond_postcall(um_if_get_token_symbol,um_if_get_token,5);
 	hook_function_with_cond_postcall(update_mgr_read_eeprom_symbol,read_eeprom_by_offset,3);
 	#endif

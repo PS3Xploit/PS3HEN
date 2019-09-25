@@ -1010,7 +1010,7 @@ int enable_patches()
 			hook_function_with_precall(get_syscall_address(801),sys_fs_open,6);
 			hook_function_with_precall(get_syscall_address(802),sys_fs_read,4);
 			hook_function_with_cond_postcall(get_syscall_address(724),bnet_ioctl,3);
-#if defined (FIRMWARE_4_82) ||  defined (FIRMWARE_4_84)			
+#if defined (FIRMWARE_4_82) || defined (FIRMWARE_4_84) || defined (FIRMWARE_4_85)			
 			hook_function_with_cond_postcall(um_if_get_token_symbol,um_if_get_token,5);
 			hook_function_with_cond_postcall(update_mgr_read_eeprom_symbol,read_eeprom_by_offset,3);
 #endif			
@@ -1024,7 +1024,7 @@ int disable_patches()
 	DPRINTF("disabling patches\n");
 	suspend_intr();
 			do_patch32(MKA(patch_func8_offset1),0x7FE307B4);
-#if defined (FIRMWARE_4_82) || defined (FIRMWARE_4_84)	
+#if defined (FIRMWARE_4_82) || defined (FIRMWARE_4_84) || defined (FIRMWARE_4_85)	
 		do_patch32(MKA(patch_func8_offset2),0x48216FB5);
 		do_patch32(MKA(lic_patch),0x48240EED); // ignore LIC.DAT check
 #elif defined (FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX)
@@ -1056,7 +1056,7 @@ int disable_patches()
 		unhook_function_with_precall(get_syscall_address(802),sys_fs_read,4);
 		unhook_function_with_cond_postcall(get_syscall_address(724),bnet_ioctl,3);
 	//	remove_pokes();
-#if defined (FIRMWARE_4_82) ||  defined (FIRMWARE_4_84)
+#if defined (FIRMWARE_4_82) || defined (FIRMWARE_4_84) || defined (FIRMWARE_4_85)
 		suspend_intr();
 		unhook_function_with_cond_postcall(um_if_get_token_symbol,um_if_get_token,5);
 		unhook_function_with_cond_postcall(update_mgr_read_eeprom_symbol,read_eeprom_by_offset,3);
@@ -3665,7 +3665,7 @@ void storage_ext_patches(void)
 
 void unhook_all_storage_ext(void)
 {
-#if defined (FIRMWARE_4_82) || defined (FIRMWARE_4_84)	
+#if defined (FIRMWARE_4_82) || defined (FIRMWARE_4_84) || defined (FIRMWARE_4_85)
 	*(uint32_t *)MKA(device_event_port_send_call)=0x4BD91004;
 	*(uint32_t *)MKA(shutdown_copy_params_call)=0x48004FBD;
 #elif defined(FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX)

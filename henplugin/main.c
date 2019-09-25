@@ -283,9 +283,13 @@ static void downloadPKG_thread2(void)
 		{
 			download_interface->DownloadURL(0, (wchar_t *) L"http://ps3xploit.com/hen/release/482/cex/installer/Latest_HEN_Installer_signed.pkg", (wchar_t *) L"/dev_hdd0");
 		}
-	else if(peekq(0x80000000002FCB68ULL)==0x323031392F30312FULL)
+	if(peekq(0x80000000002FCB68ULL)==0x323031392F30312FULL)
 		{
 			download_interface->DownloadURL(0,(wchar_t *) L"http://ps3xploit.com/hen/release/484/cex/installer/Latest_HEN_Installer_signed.pkg", (wchar_t *) L"/dev_hdd0");
+		}	
+	if(peekq(0x80000000002FCB68ULL)==0x323031392F30372FULL)
+		{
+			download_interface->DownloadURL(0,(wchar_t *) L"http://ps3xploit.com/hen/release/485/cex/installer/Latest_HEN_Installer_signed.pkg", (wchar_t *) L"/dev_hdd0");
 		}	
 	thread2_download_finish=1;
 }
