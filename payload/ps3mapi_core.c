@@ -156,7 +156,7 @@ int ps3mapi_set_process_mem(process_id_t pid, uint64_t addr, char *buf, int size
 	if (process <= 0)
 		return ESRCH;
 	else 
-		return copy_to_process(process, (void *)get_secure_user_ptr(buf), (void *)addr, size);
+		return process_write_memory(process, (void *)addr, (void *)get_secure_user_ptr(buf), size, 1);
 }
 
 int ps3mapi_get_process_mem(process_id_t pid, uint64_t addr, char *buf, int size)

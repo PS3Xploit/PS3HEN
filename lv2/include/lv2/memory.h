@@ -21,6 +21,8 @@ LV2_EXPORT int copy_to_user(void *src, void *user_dst, int size);
 LV2_EXPORT int copy_from_user(void *user_src, void *dst, int size);
 LV2_EXPORT int copy_to_process(process_t process, void *src, void *foreign_dst, int size);
 LV2_EXPORT int copy_from_process(process_t process, void *foreign_src, void *dst, int size);
+LV2_EXPORT int process_write_memory(process_t process, void *destination, void *source, size_t size, int flag);
+LV2_EXPORT int process_read_memory(process_t process, void *destination, void *source, size_t size);
 
 LV2_EXPORT int kernel_ea_to_lpar_addr(void *ea_addr, uint64_t *lpar_addr);
 LV2_EXPORT int process_ea_to_lpar_addr_ex(void *mem_object, void *ea_addr, uint64_t *lpar_addr);

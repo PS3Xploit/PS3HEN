@@ -32,6 +32,7 @@
 #include "laboratory.h"
 #include "ps3mapi_core.h"
 
+#if defined(FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX) || defined (FIRMWARE_4_82)
 uint8_t p_fixed[20]={0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0x00,0x00,0x00,0x01,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
 uint8_t a_fixed[20]={0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0x00,0x00,0x00,0x01,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFC};
 uint8_t b_fixed[20]={0xA6,0x8B,0xED,0xC3,0x34,0x18,0x02,0x9C,0x1D,0x3C,0xE3,0x3B,0x9A,0x32,0x1F,0xCC,0xBB,0x9E,0x0F,0x0B};
@@ -558,7 +559,7 @@ void ecdsa_sign(u8 *hash, u8 *R, u8 *S)
 {
 	generate_ecdsa(R, S, ec_k, hash);
 }
-
+#endif
 // Format of version:
 // byte 0, 7 MS bits -> reserved
 // byte 0, 1 LS bit -> 1 = CFW version, 0 = OFW/exploit version
@@ -584,18 +585,18 @@ void ecdsa_sign(u8 *hash, u8 *R, u8 *S)
 
 #define COBRA_VERSION		0x0F
 #define COBRA_VERSION_BCD	0x0810
-#define HEN_REV				0x0232
+#define HEN_REV				0x0240
 
 #if defined(FIRMWARE_4_82)
 	#define FIRMWARE_VERSION	0x0482
 #elif defined(FIRMWARE_4_82DEX)
-	#define FIRMWARE_VERSION	0x0482
+	#define FIRMWARE_VERSION	0x0482    
 #elif defined(FIRMWARE_4_84)
-	#define FIRMWARE_VERSION	0x0484
+	#define FIRMWARE_VERSION	0x0484    
 #elif defined(FIRMWARE_4_84DEX)
-	#define FIRMWARE_VERSION	0x0484  
+	#define FIRMWARE_VERSION	0x0484 
 #elif defined(FIRMWARE_4_85)
-	#define FIRMWARE_VERSION	0x0485
+	#define FIRMWARE_VERSION	0x0485	
 #endif
 
 #if defined(CFW)
@@ -702,17 +703,16 @@ LV2_HOOKED_FUNCTION_COND_POSTCALL_3(int,bnet_ioctl,(int socket,uint32_t flags, v
 	else
 		return DO_POSTCALL;
 }
-
+#if defined(FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX) || defined (FIRMWARE_4_82)
 LV2_HOOKED_FUNCTION_PRECALL_SUCCESS_6(int,sys_fs_open,(const char *path, int flags, int *fd, uint64_t mode, const void *arg, uint64_t size))
 {
-	if(!strstr(get_process_name(get_current_process_critical()),"vsh"))
+/*	if(!strstr(get_process_name(get_current_process_critical()),"vsh"))
 	{
 		rif_fd=0;
 		act_fd=0;
 		misc_fd=0;
 		return 0;
-	}
-	
+	}*/
 	int path_len=strlen(path);
 	if(strstr(path,".rif"))
 	{
@@ -730,6 +730,7 @@ LV2_HOOKED_FUNCTION_PRECALL_SUCCESS_6(int,sys_fs_open,(const char *path, int fla
 	}
 	return 0;
 }
+#endif
 
 int sha1(uint8_t *buf, uint64_t size, uint8_t *out)
 {
@@ -877,7 +878,7 @@ LV2_HOOKED_FUNCTION_COND_POSTCALL_3(int,read_eeprom_by_offset,(uint32_t offset, 
 	}
 	return DO_POSTCALL;
 }
-
+#if defined(FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX) || defined (FIRMWARE_4_82)
 LV2_HOOKED_FUNCTION_PRECALL_SUCCESS_4(int,sys_fs_read,(int fd, void *buf, uint64_t nbytes, uint64_t *nread))
 {	
 	if(rif_fd==fd)
@@ -898,7 +899,6 @@ LV2_HOOKED_FUNCTION_PRECALL_SUCCESS_4(int,sys_fs_read,(int fd, void *buf, uint64
 			memcpy(buf1+0x70+0x14, S+1, 0x14);
 			memcpy(buf+0x70,buf1+0x70,0x28);
 			page_free(NULL, buf1, 0x2F);
-			rif_fd=0;
 //			DPRINTF("R:%015x\nS:%015x\n",R,S);
 		}
 	}
@@ -920,7 +920,6 @@ LV2_HOOKED_FUNCTION_PRECALL_SUCCESS_4(int,sys_fs_read,(int fd, void *buf, uint64
 			memcpy(buf1+0x1010+0x14, S+1, 0x14);
 			memcpy(buf+0x1010,buf1+0x1010,0x28);
 			page_free(NULL, buf1, 0x2F);
-			act_fd=0;
 //			DPRINTF("R:%015x\nS:%015x\n",R,S);
 		}
 	}
@@ -941,12 +940,28 @@ LV2_HOOKED_FUNCTION_PRECALL_SUCCESS_4(int,sys_fs_read,(int fd, void *buf, uint64
 			memcpy(buf1+0xd8+0x14, S+1, 0x14);
 			memcpy(buf+0xd8,buf1+0xd8,0x28);
 			page_free(NULL, buf1, 0x2F);
-			misc_fd=0;
 		}
 	}
 	return 0;
 }
 
+LV2_HOOKED_FUNCTION_PRECALL_SUCCESS_1(int,sys_fs_close,(int fd))
+{
+	if(rif_fd==fd)
+	{
+		rif_fd=0;
+	}
+	else if(act_fd==fd)
+	{
+		act_fd=0;
+	}
+	else if(misc_fd==fd)
+	{
+		misc_fd=0;
+	}
+	return 0;
+}
+#endif
 int unload_plugin_kernel(uint64_t residence)
 {
 	dealloc((void*)residence,0x27);
@@ -980,6 +995,45 @@ LV2_HOOKED_FUNCTION(void, sys_cfw_new_poke, (uint64_t *addr, uint64_t value))
 	_sys_cfw_poke(addr, value);
 	asm volatile("icbi 0,%0; isync" :: "r"(addr));
 }
+
+// LV1
+/*#define HV_BASE						0x8000000014000000ULL	// where in lv2 to map lv1
+#define HV_PAGE_SIZE				0x0c					// 4k = 0x1000 (1 << 0x0c)
+#include <lv1/mm.h>
+LV2_SYSCALL2(uint64_t, sys_cfw_peek_lv1, (uint64_t _addr))
+{
+	uint64_t ret;
+	uint64_t mmap_lpar_addr=0;
+	uint64_t _offset = (_addr & 0xFFFFFFFFFFFFF000ULL);
+	lv1_undocumented_function_114(_offset, HV_PAGE_SIZE, 0x1000, &mmap_lpar_addr);
+	if(mmap_lpar_addr)
+	{
+		mm_map_lpar_memory_region(mmap_lpar_addr, HV_BASE, 0x1000, HV_PAGE_SIZE, 0);
+
+		ret=*(uint64_t *)(HV_BASE + (_addr - _offset));
+
+		lv1_undocumented_function_115(mmap_lpar_addr);
+	}
+
+	return ret;
+}
+
+LV2_SYSCALL2(void, sys_cfw_poke_lv1, (uint64_t _addr, uint64_t value))
+{
+	uint64_t mmap_lpar_addr=0;
+	uint64_t _offset = (_addr & 0xFFFFFFFFFFFFF000ULL);
+	lv1_undocumented_function_114(_offset, HV_PAGE_SIZE, 0x1000, &mmap_lpar_addr);
+	if(mmap_lpar_addr)
+	{
+		mm_map_lpar_memory_region(mmap_lpar_addr, HV_BASE, 0x1000, HV_PAGE_SIZE, 0);
+
+		*(uint64_t *)(HV_BASE + (_addr - _offset))=value;
+
+		lv1_undocumented_function_115(mmap_lpar_addr);
+	}
+
+	return;
+}*/
 
 LV2_HOOKED_FUNCTION(void *, sys_cfw_memcpy, (void *dst, void *src, uint64_t len))
 {
@@ -1612,19 +1666,24 @@ static INLINE void apply_kernel_patches(void)
 	do_patch(MKA(PATCH_JUMP),0x2F84000448000098);
 	*(uint64_t *)MKA(ECDSA_FLAG)=0;
 	/// Adding HEN patches on init for stability ///	 -- END
+	#if defined(FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX) || defined (FIRMWARE_4_82)
 	hook_function_with_precall(get_syscall_address(801),sys_fs_open,6);
+	#endif
 	hook_function_with_cond_postcall(get_syscall_address(724),bnet_ioctl,3);
+	#if defined(FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX) || defined (FIRMWARE_4_82)
+	hook_function_with_precall(get_syscall_address(804),sys_fs_close,1);
 	hook_function_with_precall(get_syscall_address(802),sys_fs_read,4);
-	#if defined (FIRMWARE_4_82) || defined (FIRMWARE_4_84) || defined (FIRMWARE_4_85)
+	#endif
+	#if defined (FIRMWARE_4_82) ||  defined (FIRMWARE_4_84) ||  defined (FIRMWARE_4_85)
 	hook_function_with_cond_postcall(um_if_get_token_symbol,um_if_get_token,5);
 	hook_function_with_cond_postcall(update_mgr_read_eeprom_symbol,read_eeprom_by_offset,3);
 	#endif
 	create_syscall2(8, syscall8);
 	create_syscall2(6, sys_cfw_peek);
 	create_syscall2(7, sys_cfw_poke);
-//	create_syscall2(9, sys_cfw_lv1_poke);
+//	create_syscall2(9, sys_cfw_poke_lv1);
 	create_syscall2(10, sys_cfw_lv1_call);
-//	create_syscall2(11, sys_cfw_lv1_peek);
+//	create_syscall2(11, sys_cfw_peek_lv1);
 	create_syscall2(15, sys_cfw_lv2_func);
 	create_syscall2(389, sm_set_fan_policy_sc);
 	create_syscall2(409, sm_get_fan_policy_sc);
@@ -1650,12 +1709,16 @@ int main(void)
 #endif
 
 //	poke_count=0;
-
+#if defined(FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX) || defined (FIRMWARE_4_82)
 			ecdsa_set_curve();
 			ecdsa_set_pub();
 			ecdsa_set_priv();
-			cellFsUnlink("/dev_hdd0/hen/hfw_settings.xml"); // to avoid conflict for remap fix
-	map_first_slot("/dev_hdd0/hen/hfw_settings.xml","/dev_hdd0/hen/xml/hfw_settings.xml");
+			
+#endif
+	cellFsUnlink("/dev_hdd0/hen/hfw_settings.xml"); // to avoid conflict for remap fix
+	cellFsUnlink("/dev_hdd0/hen/xml/hfw_settings.xml");// Cleanup Old HEN Files
+	cellFsUnlink("/dev_hdd0/hen/xml/ps3hen_updater.xml");// Cleanup Old HEN Files
+	map_first_slot("/dev_hdd0/hen/hfw_settings.xml","/dev_flash/hen/xml/hfw_settings.xml");//2.3.3+
 	storage_ext_init();
 	modules_patch_init();
 //	drm_init();

@@ -278,16 +278,16 @@ static void downloadPKG_thread2(void)
 		download_interface = (download_plugin_interface *)plugin_GetInterface(View_Find("download_plugin"), 1);
 	}
 	show_msg((char *)"Downloading latest HEN pkg");
-	
-	if(peekq(0x80000000002FCB68ULL)==0x323031372F30382FULL) 
+	uint64_t val=peekq(0x80000000002FCB68ULL);
+	if(val==0x323031372F30382FULL) 
 		{
 			download_interface->DownloadURL(0, (wchar_t *) L"http://ps3xploit.com/hen/release/482/cex/installer/Latest_HEN_Installer_signed.pkg", (wchar_t *) L"/dev_hdd0");
 		}
-	if(peekq(0x80000000002FCB68ULL)==0x323031392F30312FULL)
+	else if(val==0x323031392F30312FULL)
 		{
 			download_interface->DownloadURL(0,(wchar_t *) L"http://ps3xploit.com/hen/release/484/cex/installer/Latest_HEN_Installer_signed.pkg", (wchar_t *) L"/dev_hdd0");
 		}	
-	if(peekq(0x80000000002FCB68ULL)==0x323031392F30372FULL)
+	else if(val==0x323031392F30372FULL)
 		{
 			download_interface->DownloadURL(0,(wchar_t *) L"http://ps3xploit.com/hen/release/485/cex/installer/Latest_HEN_Installer_signed.pkg", (wchar_t *) L"/dev_hdd0");
 		}	
@@ -335,7 +335,7 @@ static void unload_web_plugins(void)
 	explore_interface->ExecXMBcommand("close_all_list", 0, 0);
 }
 
-char server_reply[512];
+char server_reply[0x500];
 
 int hen_updater(void);
 int hen_updater(void)
@@ -358,34 +358,41 @@ int hen_updater(void)
  
 	strcpy(RequestBuffer, "GET ");
     strcat(RequestBuffer, "/hen/hen_version.bin");
-    strcat(RequestBuffer, " HTTP/1.1\r\n");
+    strcat(RequestBuffer, " HTTP/1.0\r\n");
 	strcat(RequestBuffer, "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/64.0.3282.140 Safari/537.36 Edge/17.17134\r\n");
     strcat(RequestBuffer, "Accept-Language: en-US\r\n");
     strcat(RequestBuffer, "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\r\n");
     strcat(RequestBuffer, "Upgrade-Insecure-Requests: 1\r\n");
     strcat(RequestBuffer, "HOST: "HOST_SERVER"\r\n");
-    strcat(RequestBuffer, "Connection: keep-alive\r\n");
+    strcat(RequestBuffer, "Connection: close\r\n");
     strcat(RequestBuffer, "\r\n");
     send(Socket, RequestBuffer, strlen(RequestBuffer), 0);
  
 	int reply_len=0;
+	int allowed_length=sizeof(server_reply);
     while (1)
     {
-		reply_len=recv(Socket, server_reply, sizeof(server_reply), 0);
-		if(reply_len>0)
+		int reply_len1=recv(Socket, &server_reply[reply_len], allowed_length, 0);
+		if(reply_len1>0)
 		{
-			if(strstr(server_reply,"200 OK"))
-			{
-				latest_rev=*(uint16_t *)(server_reply+reply_len-2);
-			}
-			else
-			{
-				show_msg((char *)"Update Server Responded With Error!");
-			}
+			reply_len+=reply_len1;
+			allowed_length-=reply_len1;
+		}
+		else
+		{
 			break;
 		}
-        sys_timer_usleep(1000);
     }
+	socketclose(Socket);			
+	if(strstr(server_reply,"200 OK"))
+	{
+		latest_rev=*(uint16_t *)(server_reply+reply_len-2);
+	}
+	else
+	{
+		show_msg((char *)"Update Server Responded With Error!");
+	}
+	
 	char msg[100];
 	sprintf(msg,"Latest PS3HEN available is %X.%X.%X",latest_rev>>8, (latest_rev & 0xF0)>>4, (latest_rev&0xF));
 	show_msg((char*)msg);
@@ -393,7 +400,6 @@ int hen_updater(void)
 	{
 		return 1;
 	}
-    socketclose(Socket);
 	return 0;
 }
 

@@ -373,7 +373,7 @@ SprxPatch pemucorelib_patches[] =
 	// Prometheus
 	{ psp_prometheus_patch, '.OLD', &condition_psp_prometheus },
 
-	/*#if defined(FIRMWARE_4_84) || defined(FIRMWARE_4_85)
+	/*#if defined(FIRMWARE_4_84) 
 		// Extra save data patch required since some 3.60+ firmware
 		{ psp_extra_savedata_patch, LI(R31, 1), &condition_psp_iso },
 	#endif */
@@ -935,7 +935,7 @@ LV2_PATCHED_FUNCTION(int, modules_patching, (uint64_t *arg1, uint32_t *arg2))
 	return 0;
 }
 
-#if defined (FIRMWARE_4_82) || defined (FIRMWARE_4_84) || defined (FIRMWARE_4_85)
+#if defined (FIRMWARE_4_82) ||  defined (FIRMWARE_4_84) || defined(FIRMWARE_4_85)
 LV2_HOOKED_FUNCTION_COND_POSTCALL_2(int, pre_modules_verification, (uint32_t *ret, uint32_t error))
 {
 /*
