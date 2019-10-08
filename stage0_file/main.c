@@ -27,6 +27,7 @@ void *main(void)
 	void *stage2 = NULL;
 	f_desc_t f;	
 	cellFsUnlink("/dev_hdd0/HENplugin.sprx");	
+	#if defined(FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX) || defined (FIRMWARE_4_82)
 	HEN_CONFIG CONFIG;
 	CONFIG.config_hdl=*(uint32_t *)0x8d000500;
 	CONFIG.service_hdl1=*(uint32_t *)0x8D0FF050;
@@ -55,13 +56,7 @@ void *main(void)
 		int(*event_queue_destroy_user)(sys_event_queue_t equeu_id, int mode)=(void*)&f;
 		event_queue_destroy_user(to_be_destroyed,SYS_EVENT_QUEUE_DESTROY_FORCE);
 	}
-	
-	*(uint32_t *)0x8d000500=0;
-	*(uint32_t *)0x8D0FF050=0;
-	*(uint32_t *)0x8D0FF054=0;
-	*(uint32_t *)0x8D0FF058=0;
-	*(uint32_t *)0x8D0FF05c=0;
-	*(uint32_t *)0x8D0FF060=0;
+	#endif
 	
 	uint64_t sc_null = *(uint64_t *)MKA(syscall_table_symbol);
 	uint64_t sc_8 = *(uint64_t *)((MKA(syscall_table_symbol))+8*8);
@@ -71,11 +66,6 @@ void *main(void)
 		*(uint32_t *)0x8a000000=sce_bytes; //hen check
 		return NULL;
 	}
-	
-/*	f.addr=(void*)MKA(get_syscall_address(8));
-	uint16_t (*hen_check)(uint64_t param)=(void*)&f;
-	if(hen_check(0x1337)==0x1337)
-		return NULL;*/
 	
 	int dst;
 
