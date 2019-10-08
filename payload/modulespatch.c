@@ -551,8 +551,8 @@ void do_patch32(uint64_t addr, uint32_t patch)
 	clear_icache((void *)addr, 4);
 }
 
-/*
-#define MAX_POKES	0x100
+
+/*#define MAX_POKES	0x100
 extern int poke_count;
 extern POKES pokes[MAX_POKES];
 

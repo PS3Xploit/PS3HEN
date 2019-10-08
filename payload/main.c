@@ -1048,11 +1048,11 @@ LV2_HOOKED_FUNCTION(void *, sys_cfw_memcpy, (void *dst, void *src, uint64_t len)
 	return memcpy(dst, src, len);
 }
 
-/*
-#define MAX_POKES	0x100
-POKES pokes[MAX_POKES];
-int poke_count;
-*/
+
+//#define MAX_POKES	0x100
+//POKES pokes[MAX_POKES];
+//int poke_count=0;
+
 
 LV2_SYSCALL2(void, sys_cfw_poke, (uint64_t *ptr, uint64_t value))
 {
@@ -1087,7 +1087,16 @@ LV2_SYSCALL2(void, sys_cfw_poke, (uint64_t *ptr, uint64_t value))
 		return;
 	}
 	
-/*	if(poke_count)
+/*	if(addr>=MKA(lv1_call_99_wrapper_symbol) && addr<=MKA(lv1_call_99_wrapper_symbol+0x100))
+	{
+		return;
+	}
+	
+	uint64_t sc813 = get_syscall_address(813);
+	if (addr >= sc813 && addr <= (sc813+0x100))
+		return;
+	
+	if(poke_count)
 	{
 		for(int i=0;i<poke_count;i++)
 		{
@@ -1697,7 +1706,7 @@ static INLINE void apply_kernel_patches(void)
 	int(*set_SSHT)(int)=(void*)&f;
 	set_SSHT(1);
 }*/
-
+extern volatile int sleep_done;
 int main(void)
 {
 #ifdef DEBUG
@@ -1729,6 +1738,7 @@ int main(void)
 	region_patches();
 //	permissions_patches();
 	init_mount_hdd0();
+	sleep_done=1;
 	do_hook_all_syscalls();
 	memset((void *)MKA(0x7e0000),0,0x100);
 	memset((void *)MKA(0x7f0000),0,0x1000);

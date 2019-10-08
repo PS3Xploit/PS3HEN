@@ -384,6 +384,12 @@ int hen_updater(void)
 		}
     }
 	socketclose(Socket);			
+	if(reply_len<=6)
+	{
+		show_msg((char *)"Error on update server!");
+		return 0;
+	}
+	
 	if(strstr(server_reply,"200 OK"))
 	{
 		latest_rev=*(uint16_t *)(server_reply+reply_len-2);
@@ -391,6 +397,7 @@ int hen_updater(void)
 	else
 	{
 		show_msg((char *)"Update Server Responded With Error!");
+		return 0;
 	}
 	
 	char msg[100];
