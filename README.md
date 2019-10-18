@@ -1,11 +1,10 @@
-#PS3HEN 2.4.0
+#PS3HEN 3.0.0
 
 stage0.bin is appended to actual stackframe
 
 MultiFW support has been added.
 [Supported Firmwares]
 
-* CEX OFW 4.82
 * CEX HFW 4.84.2
 * CEX HFW 4.85.1
 
@@ -14,8 +13,21 @@ MultiFW support has been added.
 <br>
 <br>
 
-Changelog
------------
+Changelog<br>
+-----------<br>
+
+#3.0.0<br>
+#Global Changes<br>
+  - No Longer Officially Supporting 4.82 Firmware<br>
+#HEN Plugin Changes<br>
+  - Fixed freezing if DVD or CD is already inserted into PS3 when HEN is enabled<br>
+  - Showing error message if reply length is too short from server<br>
+#Payload Changes<br>
+  - Fixed Freezing Problems on All Models<br>
+  - Fixed Issues With Incompatible Models<br>
+  - Improved Sanity Checks<br>
+<br>
+<br>
 
 #2.4.0<br>
 #Global Changes<br>
