@@ -181,7 +181,39 @@ static void show_msg(char* msg)
 	vshtask_notify(0, msg);
 
 }
+#define process_id_t uint32_t
+#define SYSCALL8_OPCODE_PS3MAPI			 		0x7777
+#define PS3MAPI_OPCODE_GET_ALL_PROC_PID			0x0021
+#define PS3MAPI_OPCODE_GET_PROC_NAME_BY_PID		0x0022
+#define PS3MAPI_OPCODE_GET_PROC_MEM				0x0031
+#define PS3MAPI_OPCODE_SET_PROC_MEM				0x0032
+#define MAX_PROCESS 16
 
+process_id_t vsh_pid=0;
+
+static int poke_vsh(uint64_t address, char *buf,int size)
+{
+	if(!vsh_pid)
+	{
+		uint32_t tmp_pid_list[MAX_PROCESS];
+		char name[25];
+		int i;
+		system_call_3(8, SYSCALL8_OPCODE_PS3MAPI,PS3MAPI_OPCODE_GET_ALL_PROC_PID,(uint64_t)(uint32_t)tmp_pid_list);
+		for(i=0;i<MAX_PROCESS;i++)
+		{
+			system_call_4(8, SYSCALL8_OPCODE_PS3MAPI,PS3MAPI_OPCODE_GET_PROC_NAME_BY_PID,tmp_pid_list[i],(uint64_t)(uint32_t)name);
+			if(strstr(name,"vsh"))
+			{
+				vsh_pid=tmp_pid_list[i];
+				break;
+			}
+		}
+		if(!vsh_pid)
+			return -1;
+	}
+	system_call_6(8,SYSCALL8_OPCODE_PS3MAPI,PS3MAPI_OPCODE_SET_PROC_MEM,vsh_pid,address,(uint64_t)(uint32_t)buf,size);
+	return_to_user_prog(int);
+}
 static void enable_ingame_screenshot(void)
 {
 	((int*)getNIDfunc("vshmain",0x981D7E9F,0))[0] -= 0x2C;
@@ -448,6 +480,18 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 	if((cellFsStat("/dev_flash/vsh/resource/explore/icon/hen_enable.png",&stat)!=0) || (do_update==1))
 	{
 		cellFsUnlink("/dev_hdd0/theme/PS3HEN.p3t");
+		int is_browser_open=View_Find("webbrowser_plugin");
+		while(is_browser_open)
+		{
+			sys_timer_usleep(70000);
+			is_browser_open=View_Find("webbrowser_plugin");
+		}
+		is_browser_open=View_Find("webrender_plugin");
+		while(is_browser_open)
+		{
+			sys_timer_usleep(70000);
+			is_browser_open=View_Find("webrender_plugin");
+		}
 		unload_web_plugins();
 		LoadPluginById(0x29,(void*)downloadPKG_thread2);
 		
