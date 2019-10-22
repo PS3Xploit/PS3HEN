@@ -423,7 +423,7 @@ PatchTableEntry patch_table[] =
 	{ PEMUCORELIB_HASH, pemucorelib_patches },
 	{ LIBSYSUTIL_SAVEDATA_PSP_HASH, libsysutil_savedata_psp_patches },
 	{ LIBFS_EXTERNAL_HASH, libfs_external_patches },
-	{ LIBAUDIO_HASH, libaudio_patches },
+	//{ LIBAUDIO_HASH, libaudio_patches }, (bugged, it  causes an issue with Sony BT headset (Pulse) https://github.com/PS3Xploit/PS3HEN/issues/20
 	{ NAS_PLUGIN_HASH, nas_plugin_patches },
 	{ BDP_BDMV_HASH, bdp_bdmv_patches },
 	{ BDP_BDVD_HASH, bdp_bdvd_patches },
