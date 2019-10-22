@@ -456,6 +456,7 @@ int read_act_dat_and_make_rif(uint8_t *idps,uint8_t *rap, uint8_t *act_dat, char
 	memcpy(rif+0x10, content_id, 0x24);
 	memcpy(rif+0x60, &timestamp, 8);
 	memcpy(rif+0x68, &expiration_time,8);
+	memset(rif+0x70,1,0x28); //compatible with old cfw patches too
 
 	int fd;
 	uint64_t size;
@@ -517,7 +518,7 @@ LV2_HOOKED_FUNCTION_POSTCALL_2(void, open_path_hook, (char *path0, int mode))
 			}
 		}
 
-	if((strstr(path0,".rif")) && (!strncmp(path0,"/dev_hdd0/home/",14)) && (strstr(get_process_name(get_current_process_critical()),"vsh")))
+	if((strstr(path0,".rif")) && (!strncmp(path0,"/dev_hdd0/home/",14)))
 	{
 		CellFsStat stat;
 		char content_id[0x24];

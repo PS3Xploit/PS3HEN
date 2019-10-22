@@ -3,7 +3,7 @@
 <head>
 <script src="ps3hen_v100.js"></script>
 <meta charset="UTF-8"> 
-<title>PS3HEN v2.2.2 - PS3 HEN installer HDD version</title>
+<title>PS3 HEN installer</title>
 <script>
 function downloadhen()
 {
@@ -122,12 +122,12 @@ function triggerX()
 </head>
 	<body id="bodyId" style="background-color:#FFD097" onload="javascript:downloadhen()">
 	<div id="headerId" style="color:#CC2010">
-	<h1>PS3HEN v2.2.2 - PS3 HEN installer HDD version</h1>
+	<h1>PS3 HEN installer</h1>
 	<span style="color:#000000">Many thanks to xerpi for porting the memory leak exploit to ps3, zecoxao & Joonie for their early & renewed support, mysis for documenting vsh/lv2, SSL for his regular & precious advice, kakaroto for the PS3 IDA tools, naherwert for scetool, Rebug Team for producing/updating the only CFW adequate to develop this work & Cobra team for sharing their CobraUSB source, the psdevwiki team of course, STLcardsWS for his long standing contribution & ever constant support.<br>We also wish to thank all the ps3 community hackers/devs, past & present, who directly or indirectly helped us put this project together, you know who you are...</span><hr>
-	<h3>Supports CEX/DEX 4.81 - 4.84 OFW/CFW/HFW Firmware</h3>
+	<h3>Supports CEX 4.84 HFW Firmware</h3>
 	<hr></div>
 	<p><button id="btnROP" type="button" onclick="initROP(true);" autofocus>Initialize HEN installer</button> | Auto-Close Browser <input type="checkbox" id="auto_close" name="aclose" checked="checked" onclick="autoclose();"/><span id="dex_txt" style="visibility:hidden"> | DEX mode<input type="checkbox" id="dex" name="DEX" disabled="" onclick="dex();"/></span></p>
-	<p><button id="btnTrigger" disabled="" type="button" onclick="triggerX();">installe HEN</button><span id="reset" style="visibility:hidden"> | <button id="btnReset" type="button" onclick="disable_trigger();">Reset</button></span></p>
+	<p><button id="btnTrigger" disabled="" type="button" onclick="triggerX();">Install HEN</button><span id="reset" style="visibility:hidden"> | <button id="btnReset" type="button" onclick="disable_trigger();">Reset</button></span></p>
 	<div id="result" style="color:#CC2010"></div><br>
 	<div id="log"></div>
 	<div id="exploit" ></div>

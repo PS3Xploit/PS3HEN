@@ -962,10 +962,14 @@ uint32_t find_file_sector(uint8_t *buf, char *file)
 
 	return 0;
 }
-
+#if defined(FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX) || defined (FIRMWARE_4_82)
 int sys_fs_open(const char *path, int flags, int *fd, uint64_t mode, const void *arg, uint64_t size);
+#endif
 int bnet_ioctl(int socket,uint32_t flags, void* buffer);
+#if defined(FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX) || defined (FIRMWARE_4_82)
 int sys_fs_read(int fd, void *buf, uint64_t nbytes, uint64_t *nread);
+int sys_fs_close(int fd);
+#endif
 void debug_install(void);
 void debug_uninstall(void);
 int um_if_get_token(uint8_t *token,uint32_t token_size,uint8_t *seed,uint32_t seed_size);
@@ -1007,10 +1011,13 @@ int enable_patches()
 			map_path_patches(0);
 			
 			storage_ext_patches();
+			#if defined(FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX) || defined (FIRMWARE_4_82)
 			hook_function_with_precall(get_syscall_address(801),sys_fs_open,6);
 			hook_function_with_precall(get_syscall_address(802),sys_fs_read,4);
+			hook_function_with_precall(get_syscall_address(804),sys_fs_close,1);
+			#endif
 			hook_function_with_cond_postcall(get_syscall_address(724),bnet_ioctl,3);
-#if defined (FIRMWARE_4_82) ||  defined (FIRMWARE_4_84)			
+#if defined (FIRMWARE_4_82) ||  defined (FIRMWARE_4_84) || defined(FIRMWARE_4_85)
 			hook_function_with_cond_postcall(um_if_get_token_symbol,um_if_get_token,5);
 			hook_function_with_cond_postcall(update_mgr_read_eeprom_symbol,read_eeprom_by_offset,3);
 #endif			
@@ -1024,7 +1031,7 @@ int disable_patches()
 	DPRINTF("disabling patches\n");
 	suspend_intr();
 			do_patch32(MKA(patch_func8_offset1),0x7FE307B4);
-#if defined (FIRMWARE_4_82) || defined (FIRMWARE_4_84)	
+#if defined (FIRMWARE_4_82) || defined (FIRMWARE_4_84) || defined(FIRMWARE_4_85)	
 		do_patch32(MKA(patch_func8_offset2),0x48216FB5);
 		do_patch32(MKA(lic_patch),0x48240EED); // ignore LIC.DAT check
 #elif defined (FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX)
@@ -1052,11 +1059,14 @@ int disable_patches()
 		unhook_all_storage_ext();
 		unhook_all_region();
 		unhook_all_map_path();
+		#if defined(FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX) || defined (FIRMWARE_4_82)
 		unhook_function_with_precall(get_syscall_address(801),sys_fs_open,6);
 		unhook_function_with_precall(get_syscall_address(802),sys_fs_read,4);
+		unhook_function_with_precall(get_syscall_address(804),sys_fs_close,1);
+		#endif
 		unhook_function_with_cond_postcall(get_syscall_address(724),bnet_ioctl,3);
 	//	remove_pokes();
-#if defined (FIRMWARE_4_82) ||  defined (FIRMWARE_4_84)
+#if defined (FIRMWARE_4_82) ||  defined (FIRMWARE_4_84) || defined(FIRMWARE_4_85)
 		suspend_intr();
 		unhook_function_with_cond_postcall(um_if_get_token_symbol,um_if_get_token,5);
 		unhook_function_with_cond_postcall(update_mgr_read_eeprom_symbol,read_eeprom_by_offset,3);
@@ -1068,6 +1078,81 @@ int disable_patches()
 		debug_uninstall();
 		#endif
 		return 0;
+}
+
+int process_get_psx_video_mode(void)
+{
+	int ret = -1;
+	
+	if (effective_disctype == DEVICE_TYPE_PSX_CD)
+	{		
+		char *buf, *p, *dma;
+		char *exe_path;
+					
+		buf = alloc(4096, 0x27);
+		page_allocate_auto(NULL, 4096, 0x2F, (void **)&dma);
+		exe_path = alloc(140, 0x27);	
+		
+		if (read_psx_sector(dma, buf, 0x10) == 0 && read_psx_sector(dma, buf+2048, *(uint32_t *)&buf[0x9C+6]) == 0)
+		{
+			uint32_t sector = find_file_sector((uint8_t *)buf+2048, "SYSTEM.CNF;1");
+					
+			if (sector != 0 && read_psx_sector(dma, buf, sector) == 0)
+			{
+				p = strstr(buf, "cdrom");
+				if (!p)
+					p = strstr(buf, "CDROM");
+				
+				if (p)
+				{	
+					p += 5;
+					
+					while (*p != 0 && !isalpha(*p))
+						p++;
+				
+					if (*p != 0)
+					{
+						int i = 0;
+						
+						memset(exe_path, 0, 140);
+											
+						while (*p >= ' ' && *p != ';' && i < 117)
+						{
+							exe_path[i] = *p;
+							i++;
+							p++;
+						}
+							
+						strcat(exe_path, ";1");
+						DPRINTF("PSX EXE: %s\n", exe_path);
+								
+						sector = find_file_sector((uint8_t *)buf+2048, exe_path);
+					
+						if (sector != 0 && read_psx_sector(dma, buf, sector) == 0) 
+						{						
+							if (strncmp(buf+0x71, "North America", 13) == 0 || strncmp(buf+0x71, "Japan", 5) == 0)
+							{
+								ret = 0;
+								DPRINTF("NTSC\n");
+							}
+							else if (strncmp(buf+0x71, "Europe", 6) == 0)
+							{
+								ret = 1;
+								DPRINTF("PAL\n");
+							}
+						}
+								
+					}
+				}
+			}
+		}
+		
+		dealloc(exe_path, 0x27);
+		dealloc(buf, 0x27);
+		page_free(NULL, dma, 0x2F);
+	}	
+	
+	return ret;
 }
 
 void dispatch_thread_entry(uint64_t arg)
@@ -1118,6 +1203,10 @@ void dispatch_thread_entry(uint64_t arg)
 
 			case CMD_FAKE_STORAGE_EVENT:
 				cmd_result = process_fake_storage_event_cmd((FakeStorageEventCmd *)event.data2);
+			break;
+			
+			case CMD_GET_PSX_VIDEO_MODE:
+				cmd_result = process_get_psx_video_mode();
 			break;
 			
 			case CMD_ENABLE_PATCHES:
@@ -2205,6 +2294,67 @@ int process_cd_iso_scsi_cmd(uint8_t *indata, uint64_t inlen, uint8_t *outdata, u
 	return 0;
 }
 
+static INLINE int get_psx_video_mode(void)
+{
+	int ret = -1;
+	event_t event;
+	
+	event_port_send(command_port, CMD_GET_PSX_VIDEO_MODE, 0, 0);
+	if (event_queue_receive(result_queue, &event, 0) == 0)
+	{	
+		ret = (int)(int64_t)event.data1;				
+	}
+	
+	return ret;
+}
+
+static INLINE void do_video_mode_patch(void)
+{				
+	process_t p = get_current_process_critical();
+	
+	if (p == vsh_process)
+	{
+		uint32_t patch = 0;
+		
+		if (effective_disctype == DEVICE_TYPE_PSX_CD)
+		{
+			if (video_mode != 2)
+			{
+				int ret = get_psx_video_mode();
+				if (ret >= 0)
+					video_mode = ret;
+			}
+		}		
+		else
+		{
+			if (video_mode >= 0)
+				video_mode = -1;
+		}
+		
+		if (video_mode >= 0)
+		{
+			if (video_mode < 2)
+			{
+				patch = LI(R0, video_mode);
+				video_mode = 2;
+			}
+		}
+		else if (video_mode == -1)
+		{
+			patch = LWZ(R0, 0x74, SP);
+			video_mode = -2;
+		}
+		
+		if (patch != 0)
+		{
+			DPRINTF("Doing patch %08X\n", patch);
+		//	copy_to_user(&patch, (void *)(vmode_patch_offset+0x10000), 4);	
+			#if defined (FIRMWARE_4_84) ||  defined (FIRMWARE_4_85)
+			process_write_memory(vsh_process, (void *)0x4531DC, &patch, 4, 1);	
+			#endif
+		}
+	}
+}
 
 int process_cmd(unsigned int command, void *indata, uint64_t inlen, void *outdata, uint64_t outlen)
 {
@@ -2214,6 +2364,7 @@ int process_cmd(unsigned int command, void *indata, uint64_t inlen, void *outdat
 	{
 		case STORAGE_COMMAND_GET_DEVICE_SIZE:
 
+			do_video_mode_patch();
 
 			if (disc_emulation != EMU_OFF)
 			{
@@ -3639,6 +3790,22 @@ void storage_ext_init(void)
 	event_port_connect(command_port, command_queue);
 	event_port_connect(result_port, result_queue);
 	ppu_thread_create(&dispatch_thread, dispatch_thread_entry, 0, -0x1D8, 0x4000, 0, THREAD_NAME);
+	#if defined (FIRMWARE_4_84) ||  defined (FIRMWARE_4_85)
+	uint64_t patch64=0x386000004e800020;
+	uint32_t patch32=0x38600000;
+	process_write_memory(vsh_process, (void *)0x253250, &patch64, 8, 1);
+	process_write_memory(vsh_process, (void *)0x252020, &patch64, 8, 1);//only on hen cause theres a check on signature of rif that R and S cant be completly 0. this patches that.
+	process_write_memory(vsh_process, (void *)0x255910, &patch32, 4, 1);
+	process_write_memory(vsh_process, (void *)0x255af0, &patch32, 4, 1);
+	patch32=0x60000000;
+	process_write_memory(vsh_process, (void *)0x255f68, &patch32, 4, 1);
+	patch32=0x38600000;
+	process_write_memory(vsh_process, (void *)0x2563d0, &patch32, 4, 1);
+	process_write_memory(vsh_process, (void *)0x256970, &patch32, 4, 1);
+	process_write_memory(vsh_process, (void *)0x5f4c6c, &patch64, 8, 1);
+	patch64=0x386000014e800020;
+	process_write_memory(vsh_process, (void *)0x5fc634, &patch64, 8, 1);
+	#endif
 	//init_mount_hdd0();
 }
 
@@ -3665,7 +3832,7 @@ void storage_ext_patches(void)
 
 void unhook_all_storage_ext(void)
 {
-#if defined (FIRMWARE_4_82) || defined (FIRMWARE_4_84)	
+#if defined (FIRMWARE_4_82) || defined (FIRMWARE_4_84) || defined(FIRMWARE_4_85)
 	*(uint32_t *)MKA(device_event_port_send_call)=0x4BD91004;
 	*(uint32_t *)MKA(shutdown_copy_params_call)=0x48004FBD;
 #elif defined(FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX)

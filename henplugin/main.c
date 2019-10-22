@@ -181,7 +181,39 @@ static void show_msg(char* msg)
 	vshtask_notify(0, msg);
 
 }
+#define process_id_t uint32_t
+#define SYSCALL8_OPCODE_PS3MAPI			 		0x7777
+#define PS3MAPI_OPCODE_GET_ALL_PROC_PID			0x0021
+#define PS3MAPI_OPCODE_GET_PROC_NAME_BY_PID		0x0022
+#define PS3MAPI_OPCODE_GET_PROC_MEM				0x0031
+#define PS3MAPI_OPCODE_SET_PROC_MEM				0x0032
+#define MAX_PROCESS 16
 
+process_id_t vsh_pid=0;
+
+static int poke_vsh(uint64_t address, char *buf,int size)
+{
+	if(!vsh_pid)
+	{
+		uint32_t tmp_pid_list[MAX_PROCESS];
+		char name[25];
+		int i;
+		system_call_3(8, SYSCALL8_OPCODE_PS3MAPI,PS3MAPI_OPCODE_GET_ALL_PROC_PID,(uint64_t)(uint32_t)tmp_pid_list);
+		for(i=0;i<MAX_PROCESS;i++)
+		{
+			system_call_4(8, SYSCALL8_OPCODE_PS3MAPI,PS3MAPI_OPCODE_GET_PROC_NAME_BY_PID,tmp_pid_list[i],(uint64_t)(uint32_t)name);
+			if(strstr(name,"vsh"))
+			{
+				vsh_pid=tmp_pid_list[i];
+				break;
+			}
+		}
+		if(!vsh_pid)
+			return -1;
+	}
+	system_call_6(8,SYSCALL8_OPCODE_PS3MAPI,PS3MAPI_OPCODE_SET_PROC_MEM,vsh_pid,address,(uint64_t)(uint32_t)buf,size);
+	return_to_user_prog(int);
+}
 static void enable_ingame_screenshot(void)
 {
 	((int*)getNIDfunc("vshmain",0x981D7E9F,0))[0] -= 0x2C;
@@ -278,14 +310,18 @@ static void downloadPKG_thread2(void)
 		download_interface = (download_plugin_interface *)plugin_GetInterface(View_Find("download_plugin"), 1);
 	}
 	show_msg((char *)"Downloading latest HEN pkg");
-	
-	if(peekq(0x80000000002FCB68ULL)==0x323031372F30382FULL) 
+	uint64_t val=peekq(0x80000000002FCB68ULL);
+	if(val==0x323031372F30382FULL) 
 		{
 			download_interface->DownloadURL(0, (wchar_t *) L"http://ps3xploit.com/hen/release/482/cex/installer/Latest_HEN_Installer_signed.pkg", (wchar_t *) L"/dev_hdd0");
 		}
-	else if(peekq(0x80000000002FCB68ULL)==0x323031392F30312FULL)
+	else if(val==0x323031392F30312FULL)
 		{
 			download_interface->DownloadURL(0,(wchar_t *) L"http://ps3xploit.com/hen/release/484/cex/installer/Latest_HEN_Installer_signed.pkg", (wchar_t *) L"/dev_hdd0");
+		}	
+	else if(val==0x323031392F30372FULL)
+		{
+			download_interface->DownloadURL(0,(wchar_t *) L"http://ps3xploit.com/hen/release/485/cex/installer/Latest_HEN_Installer_signed.pkg", (wchar_t *) L"/dev_hdd0");
 		}	
 	thread2_download_finish=1;
 }
@@ -331,7 +367,7 @@ static void unload_web_plugins(void)
 	explore_interface->ExecXMBcommand("close_all_list", 0, 0);
 }
 
-char server_reply[512];
+char server_reply[0x500];
 
 int hen_updater(void);
 int hen_updater(void)
@@ -354,34 +390,48 @@ int hen_updater(void)
  
 	strcpy(RequestBuffer, "GET ");
     strcat(RequestBuffer, "/hen/hen_version.bin");
-    strcat(RequestBuffer, " HTTP/1.1\r\n");
+    strcat(RequestBuffer, " HTTP/1.0\r\n");
 	strcat(RequestBuffer, "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/64.0.3282.140 Safari/537.36 Edge/17.17134\r\n");
     strcat(RequestBuffer, "Accept-Language: en-US\r\n");
     strcat(RequestBuffer, "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\r\n");
     strcat(RequestBuffer, "Upgrade-Insecure-Requests: 1\r\n");
     strcat(RequestBuffer, "HOST: "HOST_SERVER"\r\n");
-    strcat(RequestBuffer, "Connection: keep-alive\r\n");
+    strcat(RequestBuffer, "Connection: close\r\n");
     strcat(RequestBuffer, "\r\n");
     send(Socket, RequestBuffer, strlen(RequestBuffer), 0);
  
 	int reply_len=0;
+	int allowed_length=sizeof(server_reply);
     while (1)
     {
-		reply_len=recv(Socket, server_reply, sizeof(server_reply), 0);
-		if(reply_len>0)
+		int reply_len1=recv(Socket, &server_reply[reply_len], allowed_length, 0);
+		if(reply_len1>0)
 		{
-			if(strstr(server_reply,"200 OK"))
-			{
-				latest_rev=*(uint16_t *)(server_reply+reply_len-2);
-			}
-			else
-			{
-				show_msg((char *)"Update Server Responded With Error!");
-			}
+			reply_len+=reply_len1;
+			allowed_length-=reply_len1;
+		}
+		else
+		{
 			break;
 		}
-        sys_timer_usleep(1000);
     }
+	socketclose(Socket);			
+	if(reply_len<=6)
+	{
+		show_msg((char *)"Error on update server!");
+		return 0;
+	}
+	
+	if(strstr(server_reply,"200 OK"))
+	{
+		latest_rev=*(uint16_t *)(server_reply+reply_len-2);
+	}
+	else
+	{
+		show_msg((char *)"Update Server Responded With Error!");
+		return 0;
+	}
+	
 	char msg[100];
 	sprintf(msg,"Latest PS3HEN available is %X.%X.%X",latest_rev>>8, (latest_rev & 0xF0)>>4, (latest_rev&0xF));
 	show_msg((char*)msg);
@@ -389,7 +439,6 @@ int hen_updater(void)
 	{
 		return 1;
 	}
-    socketclose(Socket);
 	return 0;
 }
 
@@ -431,6 +480,18 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 	if((cellFsStat("/dev_flash/vsh/resource/explore/icon/hen_enable.png",&stat)!=0) || (do_update==1))
 	{
 		cellFsUnlink("/dev_hdd0/theme/PS3HEN.p3t");
+		int is_browser_open=View_Find("webbrowser_plugin");
+		while(is_browser_open)
+		{
+			sys_timer_usleep(70000);
+			is_browser_open=View_Find("webbrowser_plugin");
+		}
+		is_browser_open=View_Find("webrender_plugin");
+		while(is_browser_open)
+		{
+			sys_timer_usleep(70000);
+			is_browser_open=View_Find("webrender_plugin");
+		}
 		unload_web_plugins();
 		LoadPluginById(0x29,(void*)downloadPKG_thread2);
 		
