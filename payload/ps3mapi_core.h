@@ -109,9 +109,11 @@ int ps3mapi_get_current_process(process_t process);
 
 #define PS3MAPI_OPCODE_GET_PROC_MEM				0x0031
 #define PS3MAPI_OPCODE_SET_PROC_MEM				0x0032
+#define PS3MAPI_OPCODE_PROC_PAGE_ALLOCATE			0x0033
 
 int ps3mapi_set_process_mem(process_id_t pid, uint64_t addr, char *buf, int size);
 int ps3mapi_get_process_mem(process_id_t pid, uint64_t addr, char *buf, int size);
+int ps3mapi_process_page_allocate(process_id_t pid, uint64_t size, uint64_t page_size, uint64_t flags, uint64_t is_executable, uint64_t *page_address);
 
 //-----------------------------------------------
 //MODULES
@@ -124,12 +126,22 @@ int ps3mapi_get_process_mem(process_id_t pid, uint64_t addr, char *buf, int size
 #define PS3MAPI_OPCODE_UNLOAD_PROC_MODULE			0x0045
 #define PS3MAPI_OPCODE_UNLOAD_VSH_PLUGIN			0x0046 //Look in modulespatch.c for code.
 #define PS3MAPI_OPCODE_GET_VSH_PLUGIN_INFO			0x0047 //Look in modulespatch.c for code.
+#define PS3MAPI_OPCODE_GET_PROC_MODULE_INFO			0x0048
 
 int ps3mapi_get_all_process_modules_prx_id(process_id_t pid, sys_prx_id_t *prx_id_list);
 int ps3mapi_get_process_module_name_by_prx_id(process_id_t pid, sys_prx_id_t prx_id, char *name);
 int ps3mapi_get_process_module_filename_by_prx_id(process_id_t pid, sys_prx_id_t prx_id, char *name);
 int ps3mapi_load_process_modules(process_id_t pid, char *path, void *arg, uint32_t arg_size);
 int ps3mapi_unload_process_modules(process_id_t pid, sys_prx_id_t prx_id);
+int ps3mapi_get_process_module_info(process_id_t pid, sys_prx_id_t prx_id, sys_prx_module_info_t *info);
+
+//-----------------------------------------------
+//THREAD
+//-----------------------------------------------
+
+#define SYSCALL8_OPCODE_PROC_CREATE_THREAD			0x6E03 // not eough params for PS3MAPI_OPCODE
+
+int ps3mapi_create_process_thread(process_id_t pid, thread_t *thread, void *entry, uint64_t arg, int prio, size_t stacksize, char *threadname);
 
 //-----------------------------------------------
 //SYSCALL
