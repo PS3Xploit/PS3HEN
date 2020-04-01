@@ -563,6 +563,9 @@
 #define unk_func2_unregister_service					0x9e900
 #define unk_func3_unregister_service					0xa3394
 
+/* mmapper flags temp patch */
+#define mmapper_flags_temp_patch          0x70F78
+
 #endif /* FIRMWARE */
 
 #endif /* __FIRMWARE_SYMBOLS_H_S__ */
