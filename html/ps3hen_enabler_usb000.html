@@ -77,7 +77,7 @@
         sc_fs_close = 0x324,
         sc_fs_stat = 0x328;
 
-      if (fwv == "4.84") {
+      if (fwv == "4.84" || fwv == "4.85") {
         (toc_addr = 7296344),
           // default_vsh_pub_toc = 7263660,
           // vsh_opd_patch = 617820,
@@ -124,6 +124,7 @@
           (gadget_mod15_addr = 3788856);
         // gadget_mod16_addr = 5206828;
       }
+	  if(fwv=="4.86"){vsh_toc_addr_screenshot=7473196,vsh_ps3xploit_key_toc=7371292,toc_entry2_addr=7494888;}
 
       function showResult(str) {
         document.getElementById("result").innerHTML = str;

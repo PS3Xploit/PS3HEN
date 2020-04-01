@@ -115,7 +115,7 @@ function triggerX()
 		showResult(hr+"<h2><b><span style='color:#000000;'>Installing HEN...</span></b></h2>");
 		disable_all();
 		setTimeout(trigger,1000,jump_1_addr);
-		setTimeout(rop_exit_hen,5000,hr+"<h1><b><font color=%22386E38%22>HEN is successfully installed</font></b></h1>","<h1><b><font color='red'>HEN Failure! Restart PS3 and retry! PS3HEN.BIN missing copy to usb000(last port near blu ray drive of ps3)</font></b></h1>");
+		setTimeout(rop_exit_hen,5000,hr+"<h1><b><font color=%22386E38%22>HEN is successfully installed</font></b></h1>","<h1><b><font color='red'>HEN Failure! Restart PS3 and retry!</font></b></h1>");
 		cleanGUI();
 }
 </script>
@@ -124,8 +124,7 @@ function triggerX()
 	<div id="headerId" style="color:#CC2010">
 	<h1>PS3 HEN Installer</h1>
 	<span style="color:#000000">Many thanks to xerpi for porting the memory leak exploit to ps3, zecoxao & Joonie for their early & renewed support, mysis for documenting vsh/lv2, SSL for his regular & precious advice, kakaroto for the PS3 IDA tools, naherwert for scetool, Rebug Team for producing/updating the only CFW adequate to develop this work & Cobra team for sharing their CobraUSB source, the psdevwiki team of course, STLcardsWS for his long standing contribution & ever constant support.<br>We also wish to thank all the ps3 community hackers/devs, past & present, who directly or indirectly helped us put this project together, you know who you are...</span><hr>
-	<h3>Supports CEX 4.82 and 4.84/4.85 HFW Firmware</h3>
-	<h2>ATTENTION:<br>YOU MUST TURN OFF BROWSER CONFIRM CLOSE OR INSTALLER WILL FAIL<br>Using the Alternate Method may be better for most users, for now.</font></h2><br>
+	<h3>Supports CEX 4.82 and 4.84/4.85/4.86 HFW Firmware</h3>
 	<hr></div>
 	<p><button id="btnROP" type="button" onclick="initROP(true);" autofocus>Initialize HEN installer</button> | Auto-Close Browser <input type="checkbox" id="auto_close" name="aclose" checked="checked" onclick="autoclose();"/><span id="dex_txt" style="visibility:hidden"> | DEX mode<input type="checkbox" id="dex" name="DEX" disabled="" onclick="dex();"/></span></p>
 	<p><button id="btnTrigger" disabled="" type="button" onclick="triggerX();">Install HEN</button><span id="reset" style="visibility:hidden"> | <button id="btnReset" type="button" onclick="disable_trigger();">Reset</button></span></p>

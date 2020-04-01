@@ -597,6 +597,8 @@ void ecdsa_sign(u8 *hash, u8 *R, u8 *S)
 	#define FIRMWARE_VERSION	0x0484 
 #elif defined(FIRMWARE_4_85)
 	#define FIRMWARE_VERSION	0x0485	
+#elif defined(FIRMWARE_4_86)
+	#define FIRMWARE_VERSION	0x0486	
 #endif
 
 #if defined(CFW)
@@ -1693,7 +1695,7 @@ static INLINE void apply_kernel_patches(void)
 	hook_function_with_precall(get_syscall_address(804),sys_fs_close,1);
 	hook_function_with_precall(get_syscall_address(802),sys_fs_read,4);
 	#endif
-	#if defined (FIRMWARE_4_82) ||  defined (FIRMWARE_4_84) ||  defined (FIRMWARE_4_85)
+	#if defined (FIRMWARE_4_82) ||  defined (FIRMWARE_4_84) ||  defined (FIRMWARE_4_85) ||  defined (FIRMWARE_4_86)
 	hook_function_with_cond_postcall(um_if_get_token_symbol,um_if_get_token,5);
 	hook_function_with_cond_postcall(update_mgr_read_eeprom_symbol,read_eeprom_by_offset,3);
 	#endif
