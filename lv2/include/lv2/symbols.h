@@ -272,6 +272,9 @@
 /* vars */
 #define thread_info_symbol								0x37DE30
 
+/* mmapper flags temp patch */
+#define mmapper_flags_temp_patch          0x70F78
+
 /* LV2 POKE */
 #define hash_checked_area                               0x352230
 
@@ -562,9 +565,6 @@
 #define rsx_syscall_check								0x7e4c
 #define unk_func2_unregister_service					0x9e900
 #define unk_func3_unregister_service					0xa3394
-
-/* mmapper flags temp patch */
-#define mmapper_flags_temp_patch          0x70F78
 
 #endif /* FIRMWARE */
 
