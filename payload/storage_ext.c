@@ -1031,7 +1031,7 @@ int disable_patches()
 	DPRINTF("disabling patches\n");
 	suspend_intr();
 			do_patch32(MKA(patch_func8_offset1),0x7FE307B4);
-#if defined (FIRMWARE_4_82) || defined (FIRMWARE_4_84) || defined(FIRMWARE_4_85) || defined(FIRMWARE_4_86)
+#if defined (FIRMWARE_4_82) || defined (FIRMWARE_4_84) || defined(FIRMWARE_4_85) || defined(FIRMWARE_4_86) || defined(FIRMWARE_4_87)
 		do_patch32(MKA(patch_func8_offset2),0x48216FB5);
 		do_patch32(MKA(lic_patch),0x48240EED); // ignore LIC.DAT check
 #elif defined (FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX)
