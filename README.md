@@ -1,4 +1,4 @@
-#PS3HEN 3.0.0
+#PS3HEN 3.0.2
 
 stage0.bin is appended to actual stackframe
 
@@ -7,6 +7,8 @@ MultiFW support has been added.
 
 * CEX HFW 4.84.2
 * CEX HFW 4.85.1
+* CEX HFW 4.86.1
+* CEX HFW 4.87.1
 
 ** CFWs can be used for testing, but not recommended to use**
 
@@ -15,6 +17,32 @@ MultiFW support has been added.
 
 Changelog<br>
 -----------<br>
+
+#3.0.2<br>
+#HEN Plugin Changes<br>
+  - Updated To Support 4.87 HFW<br>
+#Payload Changes<br>
+  - Updated To Support 4.87 HFW<br>
+  - COBRA PS3MAPI Changes: Updated To Identify 4.87 Firmware<br>
+#Resource Changes<br>
+  - Updated HEN Loader category.xml to use new icon (thanks xps3riments)<br>
+<br>
+<br>
+
+#3.0.1<br>
+#Global Changes<br>
+  - Updated To Support 4.86 HFW<br>
+#HEN Plugin Changes<br>
+  - Updated To Support 4.86 HFW<br>
+#Payload Changes<br>
+  - Updated To Support 4.86 HFW<br>
+  - COBRA PS3MAPI Changes (thanks to @TheRouLetteBoi)<br>
+  - UAdded a better set process memory by using the function used to actually write to process, this will allow user to write to memory where writing permissions are disabled<br>
+  - Added ps3mapi_process_page_allocate this function will allocate memory into the eboot process allowing your to write/read/execute code into start_address parameter<br>
+  - Added ps3mapi_get_process_module_info which will get the name, module path, module segments, module start and module stop address all in one function<br>
+  -     Added ps3mapi_create_process_thread to create thread into the process, This is useful if you want to load a small function into the process without needed make and load a sprx module<br>
+<br>
+<br>
 
 #3.0.0<br>
 #Global Changes<br>
