@@ -1,14 +1,15 @@
-# PS3HEN 3.0.2
+# PS3HEN 3.0.3
 
 stage0.bin is appended to actual stackframe
 
 MultiFW support has been added.
 [Supported Firmwares]
 
-* CEX HFW 4.84.2
-* CEX HFW 4.85.1
-* CEX HFW 4.86.1
-* CEX HFW 4.87.1
+* CEX HFW 4.84.2 (thanks Joonie/habib)
+* CEX HFW 4.85.1 (thanks Joonie/habib)
+* CEX HFW 4.86.1 (thanks Joonie/habib)
+* CEX HFW 4.87.1 (thanks Joonie)
+* CEX HFW 4.88.1 (thanks zecoxao/Joonie)
 
 ** CFWs can be used for testing, but not recommended to use**
 
@@ -17,6 +18,15 @@ MultiFW support has been added.
 
 Changelog<br>
 -----------<br>
+
+# 3.0.3<br>
+# HEN Plugin Changes<br>
+  - Updated To Support 4.88 HFW<br>
+# Payload Changes<br>
+  - Updated To Support 4.88 HFW<br>
+  - COBRA PS3MAPI Changes: Updated To Identify 4.88 Firmware<br>
+<br>
+<br>
 
 # 3.0.2<br>
 # HEN Plugin Changes<br>
