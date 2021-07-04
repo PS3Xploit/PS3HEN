@@ -1,0 +1,212 @@
+HEN Version Update Only
+
+
+**************************************************************
+--------------------------------------------------------------
+3.X.X Update Main: Added Support For 4.XX
+--------------------------------------------------------------
+
+
+--------------------------------------------------------------
+PS3HEN/henplugin/main.c
+
+1) Change lv2 kernel date string in hex (323032302F30372F = 2020/07/)
+2) Change path on server to pkg (/4XX/cex/)
+
+else if(val==0x323032302F30372FULL)
+	{
+		download_interface->DownloadURL(0,(wchar_t *) L"http://ps3xploit.com/hen/release/487/cex/installer/Latest_HEN_Installer_signed.pkg", (wchar_t *) L"/dev_hdd0");
+	}	
+--------------------------------------------------------------
+	
+
+--------------------------------------------------------------
+PS3HEN/lv2/include/lv2/symbols.h
+
+1) Append version number defined x 1
+
+|| defined(FIRMWARE_4_XX)
+--------------------------------------------------------------
+
+--------------------------------------------------------------
+PS3HEN/payload/storage_ext.c
+
+1) Append version number defined x 6
+
+|| defined(FIRMWARE_4_XX)
+--------------------------------------------------------------
+	
+--------------------------------------------------------------
+PS3HEN/payload/Makefile
+
+1) Append each entry for all, release, and debug
+
+all:
+@rm -f *.o *.elf *.bin *.release *.debug *.cex *.dex *.map *.lzma ../lv2/src/*.o ../lv1/src/*.o ../debug/src/*.o
+@make -f Makefile_4XXC_release --no-print-directory
+	
+@rm -f *.o *.elf *.bin *.map *.lzma ../lv2/src/*.o ../lv1/src/*.o ../debug/src/*.o
+@make -f Makefile_4XXC_debug --no-print-directory
+
+release:
+@rm -f *.o *.elf *.bin *.release *.debug *.cex *.dex *.map *.lzma ../lv2/src/*.o ../lv1/src/*.o ../debug/src/*.o
+@make -f Makefile_4XXC_release --no-print-directory
+
+debug:
+@rm -f *.o *.elf *.bin *.map *.lzma ../lv2/src/*.o ../lv1/src/*.o ../debug/src/*.o
+@make -f Makefile_4XXC_debug --no-print-directory
+--------------------------------------------------------------
+
+--------------------------------------------------------------
+2) Copy "Makefile_4XXC_debug" and "Makefile_4XXC_release" to new files and change version only
+3) Update version strings in each copied file
+
+
+PS3HEN/payload/Makefile_4XXC_debug
+
+CFLAGS = -ffunction-sections -fdata-sections -Os -m64 -fno-builtin -fno-exceptions \
+			   -Os -Wall -Wno-strict-aliasing -Wno-multichar $(foreach dir,$(INCLUDE),-I$(dir)) \
+			   -DLV2 -DFIRMWARE_4_XX -DCFW -ffreestanding 
+all: $(OUTPUT)
+	@mv stage2.bin ../stage2.bin_debug_4XXC
+	
+
+PS3HEN/payload/Makefile_488C_release
+
+CFLAGS = -ffunction-sections -fdata-sections -Os -m64 -fno-builtin -fno-exceptions \
+			   -Os -Wall -Wno-strict-aliasing -Wno-multichar $(foreach dir,$(INCLUDE),-I$(dir)) \
+			   -DLV2 -DFIRMWARE_4_XX -DCFW -ffreestanding 
+all: $(OUTPUT)
+	@mv stage2.bin ../stage2.bin_4XXC
+--------------------------------------------------------------
+	
+--------------------------------------------------------------
+PS3HEN/payload/main.c
+
+1) Change HEN revision
+
+#define HEN_REV				0x03XX
+
+
+2) Add firmware version 
+
+#elif defined(FIRMWARE_4_XX)
+	#define FIRMWARE_VERSION	0x04XX	
+	
+
+3) Append version number defined x 1
+
+|| defined(FIRMWARE_4_XX)
+--------------------------------------------------------------
+
+--------------------------------------------------------------
+PS3HEN/payload/modulespatch.c
+
+1) Append version number defined x 7
+
+|| defined(FIRMWARE_4_XX)
+--------------------------------------------------------------
+
+--------------------------------------------------------------
+PS3HEN/payload/modulespatch.h
+
+1) Append version number defined x 1
+
+|| defined(FIRMWARE_4_XX)
+--------------------------------------------------------------
+
+--------------------------------------------------------------
+PS3HEN/payload/ps3mapi_core.h
+
+1) Add if statement with new firmware number
+
+#if defined(FIRMWARE_4_XX)
+	#define PS3MAPI_FW_VERSION			 		0x04XX
+	#if defined(IS_MAMBA)
+		#define PS3MAPI_FW_TYPE			 		"CEX MAMBA"
+	#else
+		#define PS3MAPI_FW_TYPE			 		"CEX COBRA"
+	#endif
+	#define PS3MAPI_IDPS_1			 			0x80000000003E2E30ULL
+	#define PS3MAPI_IDPS_2			 			0x8000000000474AF4ULL
+	#define PS3MAPI_PSID						0x8000000000474B0CULL
+#endif
+--------------------------------------------------------------
+
+--------------------------------------------------------------
+PS3HEN/stage0/Makefile
+
+clean:
+rm -f *.o *.elf *.self *.4XX *.bin *.map ../lv1/src/*.o ../debug/src/*.o ../lv2/src/*.o
+
+all:
+rm -f *.o *.elf *.self *.4XX *.bin *.4XX *.map ../lv1/src/*.o ../debug/src/*.o ../lv2/src/*.o
+make -f Makefile_4XXC --no-print-directory 
+--------------------------------------------------------------
+
+1) Copy "Makefile_4XXC" to new file and change version only
+2) Update version strings in copied file
+
+--------------------------------------------------------------
+PS3HEN/stage0/Makefile_4XXC
+
+CFLAGS = -ffunction-sections -fdata-sections -Os -m64 -fno-builtin -fno-exceptions \
+			   -Os -Wall $(foreach dir,$(INCLUDE),-I$(dir)) \
+			   -DLV2 -DFIRMWARE_4_XX -ffreestanding 
+
+%.bin: %.elf
+	$(OBJCOPY) -O binary $< $@	
+	@rm -f *.o *.elf ../lv1/src/*.o
+	mv stage0.bin ../stage0.bin_4XXC
+--------------------------------------------------------------
+
+--------------------------------------------------------------
+PS3HEN/make_PS3HEN.bat
+
+1) Add version to move
+
+mv *CEX_484 *CEX_485 *CEX_486 *CEX_487 *CEX_4XX PS3HEN_GEN
+
+2) Add version to move
+
+mv  *484C *485C *486C *487C  *4XXC PS3HEN_GEN
+
+2) Add hen_gen line with new version number
+
+HEN_GEN PS3HEN.BIN_CEX_4XX stage2.bin_4XXC stage0.bin_4XXC HENplugin.sprx
+--------------------------------------------------------------
+
+--------------------------------------------------------------
+PS3HEN/make_PS3HEN_debug.bat
+
+1) Add version to move
+
+mv *CEX_484 *CEX_485 *CEX_486 *CEX_487 *CEX_4XX PS3HEN_GEN
+
+2) Add version to move
+
+mv  *484C *485C *486C *487C  *4XXC PS3HEN_GEN
+
+2) Add hen_gen line with new version number
+
+HEN_GEN PS3HEN.BIN_CEX_487 stage2.bin_debug_487C stage0.bin_487C HENplugin.sprx
+--------------------------------------------------------------
+
+Copy "PS3HEN.BIN_CEX_4XX" to a new file matching firmware version before compiling
+
+**************************************************************
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

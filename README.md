@@ -1,12 +1,15 @@
-#PS3HEN 3.0.0
+# PS3HEN 3.0.3
 
 stage0.bin is appended to actual stackframe
 
 MultiFW support has been added.
 [Supported Firmwares]
 
-* CEX HFW 4.84.2
-* CEX HFW 4.85.1
+* CEX HFW 4.84.2 (thanks Joonie/habib)
+* CEX HFW 4.85.1 (thanks Joonie/habib)
+* CEX HFW 4.86.1 (thanks Joonie/habib)
+* CEX HFW 4.87.1 (thanks Joonie)
+* CEX HFW 4.88.1 (thanks zecoxao/Joonie)
 
 ** CFWs can be used for testing, but not recommended to use**
 
@@ -16,23 +19,58 @@ MultiFW support has been added.
 Changelog<br>
 -----------<br>
 
-#3.0.0<br>
-#Global Changes<br>
+# 3.0.3<br>
+# HEN Plugin Changes<br>
+  - Updated To Support 4.88 HFW<br>
+# Payload Changes<br>
+  - Updated To Support 4.88 HFW<br>
+  - COBRA PS3MAPI Changes: Updated To Identify 4.88 Firmware<br>
+<br>
+<br>
+
+# 3.0.2<br>
+# HEN Plugin Changes<br>
+  - Updated To Support 4.87 HFW<br>
+# Payload Changes<br>
+  - Updated To Support 4.87 HFW<br>
+  - COBRA PS3MAPI Changes: Updated To Identify 4.87 Firmware<br>
+# Resource Changes<br>
+  - Updated HEN Loader category.xml to use new icon (thanks xps3riments)<br>
+<br>
+<br>
+
+# 3.0.1<br>
+# Global Changes<br>
+  - Updated To Support 4.86 HFW<br>
+# HEN Plugin Changes<br>
+  - Updated To Support 4.86 HFW<br>
+# Payload Changes<br>
+  - Updated To Support 4.86 HFW<br>
+  - COBRA PS3MAPI Changes (thanks to @TheRouLetteBoi)<br>
+  - UAdded a better set process memory by using the function used to actually write to process, this will allow user to write to memory where writing permissions are disabled<br>
+  - Added ps3mapi_process_page_allocate this function will allocate memory into the eboot process allowing your to write/read/execute code into start_address parameter<br>
+  - Added ps3mapi_get_process_module_info which will get the name, module path, module segments, module start and module stop address all in one function<br>
+  -     Added ps3mapi_create_process_thread to create thread into the process, This is useful if you want to load a small function into the process without needed make and load a sprx module<br>
+<br>
+<br>
+
+# 3.0.0<br>
+# Global Changes<br>
   - No Longer Officially Supporting 4.82 Firmware<br>
-#HEN Plugin Changes<br>
+# HEN Plugin Changes<br>
   - Fixed freezing if DVD or CD is already inserted into PS3 when HEN is enabled<br>
   - Showing error message if reply length is too short from server<br>
-#Payload Changes<br>
+# Payload Changes<br>
   - Fixed Freezing Problems on All Models<br>
   - Fixed Issues With Incompatible Models<br>
   - Improved Sanity Checks<br>
 <br>
 <br>
 
-#2.4.0<br>
-#Global Changes<br>
+# 2.4.0<br>
+# Global Changes<br>
 - Stage2 size went from 100kb+ to 90kb<br>
-#Payload Changes<br>
+# Payload Changes<br>
 - Added VSH patches and disabled signature check of rif, now other tools are compatible<br>
 - PS3MAPI can now write to VSH text segment like CFW<br>
 - Disabled VSH check in rif that R and S cant be just 0<br>
@@ -43,38 +81,42 @@ Changelog<br>
 - Fixed issue where people sometimes got stuck downloading games from PSN<br>
 <br>
 <br>
-#2.3.3 BETA<br>
-#Payload Changes<br>
+
+# 2.3.3 BETA<br>
+# Payload Changes<br>
 - Remapping HFW XML from /dev_flash/ now instead of /dev_hdd0/<br>
 <br>
 <br>
-#2.3.2<br>
-#HEN Plugin Changes<br>
+
+# 2.3.2<br>
+# HEN Plugin Changes<br>
 - Updated To Support 4.85 HFW<br>
-#Payload Changes<br>
+# Payload Changes<br>
 - Updated To Support 4.85 HFW<br>
 <br>
 <br>
-#2.3.1<br>
-#HEN Plugin Changes<br>
+
+# 2.3.1<br>
+# HEN Plugin Changes<br>
 - Fixed the issue when Network is disabled<br>
-#Payload Changes<br>
+# Payload Changes<br>
 - Now mounts both dev_rewrite & dev_blind to save the scene<br>
-#Resource Changes<br>
+# Resource Changes<br>
 - Added duplicate icon fix by DeViL303<br>
 <br>
 <br>
-#2.3.0<br>
-#Global Changes<br>
+
+# 2.3.0<br>
+# Global Changes<br>
 - Exploit init is faster<br>
 - Increased sleep in html, removed from bins<br>
-#HEN Plugin Changes<br>
+# HEN Plugin Changes<br>
 - HEN Updater added with version check<br>
 - Fixed crash that sometimes happened on init<br>
 - If HEN doesnt init an automated soft reboot takes place<br>
 - HEN can be enabled when failed, and ran successively, without reboot<br>
 - Removed infinite loop. One second is 10 tries, otherwise reboot<br>
-#Payload Changes<br>
+# Payload Changes<br>
 - SELF Decrypter Fix<br>
 - Fixed some blackscreen issues<br>
 - Fixed freezing if someone tries to enable hen successfully twice<br>
@@ -84,28 +126,30 @@ Changelog<br>
 - HEN queue is drained before the patches get disabled, and also synchronized properly the check to synchronize remove and do patches<br>
 <br>
 <br>
-#2.2.2<br>
-#Payload Changes<br>
+
+# 2.2.2<br>
+# Payload Changes<br>
 - HEN_init freezing fixed by timer change<br>
 - Syscall handler bug fixed, removed 2 second hang on xmb no cleanup thread<br>
 - HashCalc bug fixed, strict hashcheck<br>
 - USB Package installation support for HEN installer<br>
-#Resource Changes<br>
+# Resource Changes<br>
 - Updated videoplayer_plugin.sprx to use proper DEX version for each firmware version<br>
 <br>
 <br>
-#2.2.1<br>
-#Global Changes<br>
+
+# 2.2.1<br>
+# Global Changes<br>
 - The stackframe and PS3HEN bins are now merged as a single payload binary (PS3HEN.BIN)<br>
 - Added HEN refresh and version display on initialize, using embedded plugin<br>
 - Replaced dev_blind with dev_rewrite to maintain RW state at all times<br>
 - On Boot, HEN Enabler icon is selected by default<br>
-#HEN Plugin Changes<br>
+# HEN Plugin Changes<br>
 - HEN version notification on boot<br>
 - Refreshes Game and Network Category<br>
 - Enables in-game Screenshot feature<br>
 - Unloads Itself<br>
-#Payload Changes<br>
+# Payload Changes<br>
 - HEN Installer feature added and memory management changes<br>
 - Fixed Encryption<br>
 - HMAC Hash Validation<br>
@@ -123,7 +167,7 @@ Changelog<br>
 - PS3MAPI bugfix + Stability<br>
 - Self Threading Support. Fixes the issue with a few games (SC Trilogy and etc). Currently ISO/NetISO not supported<br>
 - Improved SELF auth (Fixes games that run multiple executables. Stability improved)<br>
-#Resource Changes<br>
+# Resource Changes<br>
 - Default Theme Pack removed from main package and can now download from Themes Updater<br>
 - HEN Theme Pack by Itroublve_Hacker downloadable package updated with fixed icons<br>
 - PKG Linker is now located under Package Manager - Install Packages<br>
@@ -132,36 +176,39 @@ Changelog<br>
 - Added new coldboot, icons, and JS/HTML overlay (thanks xps3riments)<br>
 <br>
 <br>
-#2.1.1<br>
-#Stackframe Binary<br>
+
+# 2.1.1<br>
+# Stackframe Binary<br>
 - 4.82 CEX is now supported! Each FW version has its own stackframe, package, and update XML.<br>
-#PS3HEN Payload<br>
+# PS3HEN Payload<br>
 - PSNPatch is fixed, no more freezing from syscall removal<br>
 - Remap for HFW_settings is now fully protected, no more disappearing HFW tools<br>
 - Stability patches added on initial boot process<br>
 - HEN Check added to not freeze if missing files<br>
-#Resources<br>
+# Resources<br>
 - PKG Linker entries added to category_game.xml<br>
 <br>
 <br>
-#2.1.0<br>
+
+# 2.1.0<br>
 @Many thanks to Habib who accidentally released v1.0.0 as anonymous ;)<br>
-#PS3HEN Payload<br>
+# PS3HEN Payload<br>
 - Payload size is reduced by 20kb<br>
 - Advanced QA Flag. This DOES NOT allow downgrading!<br>
 - Debug Settings Enabler added<br>
 - AES calculation now uses internal library from LV2<br>
 - RAP can now be loaded / accessed from dev_hdd0/exdata<br>
-#Resources<br>
+# Resources<br>
 - Added Update Themes option to PS3HEN Updater menu<br>
 - Added theme pack by "Itroublve Hacker" to PS3HEN Updater -> Update Themes<br>
 - Small text edit on "Theme selector" is now "Theme Selector" under Hybrid Firmware Tools<br>
 <br>
 <br>
-#2.0.2<br>
-#Stackframe Binary<br>
+
+# 2.0.2<br>
+# Stackframe Binary<br>
 - C00 unlocker activated by default<br>
-#PS3HEN Payload<br>
+# PS3HEN Payload<br>
 - RAP activation on the fly, default path : usb000/exdata/<rap> or usb001/exdata/<rap><br>
 - Fixed issue with official NPDRM content rif deletion and unable to boot error<br>
 - PS2 classics launcher support<br>
@@ -174,7 +221,7 @@ Changelog<br>
 - Multiple path on boot_plugins & boot_plugins_kernel (HDD & USB) Thanks to @aldostools<br>
 - Hybrid Firmware Tools available when HEN's activated (Enable HEN to use this feature) *<br>
 - *Only available via PS3HEN PKG installation<br>
-#Resources<br>
+# Resources<br>
 - Fixed infinite spinning wheel when in-game<br>
 - Both REBUG and Stock Edition available<br>
 - Hybrid Firmware Tools available via PKG installation<br>
@@ -182,7 +229,8 @@ Changelog<br>
 - Official firmware updates via internet blocked<br>
 <br>
 <br>
-#2.0.1 BETA<br>
+
+# 2.0.1 BETA<br>
 - mappath is used for enabling xai_plugin so it wouldn't appear on fresh boot.<br>
 - Remote Play with PC restriction removed<br>
 - @DeViL303's extended download_plugin support added (offline pkg includes v1.01 HEN edition)<br>
@@ -192,7 +240,8 @@ Changelog<br>
 - Added option to re-enable cfw syscall by accessing the system update menu on XMB Settings<br>
 <br>
 <br>
-#2.0.0<br>
+
+# 2.0.0<br>
 - HOTFIX: Removed HEN Check From Offline Packages<br>
 - Fake flash is no longer used, in favor of on-the-fly patching<br>
 - Fixed blackscreen crashes<br>
@@ -207,11 +256,12 @@ Changelog<br>
 - Syscall 389/409 product mode check disabled<br>
 - Opcode 1339 added, returns HEN version (0x0200)<br>
 - Full BD/DVD ISO support (AACS decryption required for BDRip)<br>
-#Notes:<br>
+# Notes:<br>
 @WebmanMOD tested with 1.47.17 and 1.47.19, with fan control and PS3MAPI working<br>
 <br>
 <br>
-#1.0.0<br>
+
+# 1.0.0<br>
 - Managunz backup manager works best for jb rips(ISO not supported)!<br>
 - MULTIMAN works too but compatibility is not the same.<br>
 - PSXISO Support is there!!!!<br>
@@ -232,7 +282,7 @@ Changelog<br>
 - PSN Connectivity<br>
 - All process executed after HEN have rwx permissions!<br>
 - HAN Enabled by default!<br>
-#CFW PATCHES:<br>
+# CFW PATCHES:<br>
 - CFW settings<br>
 - Retail/DEBUG pkg installation<br>
 - Unlink to Delete<br>
@@ -244,9 +294,9 @@ Changelog<br>
 - DVD region check (not cracking RCE)<br>
 - REBUG themed RCO & XML<br>
 - AIO copy<br>
-#NOTES:<br>
+# NOTES:<br>
 @ if you get error 80010017 launching homebrew that simply means HEN failure, restart console and try again!(restart is important!) also try deleting cache, browsing data, cookies and the likes from browser, make the exploit page the home page<br>
-#DEVELOPERS:<br>
+# DEVELOPERS:<br>
 -#define SYSCALL8_OPCODE_IS_HEN ⇨ 0x1337<br>
 -using this if return 0x1337 its hen<br>
 -ADVANCED POKE:syscall8(0x7003, addr, value); ⇨ this allows poking any location in lv2 memory BUT you have to restore original value before exiting to another application or exiting to xmb.USE WISELY OTHERWISE PS3 SHUTS DOWN<br>
