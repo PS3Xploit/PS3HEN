@@ -32,6 +32,7 @@
 #include "download_plugin.h"
 #include "game_ext_plugin.h"
 #include "xmb_plugin.h"
+#include "xregistry.h"
 
 #include <sys/sys_time.h>
 #include <sys/types.h>
