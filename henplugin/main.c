@@ -478,13 +478,13 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 	reload_xmb();
 	CellFsStat stat;
 	
-	char path1[0x29];
+	char path1[0x30];
 	sprintf(path1, "/dev_hdd0/home/%08i/webbrowser/history.xml", xsetting_CC56EB2D()->GetCurrentUserNumber());
 	
-	char path2[0x26];
+	char path2[0x30];
 	sprintf(path2, "/dev_hdd0/home/%08i/http/auth_cache.dat", xsetting_CC56EB2D()->GetCurrentUserNumber());
 	
-	char path3[0x27];
+	char path3[0x30];
 	sprintf(path3, "/dev_hdd0/home/%08i/http/cookie.dat", xsetting_CC56EB2D()->GetCurrentUserNumber());
 
 	if(cellFsStat(path1,&stat)==0)
