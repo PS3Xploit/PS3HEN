@@ -529,7 +529,7 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 		}
 		goto done;
 	}
-	int do_update=hen_updater();
+	int do_update=(cellFsStat("/dev_hdd0/hen_updater.off",&stat) ? hen_updater() : 0);
 	if((cellFsStat("/dev_flash/vsh/resource/explore/icon/hen_enable.png",&stat)!=0) || (do_update==1))
 	{
 		cellFsUnlink("/dev_hdd0/theme/PS3HEN.p3t");
