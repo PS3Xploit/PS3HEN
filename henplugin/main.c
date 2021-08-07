@@ -474,7 +474,7 @@ void restore_act_dat(void)
 		sprintf(path1, "/dev_hdd0/home/%08d/exdata/act.bak", i);
 		sprintf(path2, "/dev_hdd0/home/%08d/exdata/act.dat", i);
 		
-		if((cellFsStat(path1,&stat)==0) && (cellFsStat(path1,&stat)!=0))
+		if((cellFsStat(path1,&stat)==0) && (cellFsStat(path2,&stat)!=0))
 		{
 			// copy act.bak to act.dat
 			if(cellFsOpen(path1, CELL_FS_O_RDONLY, &fd, NULL, 0) != CELL_FS_SUCCEEDED)
