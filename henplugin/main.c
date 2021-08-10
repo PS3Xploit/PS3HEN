@@ -454,42 +454,36 @@ int hen_updater(void)
 	return 0;
 }
 
+static int sysLv2FsLink(const char *oldpath, const char *newpath)
+{
+    system_call_2(810, (uint64_t)(uint32_t)oldpath, (uint64_t)(uint32_t)newpath);
+    return_to_user_prog(int);
+}
+
 void restore_act_dat(void);
 void restore_act_dat(void)
 {
-	CellFsStat stat;
-	char path1[64], path2[64];
-	uint8_t actdat[4152];
-	int fd, max_uid = 0;
-	uint64_t read;
+    int fd;
 
-	if(cellFsOpen("/dev_flash2/etc/savedLastCreatedUserId", CELL_FS_O_RDONLY, &fd, NULL, 0) != CELL_FS_SUCCEEDED)
-		return;
-		
-	cellFsRead(fd, (void *) &max_uid, 4, &read);
-	cellFsClose(fd);
+    if(cellFsOpendir("/dev_hdd0/home", &fd) == CELL_FS_SUCCEEDED)
+    {
+        CellFsStat stat;
+        char path1[64], path2[64];
+        CellFsDirent dir;
+		uint64_t read;
 
-	for (int i = 1; i <= max_uid; i++)
-	{
-		sprintf(path1, "/dev_hdd0/home/%08d/exdata/act.bak", i);
-		sprintf(path2, "/dev_hdd0/home/%08d/exdata/act.dat", i);
-		
-		if((cellFsStat(path1,&stat)==0) && (cellFsStat(path2,&stat)!=0))
-		{
-			// copy act.bak to act.dat
-			if(cellFsOpen(path1, CELL_FS_O_RDONLY, &fd, NULL, 0) != CELL_FS_SUCCEEDED)
-				continue;
+        while (cellFsReaddir(fd, &dir, &read) == CELL_FS_SUCCEEDED)
+        {
+            sprintf(path1, "/dev_hdd0/home/%s/exdata/act.bak", dir.d_name);
+            sprintf(path2, "/dev_hdd0/home/%s/exdata/act.dat", dir.d_name);
 
-			cellFsRead(fd, (void *)actdat, sizeof(actdat), &read);
-			cellFsClose(fd);
-
-			if(cellFsOpen(path2, CELL_FS_O_WRONLY, &fd, NULL, 0) != CELL_FS_SUCCEEDED)
-				continue;
-
-			cellFsWrite(fd, (void *)actdat, sizeof(actdat), &read);
-			cellFsClose(fd);
-		}
-	}
+            if((cellFsStat(path2, &stat) != CELL_FS_SUCCEEDED) && (cellFsStat(path1, &stat) == CELL_FS_SUCCEEDED))
+            {
+                sysLv2FsLink(path1, path2);
+            }
+        }
+        cellFsClosedir(fd);
+    }
 }
 
 static void henplugin_thread(__attribute__((unused)) uint64_t arg)
