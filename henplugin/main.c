@@ -470,7 +470,7 @@ void restore_act_dat(void)
         CellFsStat stat;
         char path1[64], path2[64];
         CellFsDirent dir;
-		uint64_t read;
+        uint64_t read;
 
         while (cellFsReaddir(fd, &dir, &read) == CELL_FS_SUCCEEDED)
         {
