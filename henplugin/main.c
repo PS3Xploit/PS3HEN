@@ -499,13 +499,9 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 	int view = View_Find("explore_plugin");
 	system_call_1(8, SYSCALL8_OPCODE_HEN_REV); hen_version = (int)p1;
 	char henver[0x30];
-	//sprintf(henver, "Welcome to PS3HEN %X.%02X", hen_version>>8, (hen_version & 0xFF));
 	sprintf(henver, "Welcome to PS3HEN %X.%X.%X", hen_version>>8, (hen_version & 0xF0)>>4, (hen_version&0xF));
 	
 	show_msg((char *)henver);
-	
-	// restore act.dat from act.bak backup
-	restore_act_dat();
 	
 	if(view==0)
 	{
@@ -516,6 +512,8 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 	
 	enable_ingame_screenshot();
 	reload_xmb();
+	// restore act.dat from act.bak backup
+	restore_act_dat();
 	CellFsStat stat;
 	
 	if(cellFsStat("/dev_usb000/HEN_UPD.pkg",&stat)==0)
