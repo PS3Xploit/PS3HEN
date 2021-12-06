@@ -454,38 +454,6 @@ int hen_updater(void)
 	return 0;
 }
 
-static int sysLv2FsLink(const char *oldpath, const char *newpath)
-{
-    system_call_2(810, (uint64_t)(uint32_t)oldpath, (uint64_t)(uint32_t)newpath);
-    return_to_user_prog(int);
-}
-
-void restore_act_dat(void);
-void restore_act_dat(void)
-{
-    int fd;
-
-    if(cellFsOpendir("/dev_hdd0/home", &fd) == CELL_FS_SUCCEEDED)
-    {
-        CellFsStat stat;
-        char path1[64], path2[64];
-        CellFsDirent dir;
-        uint64_t read;
-
-        while (cellFsReaddir(fd, &dir, &read) == CELL_FS_SUCCEEDED)
-        {
-            sprintf(path1, "/dev_hdd0/home/%s/exdata/act.bak", dir.d_name);
-            sprintf(path2, "/dev_hdd0/home/%s/exdata/act.dat", dir.d_name);
-
-            if((cellFsStat(path2, &stat) != CELL_FS_SUCCEEDED) && (cellFsStat(path1, &stat) == CELL_FS_SUCCEEDED))
-            {
-                sysLv2FsLink(path1, path2);
-            }
-        }
-        cellFsClosedir(fd);
-    }
-}
-
 static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 {
 	View_Find = getNIDfunc("paf", 0xF21655F3, 0);
@@ -493,6 +461,7 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 	int view = View_Find("explore_plugin");
 	system_call_1(8, SYSCALL8_OPCODE_HEN_REV); hen_version = (int)p1;
 	char henver[0x30];
+	//sprintf(henver, "Welcome to PS3HEN %X.%02X", hen_version>>8, (hen_version & 0xFF));
 	sprintf(henver, "Welcome to PS3HEN %X.%X.%X", hen_version>>8, (hen_version & 0xF0)>>4, (hen_version&0xF));
 	
 	show_msg((char *)henver);
@@ -506,8 +475,6 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 	
 	enable_ingame_screenshot();
 	reload_xmb();
-	// restore act.dat from act.bak backup
-	restore_act_dat();
 	CellFsStat stat;
 	
 	if(cellFsStat("/dev_usb000/HEN_UPD.pkg",&stat)==0)
@@ -521,7 +488,7 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 		}
 		goto done;
 	}
-	int do_update=(cellFsStat("/dev_hdd0/hen_updater.off",&stat) ? hen_updater() : 0);
+	int do_update=(cellFsStat("/dev_hdd0/hen_updater.off",&stat) ? hen_updater() : 0);// 20211011 Added update toggle thanks bucanero for original PR
 	if((cellFsStat("/dev_flash/vsh/resource/explore/icon/hen_enable.png",&stat)!=0) || (do_update==1))
 	{
 		cellFsUnlink("/dev_hdd0/theme/PS3HEN.p3t");
