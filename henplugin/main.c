@@ -460,21 +460,15 @@ void restore_act_dat(void)
 	CellFsStat stat;
 	char path1[64], path2[64];
 	uint8_t actdat[4152];
-	int fd, max_uid = 0;
+	int fd, max_uid = 100;
 	uint64_t read;
-
-	if(cellFsOpen("/dev_flash2/etc/savedLastCreatedUserId", CELL_FS_O_RDONLY, &fd, NULL, 0) != CELL_FS_SUCCEEDED)
-		return;
-		
-	cellFsRead(fd, (void *) &max_uid, 4, &read);
-	cellFsClose(fd);
 
 	for (int i = 1; i <= max_uid; i++)
 	{
 		sprintf(path1, "/dev_hdd0/home/%08d/exdata/act.bak", i);
 		sprintf(path2, "/dev_hdd0/home/%08d/exdata/act.dat", i);
 		
-		if((cellFsStat(path1,&stat)==0) && (cellFsStat(path2,&stat)!=0))
+		if((cellFsStat(path1,&stat) == CELL_FS_SUCCEEDED) && (cellFsStat(path2,&stat) != CELL_FS_SUCCEEDED))
 		{
 			// copy act.bak to act.dat
 			if(cellFsOpen(path1, CELL_FS_O_RDONLY, &fd, NULL, 0) != CELL_FS_SUCCEEDED)
