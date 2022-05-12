@@ -454,6 +454,38 @@ int hen_updater(void)
 	return 0;
 }
 
+void restore_act_dat(void);
+void restore_act_dat(void)
+{
+	CellFsStat stat;
+	char path1[64], path2[64];
+	uint8_t actdat[4152];
+	int fd, max_uid = 100;
+	uint64_t read;
+
+	for (int i = 1; i <= max_uid; i++)
+	{
+		sprintf(path1, "/dev_hdd0/home/%08d/exdata/act.bak", i);
+		sprintf(path2, "/dev_hdd0/home/%08d/exdata/act.dat", i);
+		
+		if((cellFsStat(path1,&stat) == CELL_FS_SUCCEEDED) && (cellFsStat(path2,&stat) != CELL_FS_SUCCEEDED))
+		{
+			// copy act.bak to act.dat
+			if(cellFsOpen(path1, CELL_FS_O_RDONLY, &fd, NULL, 0) != CELL_FS_SUCCEEDED)
+				continue;
+
+			cellFsRead(fd, (void *)actdat, sizeof(actdat), &read);
+			cellFsClose(fd);
+
+			if(cellFsOpen(path2, CELL_FS_O_WRONLY, &fd, NULL, 0) != CELL_FS_SUCCEEDED)
+				continue;
+
+			cellFsWrite(fd, (void *)actdat, sizeof(actdat), &read);
+			cellFsClose(fd);
+		}
+	}
+}
+
 static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 {
 	View_Find = getNIDfunc("paf", 0xF21655F3, 0);
@@ -461,7 +493,6 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 	int view = View_Find("explore_plugin");
 	system_call_1(8, SYSCALL8_OPCODE_HEN_REV); hen_version = (int)p1;
 	char henver[0x30];
-	//sprintf(henver, "Welcome to PS3HEN %X.%02X", hen_version>>8, (hen_version & 0xFF));
 	sprintf(henver, "Welcome to PS3HEN %X.%X.%X", hen_version>>8, (hen_version & 0xF0)>>4, (hen_version&0xF));
 	
 	show_msg((char *)henver);
@@ -475,6 +506,8 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 	
 	enable_ingame_screenshot();
 	reload_xmb();
+	// restore act.dat from act.bak backup
+	restore_act_dat();
 	CellFsStat stat;
 	
 	if(cellFsStat("/dev_usb000/HEN_UPD.pkg",&stat)==0)
