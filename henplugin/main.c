@@ -32,6 +32,7 @@
 #include "download_plugin.h"
 #include "game_ext_plugin.h"
 #include "xmb_plugin.h"
+#include "xregistry.h"
 
 #include <sys/sys_time.h>
 #include <sys/types.h>
@@ -509,6 +510,28 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 	// restore act.dat from act.bak backup
 	restore_act_dat();
 	CellFsStat stat;
+	
+	char path1[0x30];
+	sprintf(path1, "/dev_hdd0/home/%08i/webbrowser/history.xml", xsetting_CC56EB2D()->GetCurrentUserNumber());
+	
+	char path2[0x30];
+	sprintf(path2, "/dev_hdd0/home/%08i/http/auth_cache.dat", xsetting_CC56EB2D()->GetCurrentUserNumber());
+	
+	char path3[0x30];
+	sprintf(path3, "/dev_hdd0/home/%08i/http/cookie.dat", xsetting_CC56EB2D()->GetCurrentUserNumber());
+
+	if(cellFsStat(path1,&stat)==0)
+	{
+		cellFsUnlink(path1);
+	}
+	if(cellFsStat(path2,&stat)==0)
+	{
+		cellFsUnlink(path2);
+	}
+	if(cellFsStat(path3,&stat)==0)
+	{
+		cellFsUnlink(path3);
+	}
 	
 	if(cellFsStat("/dev_usb000/HEN_UPD.pkg",&stat)==0)
 	{
