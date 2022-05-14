@@ -510,8 +510,7 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 	
 	enable_ingame_screenshot();
 	reload_xmb();
-	// restore act.dat from act.bak backup
-	restore_act_dat();
+	
 	CellFsStat stat;
 	
 	if(cellFsStat("/dev_usb000/HEN_UPD.pkg",&stat)==0)
@@ -525,6 +524,10 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 		}
 		goto done;
 	}
+	
+	// restore act.dat from act.bak backup
+	restore_act_dat();
+	
 	int do_update=(cellFsStat("/dev_hdd0/hen_updater.off",&stat) ? hen_updater() : 0);// 20211011 Added update toggle thanks bucanero for original PR
 	if((cellFsStat("/dev_flash/vsh/resource/explore/icon/hen_enable.png",&stat)!=0) || (do_update==1))
 	{
