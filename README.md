@@ -27,6 +27,14 @@ Changelog<br>
 # Payload Changes<br>
   - Updated To Support 4.89 HFW<br>
   - COBRA PS3MAPI Changes: Updated To Identify 4.89 Firmware<br>
+  - Added Dump PSID option to HFW Tools<br>
+  - Added Toggle Automatic Update option to HFW Tools<br>
+  - Updated text on Theme Selector in HFW Tools<br>
+  - Added new icons for updated HFW Tools options (thanks xps3riments)<br>
+  - Updated RCO files to fix display issues with 4.89 only (thanks sandungas)<br>
+    - explore_plugin_full.rco: 44292838814555627FC8F9F9CB632CD8<br>
+    - software_update_plugin.rco: D1FAF469796E6894AA1CECCFAC7895EF<br>
+  - Updated layout_grid_table files for 480p and 272p to fix display issues in Remote Play with 4.89 only (thanks sandungas)<br>
 <br>
 <br>
 
