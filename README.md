@@ -28,6 +28,7 @@ Changelog<br>
   - Updated To Support 4.89 HFW<br>
   - COBRA PS3MAPI Changes: Updated To Identify 4.89 Firmware<br>
   - Added Dump PSID option to HFW Tools<br>
+# Resource Changes<br>
   - Added Toggle Automatic Update option to HFW Tools<br>
   - Updated text on Theme Selector in HFW Tools<br>
   - Added new icons for updated HFW Tools options (thanks xps3riments)<br>
