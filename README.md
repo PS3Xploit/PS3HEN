@@ -20,6 +20,16 @@ MultiFW support has been added.
 Changelog<br>
 -----------<br>
 
+# 3.1.1<br>
+# Payload Changes<br>
+  - HOTFIX: Updated HEN_REV to 0x0311<br>
+# Resource Changes<br>
+  - Replaced explore_plugin.sprx with OFW version, 4.89 only (Replacement is needed to make sure the old one is overwritten on dirty 4.89 installs)<br>
+  - Removed unused RCO files that match OFW (explore_category_psn.rco, explore_category_video.rco, wboard_plugin.rco, xmb_ingame.rco, xmb_plugin_normal.rco)<br>
+  - Temporarily fixed display issues with Trophies, Package Manager (it does currently work, but stutters on sub-menu, and has broken icon until HEN enabled), and other XMB items. This fix may have improvements, moving forward. Thanks to everyone who reported issues (aleks1992, Colek, Cyberdev, Farzin, H3N7R1K, LuanTeles, PopCornLover, ReMiX2000, SolidGoldPug, Xjordy13x, Yoti) and to anyone we missed!<br>
+<br>
+<br>
+
 # 3.1.0<br>
 # HEN Plugin Changes<br>
   - Updated To Support 4.89 HFW<br>
