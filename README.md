@@ -1,4 +1,4 @@
-# PS3HEN 3.1.0
+# PS3HEN 3.1.1
 
 stage0.bin is appended to actual stackframe
 
