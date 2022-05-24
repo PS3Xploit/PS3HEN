@@ -30,12 +30,12 @@ uint8_t photo_gui = 1;
 static mutex_t map_mtx = 0;
 
 void init_mtx(){
-	if(!map_mtx){
-		mutex_create(&map_mtx, SYNC_PRIORITY, SYNC_NOT_RECURSIVE);
-		#ifdef  DEBUG
-			DPRINTF("init_mtx=: map_mtx 0x%8X created\n", (uint64_t)map_mtx);
-		#endif 
-	}
+  if(!map_mtx){
+    mutex_create(&map_mtx, SYNC_PRIORITY, SYNC_NOT_RECURSIVE);
+    #ifdef  DEBUG
+      DPRINTF("init_mtx=: map_mtx 0x%lX created\n", (uint64_t)map_mtx);
+    #endif 
+  }
 }
 
 // void map_first_slot(char *old, char *newp)
@@ -87,7 +87,7 @@ int map_path(char *oldpath, char *newpath, uint32_t flags)
 		return -1;
 	
 	#ifdef  DEBUG
-		DPRINTF("Map path: %s -> %s\n", oldpath, newpath);
+		//DPRINTF("Map path: %s -> %s\n", oldpath, newpath);
 	#endif
 
 	if (newpath && strcmp(oldpath, newpath) == 0)
@@ -99,7 +99,7 @@ int map_path(char *oldpath, char *newpath, uint32_t flags)
 	init_mtx();
 	mutex_lock(map_mtx, 0);
 	#ifdef  DEBUG
-		DPRINTF("map_path=: mutex locked\n");
+		//DPRINTF("map_path=: mutex locked\n");
 	#endif 
 	for (i = 1; i < MAX_TABLE_ENTRIES; i++)
 	{
@@ -165,7 +165,7 @@ int map_path(char *oldpath, char *newpath, uint32_t flags)
 	}
 	mutex_unlock(map_mtx);
 	#ifdef  DEBUG
-		DPRINTF("map_path=: mutex unlocked\n");
+		//DPRINTF("map_path=: mutex unlocked\n");
 	#endif 
 	return 0;	
 }
@@ -175,7 +175,7 @@ int map_path_user(char *oldpath, char *newpath, uint32_t flags)
 	char *oldp, *newp;
 	
 	#ifdef  DEBUG
-		DPRINTF("map_path_user, called by process %s: %s -> %s\n", get_process_name(get_current_process_critical()), oldpath, newpath); 
+		//DPRINTF("map_path_user, called by process %s: %s -> %s\n", get_process_name(get_current_process_critical()), oldpath, newpath); 
 	#endif
 	
 	if (oldpath == 0)
@@ -212,7 +212,7 @@ int get_map_path(unsigned int num, char *path, char *new_path)
 	init_mtx();
 	mutex_lock(map_mtx, 0);
 	#ifdef  DEBUG
-		DPRINTF("get_map_path=: mutex locked\n");
+		//DPRINTF("get_map_path=: mutex locked\n");
 	#endif 
 	if(map_table[num].oldpath_len == 0 || map_table[num].newpath_len == 0 || !map_table[num].newpath || !map_table[num].oldpath || !path) return -1;
 
@@ -223,7 +223,7 @@ int get_map_path(unsigned int num, char *path, char *new_path)
 	
 	mutex_unlock(map_mtx);
 	#ifdef  DEBUG
-		DPRINTF("get_map_path=: mutex unlocked\n");
+		//DPRINTF("get_map_path=: mutex unlocked\n");
 	#endif 
 	return 0;
 }
@@ -264,7 +264,7 @@ int sys_map_paths(char *paths[], char *new_paths[], unsigned int num)
 		init_mtx();
 		mutex_lock(map_mtx, 0);
 		#ifdef  DEBUG
-			DPRINTF("sys_map_paths=: mutex locked\n");
+			//DPRINTF("sys_map_paths=: mutex locked\n");
 		#endif 
 		for (int i = 1; i < MAX_TABLE_ENTRIES; i++)
 		{
@@ -283,7 +283,7 @@ int sys_map_paths(char *paths[], char *new_paths[], unsigned int num)
 		mutex_destroy(map_mtx);
 		map_mtx=0;
 		#ifdef  DEBUG
-			DPRINTF("sys_map_paths=: mutex unlocked and destroyed\n");
+			//DPRINTF("sys_map_paths=: mutex unlocked and destroyed\n");
 		#endif 
 		
 	}
@@ -616,7 +616,10 @@ LV2_HOOKED_FUNCTION_POSTCALL_2(void, open_path_hook, (char *path0, int mode))
 			strcpy(act_path+strlen(act_path),act_dat_name);
 			char output[0x60];
 			sprintf(output, "/%s",path0);
-			DPRINTF("act_path:%s content_id:%s output:%s rap_path:%s\n",act_path,content_id,output,buf);
+			
+			#ifdef DEBUG
+				//DPRINTF("act_path:%s content_id:%s output:%s rap_path:%s\n",act_path,content_id,output,buf);
+			#endif
 			
 			uint8_t *act_dat;
 			page_allocate_auto(NULL, 0x1038, 0x2F, (void *)&act_dat);
@@ -694,7 +697,7 @@ LV2_HOOKED_FUNCTION_POSTCALL_2(void, open_path_hook, (char *path0, int mode))
 					else if(!strcmp(photo + len -4, ".PNG") || !strcmp(photo + len -4, ".JPG") || !strcmp(photo + len -8, "_COV.JPG") || !strncasecmp(photo + len -8, ".iso.jpg", 8) || !strncasecmp(photo + len -8, ".iso.png", 8))
 					{
 						#ifdef  DEBUG
-						DPRINTF("CREATING /dev_hdd0/tmp/wm_request\n");
+							//DPRINTF("CREATING /dev_hdd0/tmp/wm_request\n");
 						#endif
 						int fd;
 						if(cellFsOpen("/dev_hdd0/tmp/wm_request", CELL_FS_O_CREAT | CELL_FS_O_WRONLY | CELL_FS_O_TRUNC, &fd, 0666, NULL, 0) == 0)
@@ -710,7 +713,7 @@ LV2_HOOKED_FUNCTION_POSTCALL_2(void, open_path_hook, (char *path0, int mode))
 			init_mtx();
 			mutex_lock(map_mtx, 0);
 			#ifdef  DEBUG
-				DPRINTF("open_path_hook=: mutex locked\n");
+				//DPRINTF("open_path_hook=: mutex locked\n");
 			#endif 
 			for (int i = MAX_TABLE_ENTRIES-1; i >= 0; i--)
 			{
@@ -732,7 +735,7 @@ LV2_HOOKED_FUNCTION_POSTCALL_2(void, open_path_hook, (char *path0, int mode))
 			}
 			mutex_unlock(map_mtx);
 			#ifdef  DEBUG
-				DPRINTF("sys_aio_copy_root=: mutex unlocked\n");
+				//DPRINTF("sys_aio_copy_root=: mutex unlocked\n");
 			#endif 
 		}
 		
@@ -778,7 +781,7 @@ int sys_aio_copy_root(char *src, char *dst)
 		init_mtx();
 		mutex_lock(map_mtx, 0);
 		#ifdef  DEBUG
-			DPRINTF("sys_aio_copy_root=: mutex locked\n");
+			//DPRINTF("sys_aio_copy_root=: mutex locked\n");
 		#endif 
 		// find /dev_bdvd
 		for (int i = 1; i < MAX_TABLE_ENTRIES; i++)
@@ -800,7 +803,7 @@ int sys_aio_copy_root(char *src, char *dst)
 				}
 				
 				#ifdef  DEBUG
-					DPRINTF("AIO: root replaced by %s\n", dst);		
+					//DPRINTF("AIO: root replaced by %s\n", dst);		
 				#endif 	
 				
 				break;
@@ -808,7 +811,7 @@ int sys_aio_copy_root(char *src, char *dst)
 		}
 		mutex_unlock(map_mtx);
 		#ifdef  DEBUG
-			DPRINTF("sys_aio_copy_root=: mutex unlocked\n");
+			//DPRINTF("sys_aio_copy_root=: mutex unlocked\n");
 		#endif 
 	}			
 		
