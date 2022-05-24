@@ -11,6 +11,7 @@
 #include "syscall8.h"
 #include "ps3mapi_core.h"
 #include <lv2/security.h>
+#include <lv2/synchronization.h>
 
 #define MAX_TABLE_ENTRIES 18
 
@@ -24,21 +25,53 @@ typedef struct _MapEntry
 } MapEntry;
 
 MapEntry map_table[MAX_TABLE_ENTRIES];
-
-// TODO: map_path and open_path_hook should be mutexed...
-
 uint8_t photo_gui = 1;
 
+static mutex_t map_mtx = 0;
+
+void init_mtx(){
+	if(!map_mtx){
+		mutex_create(&map_mtx, SYNC_PRIORITY, SYNC_NOT_RECURSIVE);
+		#ifdef  DEBUG
+			DPRINTF("init_mtx=: map_mtx 0x%8X created\n", (uint64_t)map_mtx);
+		#endif 
+	}
+}
+
+/*
+the flags indicate whether the path strings get copied or not to the table so as we are
+copying the string by default in this function, there is no point in passing a flag argument
+*/
+void map_path_slot(char *old, char *newp, int slot)
+{
+	init_mtx();
+	mutex_lock(map_mtx, 0);
+    if(slot<=MAX_TABLE_ENTRIES)
+    {
+        map_table[slot].oldpath=old;
+        map_table[slot].newpath = alloc(MAX_PATH, 0x27);
+        strncpy(map_table[slot].newpath, newp, MAX_PATH-1);
+        map_table[slot].newpath_len=strlen(newp);
+        map_table[slot].oldpath_len = strlen(old);
+        map_table[slot].flags = 0;
+		mutex_unlock(map_mtx);
+    }
+}
+
+/*
 void map_first_slot(char *old, char *newp)
 {
+	init_mtx();
+	mutex_lock(map_mtx, 0);
 	map_table[0].oldpath=old;
 	map_table[0].newpath = alloc(MAX_PATH, 0x27);
 	strncpy(map_table[0].newpath, newp, MAX_PATH-1);
 	map_table[0].newpath_len=strlen(newp);
 	map_table[0].oldpath_len = strlen(old);
 	map_table[0].flags = 0;
-	return;
+	mutex_unlock(map_mtx);
 }
+*/
 
 int map_path(char *oldpath, char *newpath, uint32_t flags)
 {
@@ -48,15 +81,20 @@ int map_path(char *oldpath, char *newpath, uint32_t flags)
 		return -1;
 	
 	#ifdef  DEBUG
-		//DPRINTF("Map path: %s -> %s\n", oldpath, newpath);
+		DPRINTF("Map path: %s -> %s\n", oldpath, newpath);
 	#endif
-	
+
 	if (newpath && strcmp(oldpath, newpath) == 0)
 		newpath = NULL;
 	
 	if (strcmp(oldpath, "/dev_bdvd") == 0)	
 		condition_apphome = (newpath != NULL);	
-	
+		
+	init_mtx();
+	mutex_lock(map_mtx, 0);
+	#ifdef  DEBUG
+		DPRINTF("map_path=: mutex locked\n");
+	#endif 
 	for (i = 1; i < MAX_TABLE_ENTRIES; i++)
 	{
 		if (map_table[i].oldpath)
@@ -93,11 +131,14 @@ int map_path(char *oldpath, char *newpath, uint32_t flags)
 	
 	if (i == MAX_TABLE_ENTRIES)
 	{
-		if (firstfree < 0)
+		if (firstfree < 0){
+			mutex_unlock(map_mtx);
 			return EKRESOURCE;
-		
-		if (!newpath || strlen(newpath) == 0)
+		}
+		if (!newpath || strlen(newpath) == 0){
+			mutex_unlock(map_mtx);
 			return 0;
+		}
 		
 		map_table[firstfree].flags = flags;
 		int len = strlen(oldpath);
@@ -118,7 +159,10 @@ int map_path(char *oldpath, char *newpath, uint32_t flags)
 		map_table[firstfree].newpath[MAX_PATH-1] = 0;
 		map_table[firstfree].newpath_len = strlen(newpath);
 	}
-	
+	mutex_unlock(map_mtx);
+	#ifdef  DEBUG
+		DPRINTF("map_path=: mutex unlocked\n");
+	#endif 
 	return 0;	
 }
 
@@ -127,7 +171,7 @@ int map_path_user(char *oldpath, char *newpath, uint32_t flags)
 	char *oldp, *newp;
 	
 	#ifdef  DEBUG
-		//DPRINTF("map_path_user, called by process %s: %s -> %s\n", get_process_name(get_current_process_critical()), oldpath, newpath); 
+		DPRINTF("map_path_user, called by process %s: %s -> %s\n", get_process_name(get_current_process_critical()), oldpath, newpath); 
 	#endif
 	
 	if (oldpath == 0)
@@ -161,14 +205,22 @@ int map_path_user(char *oldpath, char *newpath, uint32_t flags)
 int get_map_path(unsigned int num, char *path, char *new_path)
 {
 	if(num > MAX_TABLE_ENTRIES) return MAX_TABLE_ENTRIES;
-
+	init_mtx();
+	mutex_lock(map_mtx, 0);
+	#ifdef  DEBUG
+		DPRINTF("get_map_path=: mutex locked\n");
+	#endif 
 	if(map_table[num].oldpath_len == 0 || map_table[num].newpath_len == 0 || !map_table[num].newpath || !map_table[num].oldpath || !path) return -1;
 
 	copy_to_user(&path, get_secure_user_ptr(map_table[num].oldpath), map_table[num].oldpath_len);
 
-	if(!new_path) return 0;
-	copy_to_user(&new_path, get_secure_user_ptr(map_table[num].newpath), map_table[num].newpath_len);
-
+	if(new_path)
+		copy_to_user(&new_path, get_secure_user_ptr(map_table[num].newpath), map_table[num].newpath_len);
+	
+	mutex_unlock(map_mtx);
+	#ifdef  DEBUG
+		DPRINTF("get_map_path=: mutex unlocked\n");
+	#endif 
 	return 0;
 }
 
@@ -205,6 +257,11 @@ int sys_map_paths(char *paths[], char *new_paths[], unsigned int num)
 	
 	if (unmap)
 	{
+		init_mtx();
+		mutex_lock(map_mtx, 0);
+		#ifdef  DEBUG
+			DPRINTF("sys_map_paths=: mutex locked\n");
+		#endif 
 		for (int i = 1; i < MAX_TABLE_ENTRIES; i++)
 		{
 			if (map_table[i].flags & FLAG_TABLE)
@@ -218,6 +275,13 @@ int sys_map_paths(char *paths[], char *new_paths[], unsigned int num)
 				map_table[i].flags = 0;
 			}
 		}
+		mutex_unlock(map_mtx);
+		mutex_destroy(map_mtx);
+		map_mtx=0;
+		#ifdef  DEBUG
+			DPRINTF("sys_map_paths=: mutex unlocked and destroyed\n");
+		#endif 
+		
 	}
 	
 	return ret;
@@ -645,7 +709,11 @@ LV2_HOOKED_FUNCTION_POSTCALL_2(void, open_path_hook, (char *path0, int mode))
 			}
 			////////////////////////////////////////////////////////////////////////////////////
 
-			
+			init_mtx();
+			mutex_lock(map_mtx, 0);
+			#ifdef  DEBUG
+				DPRINTF("open_path_hook=: mutex locked\n");
+			#endif 
 			for (int i = MAX_TABLE_ENTRIES-1; i >= 0; i--)
 			{
 				if (map_table[i].oldpath)
@@ -664,6 +732,10 @@ LV2_HOOKED_FUNCTION_POSTCALL_2(void, open_path_hook, (char *path0, int mode))
 					}
 				}
 			}
+			mutex_unlock(map_mtx);
+			#ifdef  DEBUG
+				DPRINTF("sys_aio_copy_root=: mutex unlocked\n");
+			#endif 
 		}
 		
 		DPRINTF("open_path %s\n", path); 
@@ -707,6 +779,11 @@ int sys_aio_copy_root(char *src, char *dst)
 	// Here begins custom part of the implementation
 	if (strcmp(dst, "/dev_bdvd") == 0 && condition_apphome) // if dev_bdvd and jb game mounted 
 	{
+		init_mtx();
+		mutex_lock(map_mtx, 0);
+		#ifdef  DEBUG
+			DPRINTF("sys_aio_copy_root=: mutex locked\n");
+		#endif 
 		// find /dev_bdvd
 		for (int i = 1; i < MAX_TABLE_ENTRIES; i++)
 		{
@@ -733,6 +810,10 @@ int sys_aio_copy_root(char *src, char *dst)
 				break;
 			}
 		}
+		mutex_unlock(map_mtx);
+		#ifdef  DEBUG
+			DPRINTF("sys_aio_copy_root=: mutex unlocked\n");
+		#endif 
 	}			
 		
 	return 0;

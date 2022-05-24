@@ -10,12 +10,13 @@
 #define FLAG_TABLE		2
 #define FLAG_PROTECT	4
 
-void	map_first_slot(char *old, char *newp);
-void	map_path_patches(int syscall);
-int  	map_path(char *oldpath, char *newpath, uint32_t flags);
-int 	map_path_user(char *oldpath, char *newpath, uint32_t flags);
-int 	sys_map_path(char *oldpath, char *newpath);
-int 	sys_map_paths(char *paths[], char *new_paths[], unsigned int num);
+//void map_first_slot(char *old, char *newp);
+void map_path_slot(char *old, char *newp, int slot);
+void map_path_patches(int syscall);
+int map_path(char *oldpath, char *newpath, uint32_t flags);
+int map_path_user(char *oldpath, char *newpath, uint32_t flags);
+int sys_map_path(char *oldpath, char *newpath);
+int sys_map_paths(char *paths[], char *new_paths[], unsigned int num);
 int get_map_path(unsigned int num, char *path, char *new_path);
 /*int	sys_map_game(char *path);
 int	sys_hermes_pathtable(uint64_t pathtable);*/
