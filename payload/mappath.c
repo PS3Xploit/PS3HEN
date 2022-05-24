@@ -38,41 +38,47 @@ void init_mtx(){
 	}
 }
 
-/*
-the flags indicate whether the path strings get copied or not to the table so as we are
-copying the string by default in this function, there is no point in passing a flag argument
-*/
-void map_path_slot(char *old, char *newp, int slot)
+// void map_first_slot(char *old, char *newp)
+// {
+	// init_mtx();
+	// mutex_lock(map_mtx, 0);
+	// map_table[0].oldpath=old;
+	// map_table[0].newpath = alloc(MAX_PATH, 0x27);
+	// strncpy(map_table[0].newpath, newp, MAX_PATH-1);
+	// map_table[0].newpath_len=strlen(newp);
+	// map_table[0].oldpath_len = strlen(old);
+	// map_table[0].flags = 0;
+	// mutex_unlock(map_mtx);
+// }
+// void map_path_slot(char *old, char *newp, int slot)
+// {
+	// init_mtx();
+	// mutex_lock(map_mtx, 0);
+    // if(slot>=0 && slot<=MAX_TABLE_ENTRIES)
+    // {
+        // map_table[slot].oldpath=old;
+        // map_table[slot].newpath = alloc(MAX_PATH, 0x27);
+        // strncpy(map_table[slot].newpath, newp, MAX_PATH-1);
+        // map_table[slot].newpath_len=strlen(newp);
+        // map_table[slot].oldpath_len = strlen(old);
+        // map_table[slot].flags = 0;
+		// mutex_unlock(map_mtx);
+    // }
+// }
+void map_path_slot(char *old, char *newp, uint32_t flags, int slot)
 {
 	init_mtx();
 	mutex_lock(map_mtx, 0);
-    if(slot<=MAX_TABLE_ENTRIES)
+    if(slot>=0 && slot<=MAX_TABLE_ENTRIES)
     {
         map_table[slot].oldpath=old;
-        map_table[slot].newpath = alloc(MAX_PATH, 0x27);
-        strncpy(map_table[slot].newpath, newp, MAX_PATH-1);
-        map_table[slot].newpath_len=strlen(newp);
+        map_table[slot].newpath = newp;
+		map_table[slot].newpath_len=strlen(newp);
         map_table[slot].oldpath_len = strlen(old);
-        map_table[slot].flags = 0;
+        map_table[slot].flags = flags;
 		mutex_unlock(map_mtx);
     }
 }
-
-/*
-void map_first_slot(char *old, char *newp)
-{
-	init_mtx();
-	mutex_lock(map_mtx, 0);
-	map_table[0].oldpath=old;
-	map_table[0].newpath = alloc(MAX_PATH, 0x27);
-	strncpy(map_table[0].newpath, newp, MAX_PATH-1);
-	map_table[0].newpath_len=strlen(newp);
-	map_table[0].oldpath_len = strlen(old);
-	map_table[0].flags = 0;
-	mutex_unlock(map_mtx);
-}
-*/
-
 int map_path(char *oldpath, char *newpath, uint32_t flags)
 {
 	int i, firstfree = -1;
@@ -120,8 +126,6 @@ int map_path(char *oldpath, char *newpath, uint32_t flags)
 					map_table[i].newpath_len = 0;					
 					map_table[i].flags = 0;
 				}
-				
-				
 				break;
 			}
 		}
@@ -268,8 +272,8 @@ int sys_map_paths(char *paths[], char *new_paths[], unsigned int num)
 			{
 				if (map_table[i].flags & FLAG_COPY)	
 					dealloc(map_table[i].oldpath, 0x27);
-				
-				dealloc(map_table[i].newpath, 0x27);
+				if (!(map_table[i].flags & FLAG_PROTECT))
+					dealloc(map_table[i].newpath, 0x27);
 				map_table[i].oldpath = NULL;
 				map_table[i].newpath = NULL;	
 				map_table[i].flags = 0;
@@ -408,7 +412,6 @@ static uint8_t libft2d_access = 0;
 void aescbc128_decrypt(unsigned char *key, unsigned char *iv, unsigned char *in, unsigned char *out, int len)
 {
 	aescbccfb_dec(out,in,len,key,128,iv);
-
 	// Reset the IV.
 	memset(iv, 0, 0x10);
 }
@@ -471,8 +474,6 @@ void get_rif_key(unsigned char* rap, unsigned char* rif)
 	memcpy(rif, key, 0x10);
 }
 
-
-
 int read_act_dat_and_make_rif(uint8_t *idps,uint8_t *rap, uint8_t *act_dat, char *content_id, char *out)
 {	
 	uint8_t idps_const[0x10]={0x5E,0x06,0xE0,0x4F,0xD9,0x4A,0x71,0xBF,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x01};
@@ -507,11 +508,8 @@ int read_act_dat_and_make_rif(uint8_t *idps,uint8_t *rap, uint8_t *act_dat, char
 	memset(iv,0,0x10);
 
 	uint64_t timestamp=0x000001619BF6DDCA; 
-
 	uint32_t version_number=1;
-
 	uint32_t license_type=0x00010002;
-
 	uint64_t expiration_time=0;
 	
 	memcpy(rif, &version_number,4);
@@ -771,8 +769,6 @@ int sys_aio_copy_root(char *src, char *dst)
 			break;
 		}
 	}
-	
-	
 	if (strlen(dst) >= 0x20)
 		return EINVAL;	
 	
@@ -829,7 +825,6 @@ void unhook_all_map_path(void)
 void map_path_patches(int syscall)
 {
 	hook_function_with_postcall(open_path_symbol, open_path_hook, 2);
-	
 	if (syscall)
 		create_syscall2(SYS_MAP_PATH, sys_map_path);	
 }
