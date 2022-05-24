@@ -1725,6 +1725,14 @@ static INLINE void apply_kernel_patches(void)
 	set_SSHT(1);
 }*/
 extern volatile int sleep_done;
+const char* old_hfw_settings= "/dev_hdd0/hen/hfw_settings.xml";
+const char* new_hfw_settings= "/dev_flash/hen/xml/hfw_settings.xml";
+const char* old_hen_enable= "/dev_flash/hen/xml/hen_enable.xml";
+const char* new_hen_enable= "/dev_flash/hen/xml/hen_disabled.xml";
+const char* old_hen_pkg_manager= "/dev_hdd0/hen/xml/hen_pkg_manager.xml";
+const char* new_hen_pkg_manager= "/dev_flash/hen/xml/hen_pkg_manager.xml";
+const char* old_hen_boot= "/dev_flash/vsh/resource/AAA/hen/xml/hen_boot.xml";
+const char* new_hen_boot= "/dev_flash/hen/xml/hen_boot.xml";
 int main(void)
 {
 #ifdef DEBUG
@@ -1745,7 +1753,14 @@ int main(void)
 	cellFsUnlink("/dev_hdd0/hen/hfw_settings.xml"); // to avoid conflict for remap fix
 	cellFsUnlink("/dev_hdd0/hen/xml/hfw_settings.xml");// Cleanup Old HEN Files
 	cellFsUnlink("/dev_hdd0/hen/xml/ps3hen_updater.xml");// Cleanup Old HEN Files
-	map_first_slot("/dev_hdd0/hen/hfw_settings.xml","/dev_flash/hen/xml/hfw_settings.xml");//2.3.3+
+	//map_first_slot("/dev_hdd0/hen/hfw_settings.xml","/dev_flash/hen/xml/hfw_settings.xml");//2.3.3+
+	//map_path_slot("/dev_hdd0/hen/hfw_settings.xml","/dev_flash/hen/xml/hfw_settings.xml",0);
+	
+	map_path_slot((char*)old_hfw_settings,(char*)new_hfw_settings,FLAG_PROTECT|FLAG_TABLE,0); // Enable HFW Tools on Launch 2.3.3+
+	map_path_slot((char*)old_hen_enable,(char*)new_hen_enable,FLAG_PROTECT|FLAG_TABLE,1); // Disable HEN Icon on Launch
+	map_path_slot((char*)old_hen_pkg_manager,(char*)new_hen_pkg_manager,FLAG_PROTECT|FLAG_TABLE,2); // Enable Package Manager on Launch
+	//map_path_slot((char*)old_hen_boot,(char*)new_hen_boot,FLAG_TABLE,3); // so something here
+	
 	storage_ext_init();
 	modules_patch_init();
 //	drm_init();
