@@ -27,44 +27,18 @@ typedef struct _MapEntry
 MapEntry map_table[MAX_TABLE_ENTRIES];
 uint8_t photo_gui = 1;
 
-static mutex_t map_mtx = 0;
+//static mutex_t map_mtx = 0;
+mutex_t map_mtx = 0;
 
 void init_mtx(){
-  if(!map_mtx){
-    mutex_create(&map_mtx, SYNC_PRIORITY, SYNC_NOT_RECURSIVE);
-    #ifdef  DEBUG
-      DPRINTF("init_mtx=: map_mtx 0x%lX created\n", (uint64_t)map_mtx);
-    #endif 
-  }
+	if(!map_mtx){
+		mutex_create(&map_mtx, SYNC_PRIORITY, SYNC_NOT_RECURSIVE);
+		#ifdef  DEBUG
+			DPRINTF("init_mtx=: Mutex map_mtx 0x%8lx created\n", (uint64_t)map_mtx);
+		#endif 
+	}
 }
 
-// void map_first_slot(char *old, char *newp)
-// {
-	// init_mtx();
-	// mutex_lock(map_mtx, 0);
-	// map_table[0].oldpath=old;
-	// map_table[0].newpath = alloc(MAX_PATH, 0x27);
-	// strncpy(map_table[0].newpath, newp, MAX_PATH-1);
-	// map_table[0].newpath_len=strlen(newp);
-	// map_table[0].oldpath_len = strlen(old);
-	// map_table[0].flags = 0;
-	// mutex_unlock(map_mtx);
-// }
-// void map_path_slot(char *old, char *newp, int slot)
-// {
-	// init_mtx();
-	// mutex_lock(map_mtx, 0);
-    // if(slot>=0 && slot<=MAX_TABLE_ENTRIES)
-    // {
-        // map_table[slot].oldpath=old;
-        // map_table[slot].newpath = alloc(MAX_PATH, 0x27);
-        // strncpy(map_table[slot].newpath, newp, MAX_PATH-1);
-        // map_table[slot].newpath_len=strlen(newp);
-        // map_table[slot].oldpath_len = strlen(old);
-        // map_table[slot].flags = 0;
-		// mutex_unlock(map_mtx);
-    // }
-// }
 void map_path_slot(char *old, char *newp, uint32_t flags, int slot)
 {
 	init_mtx();
@@ -656,12 +630,15 @@ LV2_HOOKED_FUNCTION_POSTCALL_2(void, open_path_hook, (char *path0, int mode))
 			page_free(NULL, (void *)buf, 0x2F);
 		}
 	}
-			
 	
 	if (path0[0]=='/')
 	{
         char *path=path0;
-        if(path[1]=='/') path++; //if(path[1]=='/') path++;
+		//if(path[1]=='/') path++;
+		while(path[1]=='/'){
+			path++;
+		}
+        
         /*if (path && ((strcmp(path, "/dev_bdvd/PS3_UPDATE/PS3UPDAT.PUP") == 0)))  // Blocks FW update from Game discs!     
         {    
             char not_update[40];
@@ -673,7 +650,7 @@ LV2_HOOKED_FUNCTION_POSTCALL_2(void, open_path_hook, (char *path0, int mode))
         }
 		else*/ // Disabled due to the issue with multiMAN can't copy update files from discs.
 		//if(path[7]=='v' || path[7]=='m')
-		{
+		//{
 			//DPRINTF("?: [%s]\n", path);
 	
 			//if(path[1]=='/') DPRINTF("!!! This will usually error out!\n");//path++;
@@ -723,6 +700,9 @@ LV2_HOOKED_FUNCTION_POSTCALL_2(void, open_path_hook, (char *path0, int mode))
 			
 					if (path && strncmp(path, map_table[i].oldpath, len) == 0)
 					{
+						#ifdef  DEBUG
+							DPRINTF("open_path: function path argument: [%s] \nMap Table oldpath: [%s] \nMap Table newpath: [%s] \nMap Table newpath_len: [0x%x] \npath argument length: [0x%x]\n",path0, map_table[i].oldpath,map_table[i].newpath,map_table[i].newpath_len, len);
+						#endif 
 						strcpy(map_table[i].newpath+map_table[i].newpath_len, path+len);
 						set_patched_func_param(1, (uint64_t)map_table[i].newpath);
 						
@@ -735,10 +715,9 @@ LV2_HOOKED_FUNCTION_POSTCALL_2(void, open_path_hook, (char *path0, int mode))
 			}
 			mutex_unlock(map_mtx);
 			#ifdef  DEBUG
-				//DPRINTF("sys_aio_copy_root=: mutex unlocked\n");
+				//DPRINTF("open_path_hook=: mutex unlocked\n");
 			#endif 
-		}
-		
+		//}
 		DPRINTF("open_path %s\n", path); 
 	}
 }
