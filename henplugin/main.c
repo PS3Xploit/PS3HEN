@@ -291,6 +291,7 @@ static int UnloadPluginById(int id, void *handler)
 
 int do_install_hen=0;
 int do_update=0;
+int hen_repair_toggle=0;
 int thread2_download_finish=0;
 int thread3_install_finish=0;
 
@@ -492,21 +493,6 @@ void restore_act_dat(void)
 	}
 }
 
-int hen_repair()
-{
-	CellFsStat stat;
-	int repair=(cellFsStat("/dev_hdd0/tmp/hen_repair",&stat));
-	if (repair==CELL_OK)
-	{
-		char henrepair[0x30];
-		sprintf(henrepair, "PS3HEN Corrupted Installation Detected!");
-		show_msg((char *)henrepair);
-		cellFsUnlink("/dev_hdd0/tmp/hen_repair");
-		return 1;
-	}
-	return 0;
-}
-
 static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 {
 	View_Find = getNIDfunc("paf", 0xF21655F3, 0);
@@ -517,6 +503,7 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 	sprintf(henver, "Welcome to PS3HEN %X.%X.%X", hen_version>>8, (hen_version & 0xF0)>>4, (hen_version&0xF));
 	
 	show_msg((char *)henver);
+	DPRINTF("hen_version: %x",hen_version);
 	
 	if(view==0)
 	{
@@ -550,16 +537,42 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 	// restore act.dat from act.bak backup
 	restore_act_dat();
 	
+	// If default HEN Check file is missing, assume HEN is not installed
+	do_install_hen=(cellFsStat("/dev_flash/vsh/resource/explore/icon/hen_enable.png",&stat));
+	DPRINTF("do_install_hen: %x\n",do_install_hen);
+	
+	// Check toggle for disabling HEN repair
+	hen_repair_toggle=(cellFsStat("/dev_hdd0/hen/toggles/hen_repair.off",&stat));
+	DPRINTF("hen_repair_toggle: %x\n",hen_repair_toggle);
+	// If HEN is installed, check for missing critical files. Versions lower than 3.2.0 skip this check
+	if((do_install_hen==0) && (hen_repair_toggle!=0) && (hen_version>=0x0320))
+	{
+		int check_hen_repair=(cellFsStat("/dev_hdd0/tmp/hen_repair",&stat));
+		DPRINTF("check_hen_repair: %x\n",check_hen_repair);
+		// If this file exists, assume it was created by the payload
+		if (check_hen_repair==0)
+		{
+			char henrepair[0x80];
+			sprintf(henrepair, "PS3HEN Corrupted Installation Files On HDD Detected!\n\nAfter package installs, reboot your system!");
+			memset(pkg_path,0,256);
+			strcpy(pkg_path,"/dev_flash/hen/restore/repair_hen_hdd.pkg");
+			show_msg((char *)henrepair);
+			cellFsUnlink("/dev_hdd0/tmp/hen_repair");
+			LoadPluginById(0x16, (void *)installPKG_thread);
+			while(thread3_install_finish==0)
+			{
+				sys_timer_usleep(70000);
+			}
+			goto done;
+		}
+	}
+	
 	// Default Auto Update Toggle Flag. If file exists, update check is skipped.
 	do_update=(cellFsStat("/dev_hdd0/hen_updater.off",&stat) ? hen_updater() : 0);// 20211011 Added update toggle thanks bucanero for original PR
 	DPRINTF("Checking do_update: %i\n",do_update);
 	
-	// If default HEN Check file is missing, assume HEN is not installed
-	do_install_hen=(cellFsStat("/dev_flash/vsh/resource/explore/icon/hen_enable.png",&stat));
-	DPRINTF("Checking do_install_hen: %i\n",do_install_hen);
-	
-	//  If important install files are missing, then proceed to update
-	if((do_install_hen!=0) || (do_update==1) || (hen_repair()==1))
+	//  If important install files are missing, or HEN is not installed, then proceed to update
+	if((do_install_hen!=0) || (do_update==1))
 	{
 		cellFsUnlink("/dev_hdd0/theme/PS3HEN.p3t");
 		int is_browser_open=View_Find("webbrowser_plugin");
