@@ -289,7 +289,8 @@ static int UnloadPluginById(int id, void *handler)
 
 #define SYSCALL8_OPCODE_HEN_REV		0x1339
 
-//int is_hen_installed=0;
+int do_install_hen=0;
+int do_update=0;
 int thread2_download_finish=0;
 int thread3_install_finish=0;
 
@@ -491,6 +492,21 @@ void restore_act_dat(void)
 	}
 }
 
+int hen_repair()
+{
+	CellFsStat stat;
+	int repair=(cellFsStat("/dev_hdd0/tmp/hen_repair",&stat));
+	if (repair==CELL_OK)
+	{
+		char henrepair[0x30];
+		sprintf(henrepair, "PS3HEN Corrupted Installation Detected!");
+		show_msg((char *)henrepair);
+		cellFsUnlink("/dev_hdd0/tmp/hen_repair");
+		return 1;
+	}
+	return 0;
+}
+
 static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 {
 	View_Find = getNIDfunc("paf", 0xF21655F3, 0);
@@ -517,6 +533,7 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 	// Emergency USB HEN Installer
 	if(cellFsStat("/dev_usb000/HEN_UPD.pkg",&stat)==0)
 	{
+		DPRINTF("Installing Emergency Package From USB\n");
 		memset(pkg_path,0,256);
 		strcpy(pkg_path,"/dev_usb000/HEN_UPD.pkg");
 		LoadPluginById(0x16, (void *)installPKG_thread);
@@ -527,13 +544,22 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 		goto done;
 	}
 	
+	// System Theme File (replace with backup HEN BIN?)
+	// /dev_flash/vsh/resource/theme/01.p3t (md5 004eb57d4d3a520be18642dcc9e9e057)
+	
 	// restore act.dat from act.bak backup
 	restore_act_dat();
 	
-	int do_update=(cellFsStat("/dev_hdd0/hen_updater.off",&stat) ? hen_updater() : 0);// 20211011 Added update toggle thanks bucanero for original PR
+	// Default Auto Update Toggle Flag. If file exists, update check is skipped.
+	do_update=(cellFsStat("/dev_hdd0/hen_updater.off",&stat) ? hen_updater() : 0);// 20211011 Added update toggle thanks bucanero for original PR
+	DPRINTF("Checking do_update: %i\n",do_update);
 	
-	// Check local HEN file in flash. If missing or if hen_updater file missing, then proceed to update
-	if((cellFsStat("/dev_flash/vsh/resource/explore/icon/hen_enable.png",&stat)!=0) || (do_update==1))
+	// If default HEN Check file is missing, assume HEN is not installed
+	do_install_hen=(cellFsStat("/dev_flash/vsh/resource/explore/icon/hen_enable.png",&stat));
+	DPRINTF("Checking do_install_hen: %i\n",do_install_hen);
+	
+	//  If important install files are missing, then proceed to update
+	if((do_install_hen!=0) || (do_update==1) || (hen_repair()==1))
 	{
 		cellFsUnlink("/dev_hdd0/theme/PS3HEN.p3t");
 		int is_browser_open=View_Find("webbrowser_plugin");
@@ -579,6 +605,7 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 done:
 	DPRINTF("Exiting main thread!\n");	
 	done=1;
+	reload_xmb();
 	
 	sys_ppu_thread_exit(0);
 }

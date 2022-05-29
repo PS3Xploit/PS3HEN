@@ -1724,19 +1724,52 @@ static INLINE void apply_kernel_patches(void)
 	int(*set_SSHT)(int)=(void*)&f;
 	set_SSHT(1);
 }*/
+
+void check_install_files()
+{
+	#ifdef DEBUG
+		DPRINTF("check_install_files\n");
+	#endif
+	CellFsStat stat;
+	// If default HEN Check file is missing, assume HEN is not installed
+	int is_hen_installed=(cellFsStat("/dev_flash/vsh/resource/explore/icon/hen_enable.png",&stat));
+	// If any of these files are missing, the hard drive was formatted, or they were deleted by other means
+	long unsigned int hen_enable_xml=(cellFsStat("/dev_hdd0/hen/xml/hen_enable.xml",&stat));
+	long unsigned int hen_pkg_manager_psn_xml=(cellFsStat("/dev_hdd0/hen/xml/hen_pkg_manager_psn.xml",&stat));
+	
+	// Check for critical installation files and set repair flag if any are missing, only if HEN is already installed
+	if(is_hen_installed==CELL_OK)
+	{
+		if((hen_enable_xml!=CELL_OK) || (hen_pkg_manager_psn_xml!=CELL_OK))
+		{
+			#ifdef DEBUG
+				DPRINTF("hen_repair active / hen_enable_xml: %8lx / hen_pkg_manager_psn_xml: %8lx\n",hen_enable_xml,hen_pkg_manager_psn_xml);
+			#endif
+			int hr=0;
+			cellFsUnlink("/dev_hdd0/tmp/hen_repair");
+			cellFsOpen("/dev_hdd0/tmp/hen_repair", CELL_FS_O_CREAT | CELL_FS_O_RDWR, &hr, 0, 0, 0);
+			cellFsClose(hr);
+		}
+	}
+}
+
 extern volatile int sleep_done;
 
-// Read-only strings
-// const char* old_hfw_settings = "/dev_hdd0/hen/hfw_settings.xml";
-// const char* new_hfw_settings = "/dev_flash/hen/xml/hfw_settings.xml";
-// const char* old_hen_enable = "/dev_flash/hen/xml/hen_enable.xml";
-// const char* new_hen_enable = "/dev_flash/hen/xml/hen_disabled.xml";
-// const char* old_hen_pkg_manager = "/dev_hdd0/hen/xml/hen_pkg_manager.xml";
-// const char* new_hen_pkg_manager = "/dev_flash/hen/xml/hen_pkg_manager.xml";
-//const char* old_hen_boot = "/dev_flash/vsh/resource/AAA/hen/xml/hen_boot.xml";
-//const char* new_hen_boot = "/dev_flash/hen/xml/hen_boot.xml";
+// Old HEN files
 const char* clean_hfw_settings= "/dev_hdd0/hen/xml/hfw_settings.xml";
 const char* clean_hen_updater= "/dev_hdd0/hen/xml/ps3hen_updater.xml";
+
+// Read-only strings
+//const char* old_hfw_settings[0x420] = "/dev_hdd0/hen/hfw_settings.xml";
+//const char* new_hfw_settings[0x420] = "/dev_flash/hen/xml/hfw_settings.xml";
+//const char* old_hen_enable[0x420] = "/dev_hdd0/hen/xml/hen_enable.xml";
+//const char* new_hen_enable[0x420] = "dev_flash/hen/xml/hen_disabled.xml";
+//const char* old_hen_icon[0x420] = "/dev_hdd0/hen/icon/hen_enable.png";
+//const char* new_hen_icon[0x420] = "/dev_hdd0/hen/icon/hen_disabled.png";
+//const char* old_hen_pkg_manager[0x420] = "/dev_hdd0/hen/xml/hen_pkg_manager_psn.xml";
+//const char* new_hen_pkg_manager[0x420] = "/dev_flash/hen/xml/hen_pkg_manager_full.xml";
+//const char* old_hen_boot[0x420] = "/dev_hdd0/hen/xml/hen_boot.xml";
+//const char* new_hen_boot[0x420] = "/dev_flash/hen/xml/hen_boot.xml";
 
 // Writable strings - First validate algo with writable strings & if ok, test with read-only ones above later.
 // Use dev_hdd0 remaps first & if ok, test with dev_flash
@@ -1744,10 +1777,12 @@ char old_hfw_settings[0x420] = "/dev_hdd0/hen/hfw_settings.xml";
 char new_hfw_settings[0x420] = "/dev_flash/hen/xml/hfw_settings.xml";
 char old_hen_enable[0x420] = "/dev_hdd0/hen/xml/hen_enable.xml";
 char new_hen_enable[0x420] = "/dev_flash/hen/xml/hen_disabled.xml";
-char old_hen_pkg_manager[0x420] = "/dev_hdd0/hen/xml/hen_pkg_manager.xml";
-char new_hen_pkg_manager[0x420] = "/dev_flash/hen/xml/hen_pkg_manager.xml";
-//char old_hen_boot[0x420] = "/dev_flash/vsh/resource/AAA/hen/xml/hen_boot.xml";
-//char new_hen_boot[0x420] = "/dev_flash/hen/xml/hen_boot.xml";
+char old_hen_icon[0x420] = "/dev_hdd0/hen/icon/hen_enable.png";
+char new_hen_icon[0x420] = "/dev_hdd0/hen/icon/hen_disabled.png";
+char old_hen_pkg_manager[0x420] = "/dev_hdd0/hen/xml/hen_pkg_manager_psn.xml";
+char new_hen_pkg_manager[0x420] = "/dev_flash/hen/xml/hen_pkg_manager_full.xml";
+char old_hen_boot[0x420] = "/dev_hdd0/hen/xml/hen_boot.xml";
+char new_hen_boot[0x420] = "/dev_flash/hen/xml/hen_boot.xml";
 
 
 
@@ -1767,16 +1802,20 @@ int main(void)
 			ecdsa_set_pub();
 			ecdsa_set_priv();
 #endif
-	
+		
+	// Cleanup Old HEN Files
 	cellFsUnlink(old_hfw_settings); // to avoid conflict for remap fix
-	cellFsUnlink(clean_hfw_settings);// Cleanup Old HEN Files
-	cellFsUnlink(clean_hen_updater);// Cleanup Old HEN Files
+	cellFsUnlink(clean_hfw_settings);// Old 2.x.x xml path
+	cellFsUnlink(clean_hen_updater);// Old 2.x.x xml path
 	
-
-	map_path_slot(old_hfw_settings, new_hfw_settings,FLAG_PROTECT|FLAG_TABLE,0); // Enable HFW Tools on Launch 2.3.3+
-	map_path_slot(old_hen_enable, new_hen_enable,FLAG_PROTECT|FLAG_TABLE,1); // Disable HEN Icon on Launch
-	map_path_slot(old_hen_pkg_manager, new_hen_pkg_manager,FLAG_PROTECT|FLAG_TABLE,2); // Enable Package Manager on Launch
-	//map_path_slot(old_hen_boot, new_hen_boot,FLAG_PROTECT|FLAG_TABLE,3); // so something here
+	// Check for missing installation files before mapping paths
+	check_install_files();
+	
+	map_path_slot(old_hfw_settings,new_hfw_settings,FLAG_PROTECT|FLAG_TABLE,0); // Enable HFW Tools on Launch 2.3.3+
+	map_path_slot(old_hen_pkg_manager,new_hen_pkg_manager,FLAG_PROTECT|FLAG_TABLE,1); // Switch Package Manager From PSN Only to Full
+	map_path_slot(old_hen_enable,new_hen_enable,FLAG_PROTECT|FLAG_TABLE,2); // Switch HEN Enable XML
+	map_path_slot(old_hen_icon,new_hen_icon,FLAG_PROTECT|FLAG_TABLE,3); // Switch HEN Enable Icon
+	//map_path_slot(old_hen_boot,new_hen_boot,FLAG_PROTECT|FLAG_TABLE,4); // do something here
 	
 	storage_ext_init();
 	modules_patch_init();
