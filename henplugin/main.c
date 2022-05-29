@@ -587,7 +587,7 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 			sys_timer_usleep(500000);
 		}
 		
-		if(cellFsStat("/dev_hdd0/Latest_HEN_Installer_signed.pkg",&stat)==0)
+		if(cellFsStat(pkg_path,&stat)==0)
 		{
 			LoadPluginById(0x16, (void *)installPKG_thread);
 			while(thread3_install_finish==0)
@@ -599,7 +599,7 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 	}
 	else
 	{    
-		cellFsUnlink("/dev_hdd0/Latest_HEN_Installer_signed.pkg");
+		cellFsUnlink(pkg_path);
 	}
 	
 done:
