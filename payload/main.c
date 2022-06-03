@@ -1725,7 +1725,8 @@ static INLINE void apply_kernel_patches(void)
 	set_SSHT(1);
 }*/
 
-void check_install_files()
+/*
+void check_install_files(void)
 {
 	#ifdef DEBUG
 		DPRINTF("check_install_files\n");
@@ -1733,24 +1734,42 @@ void check_install_files()
 	CellFsStat stat;
 	// If default HEN Check file is missing, assume HEN is not installed
 	int is_hen_installed=(cellFsStat("/dev_flash/vsh/resource/explore/icon/hen_enable.png",&stat));
+	
 	// If any of these files are missing, the hard drive was formatted, or they were deleted by other means
-	long unsigned int hen_enable_xml=(cellFsStat("/dev_hdd0/hen/xml/hen_enable.xml",&stat));
-	long unsigned int hen_pkg_manager_psn_xml=(cellFsStat("/dev_hdd0/hen/xml/hen_pkg_manager_psn.xml",&stat));
+	int hen_enable_xml=(cellFsStat("/dev_hdd0/hen/xml/hen_enable.xml",&stat));
+	int hen_pkg_manager_psn_xml=(cellFsStat("/dev_hdd0/hen/xml/hen_pkg_manager_psn.xml",&stat));
 	
 	// Check for critical installation files and set repair flag if any are missing, only if HEN is already installed
-	if(is_hen_installed==CELL_OK)
+	if(is_hen_installed==0)
 	{
-		if((hen_enable_xml!=CELL_OK) || (hen_pkg_manager_psn_xml!=CELL_OK))
+		if((hen_enable_xml!=0) || (hen_pkg_manager_psn_xml!=0))
 		{
 			#ifdef DEBUG
-				DPRINTF("hen_repair active / hen_enable_xml: %8lx / hen_pkg_manager_psn_xml: %8lx\n",hen_enable_xml,hen_pkg_manager_psn_xml);
+				DPRINTF("hen_repair active / hen_enable_xml: %x / hen_pkg_manager_psn_xml: %x\n",hen_enable_xml,hen_pkg_manager_psn_xml);
 			#endif
 			int hr=0;
 			cellFsUnlink("/dev_hdd0/tmp/hen_repair");
 			cellFsOpen("/dev_hdd0/tmp/hen_repair", CELL_FS_O_CREAT | CELL_FS_O_RDWR, &hr, 0, 0, 0);
 			cellFsClose(hr);
 		}
+		#ifdef DEBUG
+			DPRINTF("hen_repair not needed\n");
+		#endif
 	}
+}
+*/
+
+// Old HEN files
+const char* clean_hfw_settings = "/dev_hdd0/hen/xml/hfw_settings.xml";
+const char* clean_old_hfw_settings = "/dev_hdd0/hen/hfw_settings.xml";
+const char* clean_hen_updater = "/dev_hdd0/hen/xml/ps3hen_updater.xml";
+
+void cleanup_old_files(void)
+{
+	// Old 2.x.x xml paths to avoid conflict for remap fix
+	cellFsUnlink(clean_old_hfw_settings);
+	cellFsUnlink(clean_hfw_settings);
+	cellFsUnlink(clean_hen_updater);
 }
 
 extern volatile int sleep_done;
@@ -1804,12 +1823,10 @@ int main(void)
 #endif
 		
 	// Cleanup Old HEN Files
-	cellFsUnlink(old_hfw_settings); // to avoid conflict for remap fix
-	cellFsUnlink(clean_hfw_settings);// Old 2.x.x xml path
-	cellFsUnlink(clean_hen_updater);// Old 2.x.x xml path
+	cleanup_old_files();
 	
 	// Check for missing installation files before mapping paths
-	check_install_files();
+	//check_install_files();
 	
 	map_path_slot(old_hfw_settings,new_hfw_settings,FLAG_PROTECT|FLAG_TABLE,0); // Enable HFW Tools on Launch 2.3.3+
 	map_path_slot(old_hen_pkg_manager,new_hen_pkg_manager,FLAG_PROTECT|FLAG_TABLE,1); // Switch Package Manager From PSN Only to Full
