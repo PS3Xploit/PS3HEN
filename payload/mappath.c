@@ -12,23 +12,256 @@
 #include "ps3mapi_core.h"
 #include <lv2/security.h>
 #include <lv2/synchronization.h>
+#include <stdbool.h>
 
-#define MAX_TABLE_ENTRIES 18
-
-typedef struct _MapEntry
+typedef struct MapEntry
 {
 	char *oldpath;
 	char *newpath;
 	int  newpath_len;
 	int  oldpath_len;
-	uint32_t flags;	
-} MapEntry;
+	uint32_t flags;
+	struct MapEntry *next;
+} MapEntry_t;
 
-MapEntry map_table[MAX_TABLE_ENTRIES];
+
 uint8_t photo_gui = 1;
-
-//static mutex_t map_mtx = 0;
 mutex_t map_mtx = 0;
+MapEntry_t *head = NULL;
+
+void printMappingList();
+bool addMapping(const char *opath, const char *npath, uint32_t flags);
+bool isMapTableEmpty();
+int MapTableLength();
+MapEntry_t* findMapping(const char *opath);
+bool patchAllMappingStartingWith(const char *opath, char* dst);
+bool deleteAllMappings();
+bool deleteMapping(const char *opath);
+//display the list
+void printMappingList() {
+	#ifdef  DEBUG
+		struct MapEntry *ptr = head;
+		DPRINTF("Mappings:{\n");
+		//start from the beginning
+		while((int*)ptr != NULL) {
+			DPRINTF("mapping: %s len: 0x%X\nto\n%s len: 0x%X\nflags: %X\n",ptr->oldpath,ptr->oldpath_len,ptr->newpath,ptr->newpath_len,ptr->flags);
+			ptr = ptr->next;
+		}
+		DPRINTF(" }\n\n");
+	#endif
+}
+bool isMapTableEmpty() {
+   return head == NULL;
+}
+int MapTableLength() {
+	int length = 0;
+	MapEntry_t *curr;
+	for(curr = head; curr != NULL; curr = curr->next) {
+		length++;
+	}
+	return length;
+}
+bool addMapping(const char *opath, const char *npath, uint32_t flags) {
+	if(!opath || !npath ){
+		return false;
+	}
+	int nlen=strlen(npath);
+	MapEntry_t *curr = findMapping(opath);
+    if(curr!=NULL){
+		if (nlen && nlen<MAX_PATH)
+		{
+			strncpy(curr->newpath, npath, nlen);
+			curr->newpath[nlen] = 0;
+			curr->newpath_len = nlen;
+			curr->flags = (curr->flags&FLAG_COPY) | (flags&(~FLAG_COPY));
+			return true;
+		}
+		else
+		{
+			if(!deleteMapping(opath)){
+                #ifdef  DEBUG
+                    DPRINTF("Mapping Deletion error: %s\n",opath);
+                #endif
+			}
+		}
+	}
+	else{
+        if(MapTableLength() >= MAX_TABLE_ENTRIES || !nlen || nlen>=MAX_PATH){
+            return false;
+        }
+		for(curr = head; curr != NULL; curr = curr->next) {
+		}
+		//create a link
+		MapEntry_t *link = (MapEntry_t*) alloc(sizeof(MapEntry_t),0x27);
+		if(curr){
+            curr->next = link;
+            link->next = NULL;
+		}
+		else{
+           link->next = head;
+           head = link;
+		}
+		link->flags = flags;
+		int len = strlen(opath);
+		link->oldpath_len = len;
+		if (flags & FLAG_COPY)
+		{
+			link->oldpath = (char*)alloc(len+1, 0x27);
+			strncpy(link->oldpath, opath, len);
+			link->oldpath[len] = 0;
+		}
+		else
+			link->oldpath = (char*)opath;
+
+
+		link->newpath_len = strlen(npath);
+		link->newpath_len = link->newpath_len<MAX_PATH ? link->newpath_len : MAX_PATH-1;
+		link->newpath = (char*)alloc(MAX_PATH, 0x27);
+		strncpy(link->newpath, npath, link->newpath_len);
+		link->newpath[link->newpath_len] = 0;
+
+		return true;
+	}
+	return false;
+}
+
+//find a link with given key
+MapEntry_t* findMapping(const char *opath) {
+
+   //if list is empty
+   if(head == NULL || opath == NULL) {
+      return NULL;
+   }
+   //start from the first link
+   MapEntry_t* curr = head;
+
+	int len = strlen(opath);
+   //navigate through list
+   while(curr->oldpath_len != len || strncmp(curr->oldpath, opath, len)!=0) {
+
+      //if it is last node
+      if(curr->next == NULL) {
+         return NULL;
+      } else {
+         //go to next link
+         curr = curr->next;
+      }
+   }
+
+   //if data found, return the current Link
+   return curr;
+}
+//find a link with given key
+bool patchAllMappingStartingWith(const char *opath, char* dst) {
+
+   //if list is empty
+   if(head == NULL || opath == NULL) {
+      return false;
+   }
+   //start from the first link
+    MapEntry_t* curr = head;
+	int len = strlen(opath),j = 1;
+   //navigate through list
+   while(curr && len>8) {
+		if(strncmp(opath,curr->oldpath,len)==0){
+			for (j=1;j < curr->newpath_len; j++){
+				dst[j] = curr->newpath[j];
+				if (dst[j] == 0)
+					break;
+
+				if (dst[j] == '/'){
+					dst[j] = 0;
+					break;
+				}
+			}
+		}
+		 curr = curr->next;
+   }
+   //if data found, return the current Link
+   return true;
+}
+//find a link with given key
+bool deleteAllMappings() {
+
+   //if list is empty
+   if(head == NULL) {
+      return true;
+   }
+   //start from the first link
+   MapEntry_t* curr = head;
+
+   //navigate through list
+	while(curr) {
+		if (curr->flags & FLAG_COPY)
+		   dealloc(curr->oldpath, 0x27);
+		if (!(curr->flags & FLAG_PROTECT))
+			dealloc(curr->newpath, 0x27);
+		curr->oldpath = NULL;
+		curr->newpath = NULL;
+		curr->oldpath_len = 0;
+		curr->newpath_len = 0;
+		curr->flags = 0;
+		  //if it is last node
+		if(curr->next == NULL) {
+			head = NULL;
+			return true;
+		} else {
+		 //go to next link
+			curr = curr->next;
+		}
+    }
+
+   //if data found, return the curr Link
+   head = curr;
+   return false;
+}
+//delete a link with given key
+bool deleteMapping(const char *opath) {
+
+   //start from the first link
+   MapEntry_t* curr = head;
+   MapEntry_t* previous = NULL;
+
+   //if list is empty
+   if(head == NULL || opath == NULL) {
+      return false;
+   }
+	int len = strlen(opath);
+
+   //navigate through list
+   while(curr->oldpath_len != len || strncmp(curr->oldpath, opath, len)!=0) {
+
+      //if it is last node
+      if(curr->next == NULL) {
+         return false;
+      } else {
+         //store reference to curr link
+         previous = curr;
+         //move to next link
+         curr = curr->next;
+      }
+   }
+
+   //found a match, update the link
+	if(curr == head) {
+	  //change first to point to next link
+	  head = head->next;
+	} else {
+	  //bypass the curr link
+	  previous->next = curr->next;
+	}
+	if (curr->flags & FLAG_COPY)
+       dealloc(curr->oldpath, 0x27);
+	if (!(curr->flags & FLAG_PROTECT))//????
+		dealloc(curr->newpath, 0x27);
+    curr->oldpath = NULL;
+    curr->newpath = NULL;
+    curr->oldpath_len = 0;
+    curr->newpath_len = 0;
+    curr->flags = 0;
+    return true;
+}
+
 
 void init_mtx(){
 	if(!map_mtx){
@@ -39,24 +272,8 @@ void init_mtx(){
 	}
 }
 
-void map_path_slot(char *old, char *newp, uint32_t flags, int slot)
-{
-	init_mtx();
-	mutex_lock(map_mtx, 0);
-    if(slot>=0 && slot<=MAX_TABLE_ENTRIES)
-    {
-        map_table[slot].oldpath=old;
-        map_table[slot].newpath = newp;
-		map_table[slot].newpath_len=strlen(newp);
-        map_table[slot].oldpath_len = strlen(old);
-        map_table[slot].flags = flags;
-		mutex_unlock(map_mtx);
-    }
-}
 int map_path(char *oldpath, char *newpath, uint32_t flags)
 {
-	int i, firstfree = -1;
-	
 	if (!oldpath || strlen(oldpath) == 0)
 		return -1;
 	
@@ -75,68 +292,7 @@ int map_path(char *oldpath, char *newpath, uint32_t flags)
 	#ifdef  DEBUG
 		//DPRINTF("map_path=: mutex locked\n");
 	#endif 
-	for (i = 1; i < MAX_TABLE_ENTRIES; i++)
-	{
-		if (map_table[i].oldpath)
-		{
-			if (strcmp(oldpath, map_table[i].oldpath) == 0)
-			{
-				if (newpath && strlen(newpath))
-				{
-					strncpy(map_table[i].newpath, newpath, MAX_PATH-1);	
-					map_table[i].newpath[MAX_PATH-1] = 0;
-					map_table[i].newpath_len = strlen(newpath);
-					map_table[i].flags = (map_table[i].flags&FLAG_COPY) | (flags&(~FLAG_COPY));
-				}
-				else
-				{
-					if (map_table[i].flags & FLAG_COPY)
-						dealloc(map_table[i].oldpath, 0x27);
-					
-					dealloc(map_table[i].newpath, 0x27);	
-					map_table[i].oldpath = NULL;
-					map_table[i].newpath = NULL;
-					map_table[i].oldpath_len = 0;
-					map_table[i].newpath_len = 0;					
-					map_table[i].flags = 0;
-				}
-				break;
-			}
-		}
-		else if (firstfree < 0)		
-			firstfree = i;		
-	}
-	
-	if (i == MAX_TABLE_ENTRIES)
-	{
-		if (firstfree < 0){
-			mutex_unlock(map_mtx);
-			return EKRESOURCE;
-		}
-		if (!newpath || strlen(newpath) == 0){
-			mutex_unlock(map_mtx);
-			return 0;
-		}
-		
-		map_table[firstfree].flags = flags;
-		int len = strlen(oldpath);
-		map_table[firstfree].oldpath_len=len;
-		
-		if (flags & FLAG_COPY)
-		{
-			map_table[firstfree].oldpath = alloc(len+1, 0x27);
-			strncpy(map_table[firstfree].oldpath, oldpath, len);
-			map_table[firstfree].oldpath[len] = 0;
-		}
-		else		
-			map_table[firstfree].oldpath = oldpath;	
-		
-
-		map_table[firstfree].newpath = alloc(MAX_PATH, 0x27);
-		strncpy(map_table[firstfree].newpath, newpath, MAX_PATH-1);	
-		map_table[firstfree].newpath[MAX_PATH-1] = 0;
-		map_table[firstfree].newpath_len = strlen(newpath);
-	}
+	addMapping(oldpath, newpath, flags);
 	mutex_unlock(map_mtx);
 	#ifdef  DEBUG
 		//DPRINTF("map_path=: mutex unlocked\n");
@@ -180,20 +336,19 @@ int map_path_user(char *oldpath, char *newpath, uint32_t flags)
 	return ret;
 }
 
-int get_map_path(unsigned int num, char *path, char *new_path)
+int get_map_path(const char *path, char *new_path)
 {
-	if(num > MAX_TABLE_ENTRIES) return MAX_TABLE_ENTRIES;
+	if(!path || !new_path) return -1;
 	init_mtx();
 	mutex_lock(map_mtx, 0);
 	#ifdef  DEBUG
 		//DPRINTF("get_map_path=: mutex locked\n");
 	#endif 
-	if(map_table[num].oldpath_len == 0 || map_table[num].newpath_len == 0 || !map_table[num].newpath || !map_table[num].oldpath || !path) return -1;
-
-	copy_to_user(&path, get_secure_user_ptr(map_table[num].oldpath), map_table[num].oldpath_len);
-
-	if(new_path)
-		copy_to_user(&new_path, get_secure_user_ptr(map_table[num].newpath), map_table[num].newpath_len);
+	
+	MapEntry_t* curr = findMapping(path);
+	if(!curr) return -1;
+	
+	copy_to_user(&new_path, get_secure_user_ptr(curr->newpath), curr->newpath_len);
 	
 	mutex_unlock(map_mtx);
 	#ifdef  DEBUG
@@ -240,19 +395,7 @@ int sys_map_paths(char *paths[], char *new_paths[], unsigned int num)
 		#ifdef  DEBUG
 			//DPRINTF("sys_map_paths=: mutex locked\n");
 		#endif 
-		for (int i = 1; i < MAX_TABLE_ENTRIES; i++)
-		{
-			if (map_table[i].flags & FLAG_TABLE)
-			{
-				if (map_table[i].flags & FLAG_COPY)	
-					dealloc(map_table[i].oldpath, 0x27);
-				if (!(map_table[i].flags & FLAG_PROTECT))
-					dealloc(map_table[i].newpath, 0x27);
-				map_table[i].oldpath = NULL;
-				map_table[i].newpath = NULL;	
-				map_table[i].flags = 0;
-			}
-		}
+		deleteAllMappings();
 		mutex_unlock(map_mtx);
 		mutex_destroy(map_mtx);
 		map_mtx=0;
@@ -691,27 +834,30 @@ LV2_HOOKED_FUNCTION_POSTCALL_2(void, open_path_hook, (char *path0, int mode))
 			mutex_lock(map_mtx, 0);
 			#ifdef  DEBUG
 				//DPRINTF("open_path_hook=: mutex locked\n");
-			#endif 
-			for (int i = MAX_TABLE_ENTRIES-1; i >= 0; i--)
-			{
-				if (map_table[i].oldpath)
-				{
-					int len = strlen(map_table[i].oldpath);
+			#endif
 			
-					if (path && strncmp(path, map_table[i].oldpath, len) == 0)
+			MapEntry_t* curr = findMapping(path);
+			if(curr) {
+				if (curr->oldpath)
+				{
+					if (curr->oldpath_len==strlen(path) && strncmp(path, curr->oldpath, curr->oldpath_len) == 0)
 					{
 						#ifdef  DEBUG
-							DPRINTF("open_path: function path argument: [%s] \nMap Table oldpath: [%s] \nMap Table newpath: [%s] \nMap Table newpath_len: [0x%x] \npath argument length: [0x%x]\n",path0, map_table[i].oldpath,map_table[i].newpath,map_table[i].newpath_len, len);
+							DPRINTF("open_path: function path argument: [%s] \nMap Table oldpath: [%s] \nMap Table newpath: [%s] \nMap Table newpath_len: [0x%x]\n",path0, curr->oldpath,curr->newpath,curr->newpath_len);
 						#endif 
-						strcpy(map_table[i].newpath+map_table[i].newpath_len, path+len);
-						set_patched_func_param(1, (uint64_t)map_table[i].newpath);
+						strcpy(curr->newpath+curr->newpath_len, path+curr->oldpath_len);
+						set_patched_func_param(1, (uint64_t)curr->newpath);
 						
 						#ifdef  DEBUG
-							//DPRINTF("=: [%s]\n", map_table[i].newpath);
+							//DPRINTF("=: [%s]\n", curr->newpath);
 						#endif 
-						break;
 					}
 				}
+			}
+			else{
+				#ifdef  DEBUG
+					DPRINTF("open_path_hook=: could not find map entry for path [%s]\n", path);
+				#endif 
 			}
 			mutex_unlock(map_mtx);
 			#ifdef  DEBUG
@@ -763,31 +909,8 @@ int sys_aio_copy_root(char *src, char *dst)
 			//DPRINTF("sys_aio_copy_root=: mutex locked\n");
 		#endif 
 		// find /dev_bdvd
-		for (int i = 1; i < MAX_TABLE_ENTRIES; i++)
-		{
-			if (map_table[i].oldpath && strcmp(map_table[i].oldpath, "/dev_bdvd") == 0)
-			{
-				for (int j = 1; j < map_table[i].newpath_len; j++)
-				{
-					dst[j] = map_table[i].newpath[j];
-					
-					if (dst[j] == 0)
-						break;
-					
-					if (dst[j] == '/')
-					{
-						dst[j] = 0;
-						break;
-					}
-				}
-				
-				#ifdef  DEBUG
-					//DPRINTF("AIO: root replaced by %s\n", dst);		
-				#endif 	
-				
-				break;
-			}
-		}
+		patchAllMappingStartingWith("/dev_bdvd", dst);
+		
 		mutex_unlock(map_mtx);
 		#ifdef  DEBUG
 			//DPRINTF("sys_aio_copy_root=: mutex unlocked\n");

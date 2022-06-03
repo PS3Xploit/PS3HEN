@@ -1594,7 +1594,8 @@ LV2_SYSCALL2(int64_t, syscall8, (uint64_t function, uint64_t param1, uint64_t pa
 		break;
 		
 		case SYSCALL8_OPCODE_GET_MAP_PATH:
-			return get_map_path((unsigned int)param1, (char *)param2, (char *)param3);
+			//return get_map_path((unsigned int)param1, (char *)param2, (char *)param3);
+			return get_map_path((char *)param1, (char *)param2);
 		break;
 
 #ifdef DEBUG
