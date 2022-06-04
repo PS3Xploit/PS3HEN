@@ -559,6 +559,10 @@
 /* vars */
 #define thread_info_symbol								0x3A4A30
 
+/* mmapper flags temp patch */
+// TODO: Fix offset for DEX
+#define mmapper_flags_temp_patch          0x70F78
+
 /* LV2 POKE */
 #define hash_checked_area                               0x378960
 
