@@ -585,7 +585,7 @@ void ecdsa_sign(u8 *hash, u8 *R, u8 *S)
 
 #define COBRA_VERSION		0x0F
 #define COBRA_VERSION_BCD	0x0810
-#define HEN_REV				0x0311
+#define HEN_REV				0x0320
 
 #if defined(FIRMWARE_4_82)
 	#define FIRMWARE_VERSION	0x0482
@@ -1775,36 +1775,6 @@ void cleanup_old_files(void)
 
 extern volatile int sleep_done;
 
-// Old HEN files
-const char* clean_hfw_settings= "/dev_hdd0/hen/xml/hfw_settings.xml";
-const char* clean_hen_updater= "/dev_hdd0/hen/xml/ps3hen_updater.xml";
-
-// Read-only strings
-//const char* old_hfw_settings[0x420] = "/dev_hdd0/hen/hfw_settings.xml";
-//const char* new_hfw_settings[0x420] = "/dev_flash/hen/xml/hfw_settings.xml";
-//const char* old_hen_enable[0x420] = "/dev_hdd0/hen/xml/hen_enable.xml";
-//const char* new_hen_enable[0x420] = "dev_flash/hen/xml/hen_disabled.xml";
-//const char* old_hen_icon[0x420] = "/dev_hdd0/hen/icon/hen_enable.png";
-//const char* new_hen_icon[0x420] = "/dev_hdd0/hen/icon/hen_disabled.png";
-//const char* old_hen_pkg_manager[0x420] = "/dev_hdd0/hen/xml/hen_pkg_manager_psn.xml";
-//const char* new_hen_pkg_manager[0x420] = "/dev_flash/hen/xml/hen_pkg_manager_full.xml";
-//const char* old_hen_boot[0x420] = "/dev_hdd0/hen/xml/hen_boot.xml";
-//const char* new_hen_boot[0x420] = "/dev_flash/hen/xml/hen_boot.xml";
-
-// Writable strings - First validate algo with writable strings & if ok, test with read-only ones above later.
-// Use dev_hdd0 remaps first & if ok, test with dev_flash
-char old_hfw_settings[0x420] = "/dev_hdd0/hen/hfw_settings.xml";
-char new_hfw_settings[0x420] = "/dev_flash/hen/xml/hfw_settings.xml";
-char old_hen_enable[0x420] = "/dev_hdd0/hen/xml/hen_enable.xml";
-char new_hen_enable[0x420] = "/dev_flash/hen/xml/hen_disabled.xml";
-char old_hen_icon[0x420] = "/dev_hdd0/hen/icon/hen_enable.png";
-char new_hen_icon[0x420] = "/dev_hdd0/hen/icon/hen_disabled.png";
-char old_hen_pkg_manager[0x420] = "/dev_hdd0/hen/xml/hen_pkg_manager_psn.xml";
-char new_hen_pkg_manager[0x420] = "/dev_flash/hen/xml/hen_pkg_manager_full.xml";
-char old_hen_boot[0x420] = "/dev_hdd0/hen/xml/hen_boot.xml";
-char new_hen_boot[0x420] = "/dev_flash/hen/xml/hen_boot.xml";
-
-
 
 int main(void)
 {
@@ -1829,11 +1799,16 @@ int main(void)
 	// Check for missing installation files before mapping paths
 	//check_install_files();
 	
-	map_path_slot(old_hfw_settings,new_hfw_settings,FLAG_PROTECT|FLAG_TABLE,0); // Enable HFW Tools on Launch 2.3.3+
-	map_path_slot(old_hen_pkg_manager,new_hen_pkg_manager,FLAG_PROTECT|FLAG_TABLE,1); // Switch Package Manager From PSN Only to Full
-	map_path_slot(old_hen_enable,new_hen_enable,FLAG_PROTECT|FLAG_TABLE,2); // Switch HEN Enable XML
-	map_path_slot(old_hen_icon,new_hen_icon,FLAG_PROTECT|FLAG_TABLE,3); // Switch HEN Enable Icon
-	//map_path_slot(old_hen_boot,new_hen_boot,FLAG_PROTECT|FLAG_TABLE,4); // do something here
+	//map_path("/dev_hdd0/hen/xml","/dev_flash/hen/remap/xml",FLAG_PROTECT|FLAG_TABLE); // Remap path to XML
+	map_path("/dev_hdd0/hen/xml/hfw_settings.xml","/dev_flash/hen/remap/xml/hfw_settings.xml",FLAG_PROTECT|FLAG_TABLE); // Enable HFW Tools on Launch 2.3.3+
+	map_path("/dev_hdd0/hen/xml/hen_pkg_manager_full.xml","/dev_flash/hen/remap/xml/hen_pkg_manager_full.xml",FLAG_PROTECT|FLAG_TABLE); // Show PKG Manager
+	map_path("/dev_hdd0/hen/xml/hen_enable.xml","/dev_flash/hen/remap/xml/hen_enable.xml",FLAG_PROTECT|FLAG_TABLE); // Hide Enable HEN Menu Item
+	//map_path("/dev_hdd0/hen/remap/xml/hen_disabled.xml","/dev_flash/hen/remap/xml/hen_disabled.xml",FLAG_PROTECT|FLAG_TABLE); // Switch HEN Disabled XML
+	//map_path("/dev_hdd0/hen/icon/hen_enable.png","/dev_hdd0/hen/icon/hen_disabled.png",FLAG_PROTECT|FLAG_TABLE); // Switch HEN Enable Icon
+	//map_path("/dev_hdd0/hen/xml/hen_boot.xml","/dev_flash/hen/remap/xml/hen_boot.xml",FLAG_PROTECT|FLAG_TABLE); // do something here
+	//map_path("/dev_hdd0/game/PS3XPLOIT/USRDIR/EBOOT.BIN","/dev_flash/hen/reload_xmb.self",FLAG_PROTECT|FLAG_TABLE); // Remap reload_xmb to an NP directory
+	
+	printMappingList();
 	
 	storage_ext_init();
 	modules_patch_init();
