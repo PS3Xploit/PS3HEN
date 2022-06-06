@@ -52,6 +52,7 @@
 #define SCSI_CMD_READ_2064						0xD1 /* Not reall name. Not standard cmd? */
 
 #define itob(i)               					((i)/10*16 + (i)%10)
+#define btoi(b)               					(10*(b>>4) + (b&15))
 
 enum DvdBookType
 {
@@ -65,7 +66,7 @@ enum DvdBookType
 	BOOKTYPE_DVDPRW = 9,
 	BOOKTYPE_DVDPR,
 	BOOKTYPE_DVDPRWDL = 13,
-	BOOKTYPE_DVDPRDL	
+	BOOKTYPE_DVDPRDL
 };
 
 typedef struct _ScsiCmdTestUnitReady
@@ -75,7 +76,7 @@ typedef struct _ScsiCmdTestUnitReady
 	uint8_t control;
 } __attribute__((packed)) ScsiCmdTestUnitReady;
 
-enum 
+enum
 {
 	FORMAT_TOC,
 	FORMAT_SESSION_INFO,
@@ -93,7 +94,7 @@ typedef struct _ScsiCmdReadTocPmaAtip
 	uint8_t reserved[3];
 	uint8_t track_session_num;
 	uint16_t alloc_length;
-	uint8_t control;	
+	uint8_t control;
 } __attribute__((packed)) ScsiCmdReadTocPmaAtip;
 
 typedef struct _ScsiTocResponse
@@ -206,6 +207,13 @@ typedef struct _ScsiCmdReadCd
 	uint8_t control;
 } __attribute__((packed)) ScsiCmdReadCd;
 
+typedef struct _MSF
+{
+	uint8_t amin;
+	uint8_t asec;
+	uint8_t aframe;
+} __attribute__((packed)) MSF;
+
 typedef struct _SubChannelQ
 {
 	uint8_t control_adr;
@@ -278,7 +286,7 @@ typedef struct _ScsiReadDiscStructureFormat0Response
 	uint8_t end_sector[3];
 	uint8_t zero3;
 	uint8_t end_sector_layer0[3];
-	uint8_t reserved2;	
+	uint8_t reserved2;
 } __attribute__((packed)) ScsiReadDiscStructureFormat0Response;
 
 typedef struct _ScsiRead10
@@ -316,13 +324,20 @@ static INLINE void lba_to_msf_bcd(uint64_t lba, uint8_t *m, uint8_t *s, uint8_t 
 	*f = itob(*f);
 }
 
+static inline uint16_t msf_to_lba(MSF msf)
+{
+	uint32_t lba = (60 * btoi(msf.amin)) + btoi(msf.asec);
+	return (uint16_t)((lba * 75) + btoi(msf.aframe));
+}
+/*
 static inline uint64_t msf_to_lba(uint8_t m, uint8_t s, uint8_t f)
 {
-	uint64_t lba = m;		
+	uint64_t lba = m;
 	lba = (lba*60)+s;
 	lba = (lba*75)+f;
 	return lba;
 }
+*/
 
 #ifdef DEBUG
 
@@ -348,7 +363,7 @@ static const char * get_scsi_cmd_name(uint8_t cmd)
 		NULL,
 		NULL,
 		NULL, /* 0x10 */
-		NULL, 
+		NULL,
 		"INQUIRY",
 		NULL,
 		NULL,
@@ -378,7 +393,7 @@ static const char * get_scsi_cmd_name(uint8_t cmd)
 		NULL,
 		NULL,
 		"WRITE AND VERIFY (10)",
-		"VERIFY (10)", 
+		"VERIFY (10)",
 		NULL, /* 0x30 */
 		NULL,
 		NULL,
@@ -442,7 +457,7 @@ static const char * get_scsi_cmd_name(uint8_t cmd)
 		NULL,
 		NULL,
 		NULL,
-		NULL, 
+		NULL,
 		NULL, /* 0x70 */
 		NULL,
 		NULL,
@@ -512,7 +527,7 @@ static const char * get_scsi_cmd_name(uint8_t cmd)
 		NULL,
 		NULL,
 		NULL,
-		"SECUIRTY PROTOCOL OUT", 
+		"SECUIRTY PROTOCOL OUT",
 		"SET STREAMING",
 		NULL,
 		NULL,
@@ -586,9 +601,9 @@ static const char * get_scsi_cmd_name(uint8_t cmd)
 		NULL,
 		NULL,
 		NULL,
-		NULL,		
+		NULL,
 	};
-	
+
 	return cmd_str[cmd];
 }
 

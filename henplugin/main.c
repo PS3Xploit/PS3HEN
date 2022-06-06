@@ -18,8 +18,6 @@
 #include <netex/net.h>
 #include <netex/errno.h>
 
-
-
 #include <inttypes.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -32,6 +30,7 @@
 #include "download_plugin.h"
 #include "game_ext_plugin.h"
 #include "xmb_plugin.h"
+#include "xregistry.h"
 
 #include <sys/sys_time.h>
 #include <sys/types.h>
@@ -49,10 +48,10 @@
 #include <cstdlib>
 #pragma comment(lib, "net_stub")
 #pragma comment(lib, "netctl_stub")
- 
+
 #define SERVER_PORT htons(80)
 #define HOST_SERVER "www.ps3xploit.com"
- 
+
 int Socket;
 struct hostent *Host;
 struct sockaddr_in SocketAddress;
@@ -80,21 +79,24 @@ static int done = 0;
 
 uint16_t hen_version;
 int henplugin_start(uint64_t arg);
+int henplugin_stop(void);
 
 extern int vshmain_87BB0001(int param);
 int (*vshtask_notify)(int, const char *) = NULL;
 
-int (*vshmain_is_ss_enabled)(void) = NULL;
-int (*View_Find)(const char *) = NULL;
-void *(*plugin_GetInterface)(int,int) = NULL;
+//static int (*vshmain_is_ss_enabled)(void) = NULL;
+static int (*View_Find)(const char *) = NULL;
+static void *(*plugin_GetInterface)(int,int) = NULL;
+/*
+static int (*set_SSHT_)(int) = NULL;
 
-int (*set_SSHT_)(int) = NULL;
-
-int opd[2] = {0, 0};
-
-#define IS_INSTALLING	(View_Find("game_plugin") != 0)
+static int opd[2] = {0, 0};
+*/
+#define IS_INSTALLING		(View_Find("game_plugin") != 0)
 #define IS_INSTALLING_NAS	(View_Find("nas_plugin") != 0)
-#define IS_DOWNLOADING	(View_Find("download_plugin") != 0)
+#define IS_DOWNLOADING		(View_Find("download_plugin") != 0)
+
+// Category IDs: 0 User 1 Setting 2 Photo 3 Music 4 Video 5 TV 6 Game 7 Net 8 PSN 9 Friend
 
 typedef struct
 {
@@ -174,7 +176,7 @@ static void show_msg(char* msg)
 {
 	if(!vshtask_notify)
 		vshtask_notify = getNIDfunc("vshtask", 0xA02D46E7, 0);
-	
+
 	if(!vshtask_notify) return;
 
 	if(strlen(msg) > 200) msg[200] = NULL; // truncate on-screen message
@@ -190,7 +192,7 @@ static void show_msg(char* msg)
 #define MAX_PROCESS 16
 
 process_id_t vsh_pid=0;
-
+/*
 static int poke_vsh(uint64_t address, char *buf,int size)
 {
 	if(!vsh_pid)
@@ -214,18 +216,18 @@ static int poke_vsh(uint64_t address, char *buf,int size)
 	system_call_6(8,SYSCALL8_OPCODE_PS3MAPI,PS3MAPI_OPCODE_SET_PROC_MEM,vsh_pid,address,(uint64_t)(uint32_t)buf,size);
 	return_to_user_prog(int);
 }
+*/
 static void enable_ingame_screenshot(void)
 {
 	((int*)getNIDfunc("vshmain",0x981D7E9F,0))[0] -= 0x2C;
 }
-
-int sys_map_path(char *old, char *new);
-int sys_map_path(char *old, char *new)
+/*
+static int sys_map_path(char *old, char *new)
 {
 	system_call_2(35, (uint64_t)(uint32_t)old,(uint64_t)(uint32_t)new);
 	return (int)p1;
 }
-
+*/
 static void reload_xmb(void)
 {
 	while(!IS_ON_XMB)
@@ -291,12 +293,11 @@ static int UnloadPluginById(int id, void *handler)
 
 int do_install_hen=0;
 int do_update=0;
-int hen_repair_toggle=0;
 int thread2_download_finish=0;
 int thread3_install_finish=0;
 
 #define SYSCALL_PEEK	6
-	
+
 static uint64_t peekq(uint64_t addr)
 {
 	system_call_1(SYSCALL_PEEK, addr);
@@ -306,41 +307,40 @@ static uint64_t peekq(uint64_t addr)
 // FW version values are checked using a partial date from lv2 kernel. 4.89 Sample: 323032322F30322F = 2022/02/
 static void downloadPKG_thread2(void)
 {
-
 	if(download_interface == 0) // test if download_interface is loaded for interface access
 	{
 		download_interface = (download_plugin_interface *)plugin_GetInterface(View_Find("download_plugin"), 1);
 	}
 	show_msg((char *)"Downloading latest HEN pkg");
 	uint64_t val=peekq(0x80000000002FCB68ULL);
-	if(val==0x323031372F30382FULL) 
+	if(val==0x323031372F30382FULL)
 		{
 			download_interface->DownloadURL(0, (wchar_t *) L"http://ps3xploit.com/hen/release/482/cex/installer/Latest_HEN_Installer_signed.pkg", (wchar_t *) L"/dev_hdd0");
 		}
 	else if(val==0x323031392F30312FULL)
 		{
 			download_interface->DownloadURL(0,(wchar_t *) L"http://ps3xploit.com/hen/release/484/cex/installer/Latest_HEN_Installer_signed.pkg", (wchar_t *) L"/dev_hdd0");
-		}	
+		}
 	else if(val==0x323031392F30372FULL)
 		{
 			download_interface->DownloadURL(0,(wchar_t *) L"http://ps3xploit.com/hen/release/485/cex/installer/Latest_HEN_Installer_signed.pkg", (wchar_t *) L"/dev_hdd0");
-		}	
+		}
 	else if(val==0x323032302F30312FULL)
 		{
 			download_interface->DownloadURL(0,(wchar_t *) L"http://ps3xploit.com/hen/release/486/cex/installer/Latest_HEN_Installer_signed.pkg", (wchar_t *) L"/dev_hdd0");
-		}	
+		}
 	else if(val==0x323032302F30372FULL)
 		{
 			download_interface->DownloadURL(0,(wchar_t *) L"http://ps3xploit.com/hen/release/487/cex/installer/Latest_HEN_Installer_signed.pkg", (wchar_t *) L"/dev_hdd0");
-		}	
+		}
 	else if(val==0x323032312F30342FULL)
 		{
 			download_interface->DownloadURL(0,(wchar_t *) L"http://ps3xploit.com/hen/release/488/cex/installer/Latest_HEN_Installer_signed.pkg", (wchar_t *) L"/dev_hdd0");
-		}		
+		}
 	else if(val==0x323032322F30322FULL)
 		{
 			download_interface->DownloadURL(0,(wchar_t *) L"http://ps3xploit.com/hen/release/489/cex/installer/Latest_HEN_Installer_signed.pkg", (wchar_t *) L"/dev_hdd0");
-		}	
+		}
 	thread2_download_finish=1;
 }
 
@@ -355,8 +355,6 @@ static void installPKG_thread(void)
 	}
 
 	game_ext_interface->LoadPage();
-
-
 	game_ext_interface->installPKG((char *)pkg_path);
 	thread3_install_finish=1;
 }
@@ -405,7 +403,7 @@ int hen_updater(void)
 		show_msg((char *)"Failed To Connect To Update Server!");
         return -1;
     }
- 
+
 	strcpy(RequestBuffer, "GET ");
     strcat(RequestBuffer, "/hen/hen_version.bin");
     strcat(RequestBuffer, " HTTP/1.0\r\n");
@@ -417,7 +415,7 @@ int hen_updater(void)
     strcat(RequestBuffer, "Connection: close\r\n");
     strcat(RequestBuffer, "\r\n");
     send(Socket, RequestBuffer, strlen(RequestBuffer), 0);
- 
+
 	int reply_len=0;
 	int allowed_length=sizeof(server_reply);
     while (1)
@@ -433,13 +431,13 @@ int hen_updater(void)
 			break;
 		}
     }
-	socketclose(Socket);			
+	socketclose(Socket);
 	if(reply_len<=6)
 	{
 		show_msg((char *)"Error on update server!");
 		return 0;
 	}
-	
+
 	if(strstr(server_reply,"200 OK"))
 	{
 		latest_rev=*(uint16_t *)(server_reply+reply_len-2);
@@ -449,7 +447,7 @@ int hen_updater(void)
 		show_msg((char *)"Update Server Responded With Error!");
 		return 0;
 	}
-	
+
 	char msg[100];
 	sprintf(msg,"Latest PS3HEN available is %X.%X.%X",latest_rev>>8, (latest_rev & 0xF0)>>4, (latest_rev&0xF));
 	show_msg((char*)msg);
@@ -461,8 +459,7 @@ int hen_updater(void)
 }
 
 // Restore act.dat (thanks bucanero)
-void restore_act_dat(void);
-void restore_act_dat(void)
+static void restore_act_dat(void)
 {
 	CellFsStat stat;
 	char path1[64], path2[64];
@@ -474,7 +471,7 @@ void restore_act_dat(void)
 	{
 		sprintf(path1, "/dev_hdd0/home/%08d/exdata/act.bak", i);
 		sprintf(path2, "/dev_hdd0/home/%08d/exdata/act.dat", i);
-		
+
 		if((cellFsStat(path1,&stat) == CELL_FS_SUCCEEDED) && (cellFsStat(path2,&stat) != CELL_FS_SUCCEEDED))
 		{
 			// copy act.bak to act.dat
@@ -501,28 +498,54 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 	system_call_1(8, SYSCALL8_OPCODE_HEN_REV); hen_version = (int)p1;
 	char henver[0x30];
 	sprintf(henver, "Welcome to PS3HEN %X.%X.%X", hen_version>>8, (hen_version & 0xF0)>>4, (hen_version&0xF));
-	
 	show_msg((char *)henver);
-	DPRINTF("hen_version: %x",hen_version);
-	
+
 	if(view==0)
 	{
 		view=View_Find("explore_plugin");
 		sys_timer_usleep(70000);
 	}
 	explore_interface = (explore_plugin_interface *)plugin_GetInterface(view, 1);
-	
+
 	enable_ingame_screenshot();
 	reload_xmb();
-	
+
 	CellFsStat stat;
-	
+
+	/*
+	// Clear WebBrowser cache (thanks xfrcc)
+	char path1[0x29];
+	sprintf(path1, "/dev_hdd0/home/%08i/webbrowser/history.xml", xsetting_CC56EB2D()->GetCurrentUserNumber());
+
+	char path2[0x26];
+	sprintf(path2, "/dev_hdd0/home/%08i/http/auth_cache.dat", xsetting_CC56EB2D()->GetCurrentUserNumber());
+
+	char path3[0x27];
+	sprintf(path3, "/dev_hdd0/home/%08i/http/cookie.dat", xsetting_CC56EB2D()->GetCurrentUserNumber());
+
+	if(cellFsStat(path1,&stat)==0)
+	{
+		cellFsUnlink(path1);
+	}
+	if(cellFsStat(path2,&stat)==0)
+	{
+		cellFsUnlink(path2);
+	}
+	if(cellFsStat(path3,&stat)==0)
+	{
+		cellFsUnlink(path3);
+	}
+	*/
+
 	// Emergency USB HEN Installer
 	if(cellFsStat("/dev_usb000/HEN_UPD.pkg",&stat)==0)
 	{
-		DPRINTF("Installing Emergency Package From USB\n");
+		//DPRINTF("Installing Emergency Package From USB\n");
+		char hen_usb_update[0x80];
+		sprintf(hen_usb_update, "Installing Emergency Package\n\nRemove HEN_UPD.pkg after install");
 		memset(pkg_path,0,256);
 		strcpy(pkg_path,"/dev_usb000/HEN_UPD.pkg");
+		show_msg((char *)hen_usb_update);
 		LoadPluginById(0x16, (void *)installPKG_thread);
 		while(thread3_install_finish==0)
 		{
@@ -531,53 +554,25 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 		goto done;
 	}
 	
-	// System Theme File (replace with backup HEN BIN?)
-	// /dev_flash/vsh/resource/theme/01.p3t (md5 004eb57d4d3a520be18642dcc9e9e057)
+	//char *default_theme="/dev_flash/vsh/resource/theme/01.p3t";
 	
 	// restore act.dat from act.bak backup
 	restore_act_dat();
 	
 	// If default HEN Check file is missing, assume HEN is not installed
 	do_install_hen=(cellFsStat("/dev_flash/vsh/resource/explore/icon/hen_enable.png",&stat));
-	DPRINTF("do_install_hen: %x\n",do_install_hen);
+	//DPRINTF("do_install_hen: %x\n",do_install_hen);
 	
-	// Check toggle for disabling HEN repair
-	hen_repair_toggle=(cellFsStat("/dev_hdd0/hen/toggles/hen_repair.off",&stat));
-	DPRINTF("hen_repair_toggle: %x\n",hen_repair_toggle);
-	// If HEN is installed, check for missing critical files. Versions lower than 3.2.0 skip this check
-	if((do_install_hen==0) && (hen_repair_toggle!=0) && (hen_version>=0x0320))
-	{
-		int check_hen_repair=(cellFsStat("/dev_hdd0/tmp/hen_repair",&stat));
-		DPRINTF("check_hen_repair: %x\n",check_hen_repair);
-		// If this file exists, assume it was created by the payload
-		if (check_hen_repair==0)
-		{
-			char henrepair[0x80];
-			sprintf(henrepair, "PS3HEN Corrupted Installation Files On HDD Detected!\n\nAfter package installs, reboot your system!");
-			memset(pkg_path,0,256);
-			strcpy(pkg_path,"/dev_flash/hen/restore/repair_hen_hdd.pkg");
-			show_msg((char *)henrepair);
-			cellFsUnlink("/dev_hdd0/tmp/hen_repair");
-			LoadPluginById(0x16, (void *)installPKG_thread);
-			while(thread3_install_finish==0)
-			{
-				sys_timer_usleep(70000);
-			}
-			goto done;
-		}
-	}
-	
-	// Default Auto Update Toggle Flag. If file exists, update check is skipped.
 	do_update=(cellFsStat("/dev_hdd0/hen_updater.off",&stat) ? hen_updater() : 0);// 20211011 Added update toggle thanks bucanero for original PR
-	DPRINTF("Checking do_update: %i\n",do_update);
+	//DPRINTF("Checking do_update: %i\n",do_update);
 	
-	//  If important install files are missing, or HEN is not installed, then proceed to update
 	if((do_install_hen!=0) || (do_update==1))
 	{
 		cellFsUnlink("/dev_hdd0/theme/PS3HEN.p3t");
 		int is_browser_open=View_Find("webbrowser_plugin");
+		
 		while(is_browser_open)
-		{
+		{	
 			sys_timer_usleep(70000);
 			is_browser_open=View_Find("webbrowser_plugin");
 		}
@@ -589,12 +584,12 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 		}
 		unload_web_plugins();
 		LoadPluginById(0x29,(void*)downloadPKG_thread2);
-		
+
 		while(thread2_download_finish==0)
 		{
 			sys_timer_usleep(70000);
 		}
-		
+
 		while(IS_DOWNLOADING)
 		{
 			sys_timer_usleep(500000);
@@ -607,6 +602,7 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 			{
 				sys_timer_usleep(70000);
 			}
+			
 			goto done;
 		}
 	}
@@ -618,7 +614,6 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 done:
 	DPRINTF("Exiting main thread!\n");	
 	done=1;
-	reload_xmb();
 	
 	sys_ppu_thread_exit(0);
 }
@@ -628,7 +623,7 @@ int henplugin_start(__attribute__((unused)) uint64_t arg)
 	//sys_timer_sleep(40000);
 	sys_ppu_thread_create(&thread_id, henplugin_thread, 0, 3000, 0x4000, SYS_PPU_THREAD_CREATE_JOINABLE, THREAD_NAME);
 	// Exit thread using directly the syscall and not the user mode library or we will crash
-	_sys_ppu_thread_exit(0);	
+	_sys_ppu_thread_exit(0);
 	return SYS_PRX_RESIDENT;
 }
 
@@ -638,17 +633,17 @@ static void henplugin_stop_thread(__attribute__((unused)) uint64_t arg)
 	sys_ppu_thread_join(thread_id, &exit_code);
 	sys_ppu_thread_exit(0);
 }
-extern int henplugin_stop(void);
 
 int henplugin_stop()
 {
 	sys_ppu_thread_t t_id;
-	int ret = sys_ppu_thread_create(&t_id, henplugin_stop_thread, 0, 3000, 0x2000, SYS_PPU_THREAD_CREATE_JOINABLE, STOP_THREAD_NAME);
+	//int ret = sys_ppu_thread_create(&t_id, henplugin_stop_thread, 0, 3000, 0x2000, SYS_PPU_THREAD_CREATE_JOINABLE, STOP_THREAD_NAME);
+	int ret = sys_ppu_thread_create(&t_id, henplugin_stop_thread, 0, 0, 0x2000, SYS_PPU_THREAD_CREATE_JOINABLE, STOP_THREAD_NAME);
 
 	uint64_t exit_code;
 	if (ret == 0) sys_ppu_thread_join(t_id, &exit_code);
 
-	sys_timer_usleep(70000);
+	//sys_timer_usleep(70000);
 	unload_prx_module();
 
 	_sys_ppu_thread_exit(0);
