@@ -134,6 +134,30 @@ typedef struct
 
 explore_plugin_interface * explore_interface;
 
+/*
+typedef struct
+{
+	int (*DoUnk0)(char *);// 1 Parameter: char * action
+} explore_plugin_act0_interface;
+explore_plugin_act0_interface * explore_act0_interface;
+*/
+
+/*
+typedef struct
+{
+	int (*DoUnk0)(int); // 1 Parameter: int (0/1)
+	int (*DoUnk1)(void); // 0 Parameter: - return int
+	int (*DoUnk2)(char *arg1); // 1 Parameter: char * 
+	int (*DoUnk3)(char *arg1); // 1 Parameter: char *
+	int (*DoUnk4)(char *arg1, wchar_t * out); // 2 Parameter: char *, wchar_t * out
+	int (*DoUnk5)(char *arg1, uint8_t *arg2); // 2 Parameter: char *, uint8_t *
+	int (*DoUnk6)(char *arg1); // 1 Parameter: char *
+	int (*DoUnk7)(char *arg1); // 1 Parameter: char *
+} xai_plugin_interface;
+
+xai_plugin_interface * xai_interface;
+*/
+
 static void * getNIDfunc(const char * vsh_module, uint32_t fnid, int offset)
 {
 	// 0x10000 = ELF
@@ -171,6 +195,14 @@ static void * getNIDfunc(const char * vsh_module, uint32_t fnid, int offset)
 	system_call_1(0x8e,sleep_time);
 	return (int)p1;
 }*/
+
+int reboot_flag=0;
+void reboot_ps3(void);
+void reboot_ps3(void)
+{
+	cellFsUnlink("/dev_hdd0/tmp/turnoff");
+	system_call_3(379, 0x1200, 0, 0);
+}
 
 static void show_msg(char* msg)
 {
@@ -498,6 +530,7 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 	system_call_1(8, SYSCALL8_OPCODE_HEN_REV); hen_version = (int)p1;
 	char henver[0x30];
 	sprintf(henver, "Welcome to PS3HEN %X.%X.%X", hen_version>>8, (hen_version & 0xF0)>>4, (hen_version&0xF));
+	//DPRINTF("hen_version: %x\n",hen_version);
 	show_msg((char *)henver);
 
 	if(view==0)
@@ -551,6 +584,12 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 		{
 			sys_timer_usleep(70000);
 		}
+		while(cellFsStat("/dev_rewrite/vsh/resource/explore/xmb/zzz_hen_installed.tmp",&stat)!=0)
+		{
+			sys_timer_usleep(70000);
+			//DPRINTF("Waiting for package to finish installing\n");
+		}
+		reboot_flag=1;
 		goto done;
 	}
 	
@@ -593,6 +632,7 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 		while(IS_DOWNLOADING)
 		{
 			sys_timer_usleep(500000);
+			//DPRINTF("Waiting for package to finish downloading\n");
 		}
 		
 		if(cellFsStat(pkg_path,&stat)==0)
@@ -602,6 +642,14 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 			{
 				sys_timer_usleep(70000);
 			}
+			
+			while(cellFsStat("/dev_rewrite/vsh/resource/explore/xmb/zzz_hen_installed.tmp",&stat)!=0)
+			{
+				sys_timer_usleep(70000);
+				//DPRINTF("Waiting for package to finish installing\n");
+			}
+			
+			reboot_flag=1;
 			
 			goto done;
 		}
@@ -614,6 +662,17 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 done:
 	DPRINTF("Exiting main thread!\n");	
 	done=1;
+	//reload_xmb();
+	
+	if(reboot_flag==1)
+	{
+		char reboot_txt[0x80];
+		sprintf(reboot_txt, "Installation Complete!\n\nPrepare For Reboot...");
+		show_msg((char *)reboot_txt);
+		sys_timer_usleep(8000000);
+		cellFsUnlink("/dev_rewrite/vsh/resource/explore/xmb/zzz_hen_installed.tmp");
+		reboot_ps3();
+	}
 	
 	sys_ppu_thread_exit(0);
 }
