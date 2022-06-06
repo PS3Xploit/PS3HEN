@@ -1073,8 +1073,7 @@ LV2_SYSCALL2(int64_t, syscall8, (uint64_t function, uint64_t param1, uint64_t pa
 		break;
 
 		case SYSCALL8_OPCODE_GET_MAP_PATH:
-			//return get_map_path((unsigned int)param1, (char *)param2, (char *)param3);
-			return get_map_path((char *)param1, (char *)param2);
+			return get_map_path((unsigned int)param1, (char *)param2, (char *)param3);
 		break;
 
 #ifdef DEBUG
@@ -1242,9 +1241,9 @@ int main(void)
 	cleanup_old_files();
 	
 	//map_path("/dev_hdd0/hen/xml","/dev_flash/hen/remap/xml",FLAG_PROTECT|FLAG_TABLE); // Remap path to XML
-	map_path("/dev_hdd0/hen/xml/hfw_settings.xml","/dev_flash/hen/remap/xml/hfw_settings.xml",FLAG_PROTECT|FLAG_TABLE); // Enable HFW Tools on Launch 2.3.3+
-	map_path("/dev_hdd0/hen/xml/hen_pkg_manager_full.xml","/dev_flash/hen/remap/xml/hen_pkg_manager_full.xml",FLAG_PROTECT|FLAG_TABLE); // Show PKG Manager
-	map_path("/dev_hdd0/hen/xml/hen_enable.xml","/dev_flash/hen/remap/xml/hen_enable.xml",FLAG_PROTECT|FLAG_TABLE); // Hide Enable HEN Menu Item
+	map_path("/dev_hdd0/hen/xml/hfw_settings.xml","/dev_flash/hen/remap/xml/hfw_settings.xml",0); // Enable HFW Tools on Launch 2.3.3+
+	map_path("/dev_hdd0/hen/xml/hen_pkg_manager_full.xml","/dev_flash/hen/remap/xml/hen_pkg_manager_full.xml",0); // Show PKG Manager
+	map_path("/dev_hdd0/hen/xml/hen_enable.xml","/dev_flash/hen/remap/xml/hen_enable.xml",0); // Hide Enable HEN Menu Item
 	//map_path("/dev_hdd0/hen/xml/hen_boot.xml","/dev_flash/hen/remap/xml/hen_boot.xml",FLAG_PROTECT|FLAG_TABLE); // do something here
 	//map_path("/dev_hdd0/game/PS3XPLOIT/USRDIR/EBOOT.BIN","/dev_flash/hen/reload_xmb.self",FLAG_PROTECT|FLAG_TABLE); // Remap reload_xmb to an NP directory
 	

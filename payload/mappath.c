@@ -18,8 +18,8 @@ typedef struct MapEntry
 {
 	char *oldpath;
 	char *newpath;
-	int  newpath_len;
-	int  oldpath_len;
+	size_t  newpath_len;
+	size_t  oldpath_len;
 	uint32_t flags;
 	struct MapEntry *next;
 } MapEntry_t;
@@ -28,33 +28,36 @@ typedef struct MapEntry
 uint8_t photo_gui = 1;
 mutex_t map_mtx = 0;
 MapEntry_t *head = NULL;
-
+void init_mtx();
 bool addMapping(const char *opath, const char *npath, uint32_t flags);
 bool isMapTableEmpty();
-int MapTableLength();
+uint32_t  MapTableLength();
 MapEntry_t* findMapping(const char *opath);
 bool patchAllMappingStartingWith(const char *opath, char* dst);
-bool deleteAllMappings();
+bool deleteAllMappings(uint32_t flags);
 bool deleteMapping(const char *opath);
 //display the list
 void printMappingList() {
 	#ifdef  DEBUG
-		struct MapEntry *ptr = head;
+		init_mtx();
+		mutex_lock(map_mtx, 0);
+		MapEntry_t* ptr = head;
 		DPRINTF("Mappings:{\n");
 		//start from the beginning
-		while((int*)ptr != NULL) {
-			DPRINTF("mapping: %s len: 0x%X\nto\n%s len: 0x%X\nflags: %X\n",ptr->oldpath,ptr->oldpath_len,ptr->newpath,ptr->newpath_len,ptr->flags);
+		while(ptr != NULL) {
+			DPRINTF("mapping: %s len: 0x%X\nto\n%s len: 0x%X\nflags: %X\n",ptr->oldpath,(unsigned int)ptr->oldpath_len,ptr->newpath,(unsigned int)ptr->newpath_len,ptr->flags);
 			ptr = ptr->next;
 		}
 		DPRINTF(" }\n\n");
+		mutex_unlock(map_mtx);
 	#endif
 }
 bool isMapTableEmpty() {
    return head == NULL;
 }
-int MapTableLength() {
-	int length = 0;
-	MapEntry_t *curr;
+uint32_t MapTableLength() {
+	uint32_t length = 0;
+	MapEntry_t *curr=NULL;
 	for(curr = head; curr != NULL; curr = curr->next) {
 		length++;
 	}
@@ -64,7 +67,7 @@ bool addMapping(const char *opath, const char *npath, uint32_t flags) {
 	if(!opath || !npath ){
 		return false;
 	}
-	int nlen=strlen(npath);
+	size_t nlen=strlen(npath);
 	MapEntry_t *curr = findMapping(opath);
     if(curr!=NULL){
 		if (nlen && nlen<MAX_PATH)
@@ -85,13 +88,46 @@ bool addMapping(const char *opath, const char *npath, uint32_t flags) {
 		}
 	}
 	else{
-        if(MapTableLength() >= MAX_TABLE_ENTRIES || !nlen || nlen>=MAX_PATH){
+       // if(MapTableLength() >= MAX_TABLE_ENTRIES || !nlen || nlen>=MAX_PATH){
+		if(!nlen || nlen>=MAX_PATH){
             return false;
         }
-		for(curr = head; curr != NULL; curr = curr->next) {
-		}
+		
 		//create a link
 		MapEntry_t *link = (MapEntry_t*) alloc(sizeof(MapEntry_t),0x27);
+		if(!link)
+			return false;
+		
+		link->flags = flags;
+		size_t len = strlen(opath);
+		link->oldpath_len = len;
+		if (flags & FLAG_COPY)
+		{
+			link->oldpath = (char*)alloc(len+1, 0x27);
+			if(!link->oldpath){
+				dealloc(link, 0x27);
+				return false;
+			}
+			strncpy(link->oldpath, opath, len);
+			link->oldpath[len] = 0;
+		}
+		else
+			link->oldpath = (char*)opath;
+
+		link->newpath_len = strlen(npath);
+		link->newpath_len = link->newpath_len < MAX_PATH ? link->newpath_len : MAX_PATH-1;
+		link->newpath = (char*)alloc(MAX_PATH, 0x27);
+		if(!link->newpath){
+			if(flags & FLAG_COPY){
+				dealloc(link->oldpath, 0x27);
+			}
+			dealloc(link, 0x27);
+			return false;
+		}
+		strncpy(link->newpath, npath, link->newpath_len);
+		link->newpath[link->newpath_len] = 0;
+		for(curr = head; curr != NULL; curr = curr->next) {
+		}
 		if(curr){
             curr->next = link;
             link->next = NULL;
@@ -100,25 +136,6 @@ bool addMapping(const char *opath, const char *npath, uint32_t flags) {
            link->next = head;
            head = link;
 		}
-		link->flags = flags;
-		int len = strlen(opath);
-		link->oldpath_len = len;
-		if (flags & FLAG_COPY)
-		{
-			link->oldpath = (char*)alloc(len+1, 0x27);
-			strncpy(link->oldpath, opath, len);
-			link->oldpath[len] = 0;
-		}
-		else
-			link->oldpath = (char*)opath;
-
-
-		link->newpath_len = strlen(npath);
-		link->newpath_len = link->newpath_len<MAX_PATH ? link->newpath_len : MAX_PATH-1;
-		link->newpath = (char*)alloc(MAX_PATH, 0x27);
-		strncpy(link->newpath, npath, link->newpath_len);
-		link->newpath[link->newpath_len] = 0;
-
 		return true;
 	}
 	return false;
@@ -134,7 +151,7 @@ MapEntry_t* findMapping(const char *opath) {
    //start from the first link
    MapEntry_t* curr = head;
 
-	int len = strlen(opath);
+	size_t len = strlen(opath);
    //navigate through list
    while(curr->oldpath_len != len || strncmp(curr->oldpath, opath, len)!=0) {
 
@@ -159,7 +176,7 @@ bool patchAllMappingStartingWith(const char *opath, char* dst) {
    }
    //start from the first link
     MapEntry_t* curr = head;
-	int len = strlen(opath),j = 1;
+	size_t len = strlen(opath),j = 1;
    //navigate through list
    while(curr && len>8) {
 		if(strncmp(opath,curr->oldpath,len)==0){
@@ -180,68 +197,64 @@ bool patchAllMappingStartingWith(const char *opath, char* dst) {
    return true;
 }
 //find a link with given key
-bool deleteAllMappings() {
+bool deleteAllMappings(uint32_t flags) {
 
-   //if list is empty
-   if(head == NULL) {
-      return true;
-   }
+	//if list is empty
+	if(head == NULL) {
+	  return true;
+	}
    //start from the first link
-   MapEntry_t* curr = head;
+	MapEntry_t* curr = head;
+	MapEntry_t* next = NULL;
 
    //navigate through list
 	while(curr) {
-		if (curr->flags & FLAG_COPY)
-		   dealloc(curr->oldpath, 0x27);
-		if (!(curr->flags & FLAG_PROTECT))
+        next = curr->next;
+		if(!flags || curr->flags & flags){
+			if (curr->flags & FLAG_COPY)
+				dealloc(curr->oldpath, 0x27);
 			dealloc(curr->newpath, 0x27);
-		curr->oldpath = NULL;
-		curr->newpath = NULL;
-		curr->oldpath_len = 0;
-		curr->newpath_len = 0;
-		curr->flags = 0;
-		  //if it is last node
-		if(curr->next == NULL) {
+			dealloc(curr, 0x27);
+		}
+		//if it is last node
+		if(next == NULL) {
 			head = NULL;
 			return true;
-		} else {
-		 //go to next link
-			curr = curr->next;
+		}
+		else {
+			//go to next link
+			curr = next;
 		}
     }
-
-   //if data found, return the curr Link
-   head = curr;
-   return false;
+	//if data found, set head to the curr Link
+	head = curr;
+	return false;
 }
 //delete a link with given key
 bool deleteMapping(const char *opath) {
+	//start from the first link
+	MapEntry_t* curr = head;
+	MapEntry_t* previous = NULL;
+	//if list is empty
+	if(head == NULL || opath == NULL) {
+		return false;
+	}
+	size_t len = strlen(opath);
+	//navigate through list
+	while(curr->oldpath_len != len || strncmp(curr->oldpath, opath, len)!=0) {
+		//if it is last node
+		if(curr->next == NULL) {
+			return false;
+		} 
+		else {
+			//store reference to curr link
+			previous = curr;
+			//move to next link
+			curr = curr->next;
+		}
+	}
 
-   //start from the first link
-   MapEntry_t* curr = head;
-   MapEntry_t* previous = NULL;
-
-   //if list is empty
-   if(head == NULL || opath == NULL) {
-      return false;
-   }
-	int len = strlen(opath);
-
-   //navigate through list
-   while(curr->oldpath_len != len || strncmp(curr->oldpath, opath, len)!=0) {
-
-      //if it is last node
-      if(curr->next == NULL) {
-         return false;
-      } else {
-         //store reference to curr link
-         previous = curr;
-         //move to next link
-         curr = curr->next;
-      }
-   }
-
-   //found a match, update the link
+    //found a match, update the link
 	if(curr == head) {
 	  //change first to point to next link
 	  head = head->next;
@@ -251,13 +264,9 @@ bool deleteMapping(const char *opath) {
 	}
 	if (curr->flags & FLAG_COPY)
        dealloc(curr->oldpath, 0x27);
-	if (!(curr->flags & FLAG_PROTECT))//????
-		dealloc(curr->newpath, 0x27);
-    curr->oldpath = NULL;
-    curr->newpath = NULL;
-    curr->oldpath_len = 0;
-    curr->newpath_len = 0;
-    curr->flags = 0;
+	//if (!(curr->flags & FLAG_PROTECT))//????
+	dealloc(curr->newpath, 0x27);
+	dealloc(curr, 0x27);
     return true;
 }
 
@@ -273,6 +282,7 @@ void init_mtx(){
 
 int map_path(char *oldpath, char *newpath, uint32_t flags)
 {
+	int ret = -1;
 	if (!oldpath || strlen(oldpath) == 0)
 		return -1;
 	
@@ -291,7 +301,8 @@ int map_path(char *oldpath, char *newpath, uint32_t flags)
 	#ifdef  DEBUG
 		//DPRINTF("map_path=: mutex locked\n");
 	#endif 
-	addMapping(oldpath, newpath, flags);
+	if(addMapping(oldpath, newpath, flags))
+		ret = 0;
 	mutex_unlock(map_mtx);
 	#ifdef  DEBUG
 		//DPRINTF("map_path=: mutex unlocked\n");
@@ -335,18 +346,31 @@ int map_path_user(char *oldpath, char *newpath, uint32_t flags)
 	return ret;
 }
 
-int get_map_path(const char *path, char *new_path)
+int get_map_path(uint32_t num, char *path, char *new_path)
 {
+	//if(num > MAX_TABLE_ENTRIES) return MAX_TABLE_ENTRIES;
 	if(!path || !new_path) return -1;
 	init_mtx();
 	mutex_lock(map_mtx, 0);
 	#ifdef  DEBUG
 		//DPRINTF("get_map_path=: mutex locked\n");
 	#endif 
+	MapEntry_t* curr = head;
+	uint32_t i=0;
+	while(curr && i<num){
+		i++;
+		curr = curr->next;
+	}
 	
-	MapEntry_t* curr = findMapping(path);
-	if(!curr) return -1;
-	
+	if(!curr || curr->oldpath_len == 0 || curr->newpath_len == 0 || !curr->newpath || !curr->oldpath) {
+		mutex_unlock(map_mtx);
+		#ifdef  DEBUG
+			//DPRINTF("get_map_path=: mutex unlocked\n");
+		#endif 
+		return -1;
+	}
+
+	copy_to_user(&path, get_secure_user_ptr(curr->oldpath),curr->oldpath_len);
 	copy_to_user(&new_path, get_secure_user_ptr(curr->newpath), curr->newpath_len);
 	
 	mutex_unlock(map_mtx);
@@ -362,7 +386,7 @@ LV2_SYSCALL2(int, sys_map_path, (char *oldpath, char *newpath))
 	return map_path_user(oldpath, newpath, 0);	
 }
 
-int sys_map_paths(char *paths[], char *new_paths[], unsigned int num)
+int sys_map_paths(char *paths[], char *new_paths[], uint32_t num)
 {
 	uint32_t *u_paths = (uint32_t *)get_secure_user_ptr(paths);
 	uint32_t *u_new_paths = (uint32_t *)get_secure_user_ptr(new_paths);
@@ -373,10 +397,10 @@ int sys_map_paths(char *paths[], char *new_paths[], unsigned int num)
 		unmap = 1;	
 	else
 	{
-		if (!u_new_paths)
+		if(!u_new_paths)
 			return EINVAL;
 		
-		for (unsigned int i = 0; i < num; i++)
+		for(unsigned int i = 0; i < num; i++)
 		{
 			ret = map_path_user((char *)(uint64_t)u_paths[i], (char *)(uint64_t)u_new_paths[i], FLAG_TABLE);
 			if (ret != 0)
@@ -394,7 +418,7 @@ int sys_map_paths(char *paths[], char *new_paths[], unsigned int num)
 		#ifdef  DEBUG
 			//DPRINTF("sys_map_paths=: mutex locked\n");
 		#endif 
-		deleteAllMappings();
+		deleteAllMappings(FLAG_TABLE);
 		mutex_unlock(map_mtx);
 		mutex_destroy(map_mtx);
 		map_mtx=0;
@@ -449,7 +473,7 @@ static int init_list(char *list, char *path, int maxentries)
 			if (read_text_line(f, line, sizeof(line), &eof) > 0)
 			if (strlen(line) >=9) // avoid copying empty lines
 			{	
-				strncpy(list + (9*loaded), line, 9); // copy only the first 9 chars - if it has lees than 9, it will fail future checks. should correct in file.
+				strncpy(list + (9*loaded), line, 9); // copy only the first 9 chars - if it has less than 9, it will fail future checks. should correct in file.
 				loaded++;
 			}
 
@@ -480,8 +504,8 @@ static int listed(int blacklist, char *gameid)
 		int i, elements;
 		if (!__initialized_lists)
 		{
-			__blacklist=alloc(9*MAX_LIST_ENTRIES,0x27);
-			__whitelist=alloc(9*MAX_LIST_ENTRIES,0x27);
+			__blacklist=(char*)alloc(9*MAX_LIST_ENTRIES,0x27);
+			__whitelist=(char*)alloc(9*MAX_LIST_ENTRIES,0x27);
 			__blacklist_entries = init_list(__blacklist, BLACKLIST_FILENAME, MAX_LIST_ENTRIES);
 			__whitelist_entries = init_list(__whitelist, WHITELIST_FILENAME, MAX_LIST_ENTRIES);
 			__initialized_lists = 1;
@@ -651,50 +675,50 @@ LV2_HOOKED_FUNCTION_POSTCALL_2(void, open_path_hook, (char *path0, int mode))
 {
 	int syscalls_disabled = ((*(uint64_t *)MKA(syscall_table_symbol + 8 * 6)) == (*(uint64_t *)MKA(syscall_table_symbol)));
 
-		if (syscalls_disabled && path0 && !strncmp(path0, "/dev_hdd0/game/", 15) && strstr(path0 + 15, "/EBOOT.BIN"))
+	if (syscalls_disabled && path0 && !strncmp(path0, "/dev_hdd0/game/", 15) && strstr(path0 + 15, "/EBOOT.BIN"))
+	{
+	// syscalls are disabled and an EBOOT.BIN is being called from hdd. Let's test it.
+	char *gameid = path0 + 15;
+
+	// flag "whitelist" id's
+	int allow =
+	!strncmp(gameid, "NP", 2) ||
+	!strncmp(gameid, "BL", 2) ||
+	!strncmp(gameid, "BC", 2) ||
+	!strncmp(gameid, "KOEI3", 5) ||
+	!strncmp(gameid, "KTGS3", 5) ||
+	!strncmp(gameid, "MRTC0", 5) ||
+	!strncmp(gameid, "ASIA0", 5) ||
+	!strncmp(gameid, "_DEL_", 5) || // Fix data corruption if you uninstall game/game update/homebrew with syscall disabled # Alexander's
+	!strncmp(gameid, "_INST_", 6) || // 80010006 error fix when trying to install a game update with syscall disabled. # Joonie's, Alexander's, Aldo's
+	!strncmp(gameid, "GUST0", 5) ;
+	;
+
+	// flag some "blacklist" id's
+	if (
+		!strncmp(gameid, "BLES806", 7) || // Multiman and assorted tools are in the format BLES806**
+		!strncmp(gameid, "BLJS10018", 9) || // PSNPatch Stealth (older versions were already detected as non-NP/BC/BL)
+		!strncmp(gameid, "BLES08890", 9) || // PSNope by user
+		!strncmp(gameid, "BLES13408", 9) || // FCEU NES Emulator
+		!strncmp(gameid, "BLES01337", 9) || // Awesome File Manager
+		!strncmp(gameid, "BLND00001", 9) || // dev_blind
+		!strncmp(gameid, "NPEA90124", 9) //|| // SEN Enabler
+		//!strcmp (path0, "/dev_bdvd/PS3_UPDATE/PS3UPDAT.PUP") //bluray disk updates
+		) allow = 0;
+
+		// test whitelist.cfg and blacklist.cfg
+		if (listed(0, gameid)) // whitelist.cfg test
+			allow = 1;
+		if (listed(1, gameid)) // blacklist.cfg test
+			allow = 0;
+	
+		// let's now block homebrews if the "allow" flag is false
+		if (!allow)
 		{
-		// syscalls are disabled and an EBOOT.BIN is being called from hdd. Let's test it.
-		char *gameid = path0 + 15;
-
-		// flag "whitelist" id's
-		int allow =
-		!strncmp(gameid, "NP", 2) ||
-		!strncmp(gameid, "BL", 2) ||
-		!strncmp(gameid, "BC", 2) ||
-		!strncmp(gameid, "KOEI3", 5) ||
-		!strncmp(gameid, "KTGS3", 5) ||
-		!strncmp(gameid, "MRTC0", 5) ||
-		!strncmp(gameid, "ASIA0", 5) ||
-		!strncmp(gameid, "_DEL_", 5) || // Fix data corruption if you uninstall game/game update/homebrew with syscall disabled # Alexander's
-		!strncmp(gameid, "_INST_", 6) || // 80010006 error fix when trying to install a game update with syscall disabled. # Joonie's, Alexander's, Aldo's
-		!strncmp(gameid, "GUST0", 5) ;
-		;
-
-		// flag some "blacklist" id's
-		if (
-			!strncmp(gameid, "BLES806", 7) || // Multiman and assorted tools are in the format BLES806**
-			!strncmp(gameid, "BLJS10018", 9) || // PSNPatch Stealth (older versions were already detected as non-NP/BC/BL)
-			!strncmp(gameid, "BLES08890", 9) || // PSNope by user
-			!strncmp(gameid, "BLES13408", 9) || // FCEU NES Emulator
-			!strncmp(gameid, "BLES01337", 9) || // Awesome File Manager
-			!strncmp(gameid, "BLND00001", 9) || // dev_blind
-			!strncmp(gameid, "NPEA90124", 9) //|| // SEN Enabler
-			//!strcmp (path0, "/dev_bdvd/PS3_UPDATE/PS3UPDAT.PUP") //bluray disk updates
-			) allow = 0;
-
-			// test whitelist.cfg and blacklist.cfg
-			if (listed(0, gameid)) // whitelist.cfg test
-				allow = 1;
-			if (listed(1, gameid)) // blacklist.cfg test
-				allow = 0;
-		
-			// let's now block homebrews if the "allow" flag is false
-			if (!allow)
-			{
-				set_patched_func_param(1, (uint64_t)crap_pants);
-				return;
-			}
+			set_patched_func_param(1, (uint64_t)crap_pants);
+			return;
 		}
+	}
 
 	if((strstr(path0,".rif")) && (!strncmp(path0,"/dev_hdd0/home/",14)))
 	{
@@ -792,12 +816,12 @@ LV2_HOOKED_FUNCTION_POSTCALL_2(void, open_path_hook, (char *path0, int mode))
         }
 		else*/ // Disabled due to the issue with multiMAN can't copy update files from discs.
 		//if(path[7]=='v' || path[7]=='m')
-		//{
-			//DPRINTF("?: [%s]\n", path);
+		{
+		/*	//DPRINTF("?: [%s]\n", path);
 	
 			//if(path[1]=='/') DPRINTF("!!! This will usually error out!\n");//path++;
 			//if(path[0]=='/')
-				
+		*/		
 			////////////////////////////////////////////////////////////////////////////////////
 			// Photo_GUI integration with webMAN MOD - DeViL303 & AV                          //
 			////////////////////////////////////////////////////////////////////////////////////
@@ -811,7 +835,8 @@ LV2_HOOKED_FUNCTION_POSTCALL_2(void, open_path_hook, (char *path0, int mode))
 
 				if(!strncmp(path, "/dev_hdd0/photo/", 16))
 				{
-					char *photo = path + 16; size_t len = strlen(photo);
+					char *photo = path + 16; 
+					size_t len = strlen(photo);
 					if (len < 8) ;
 					else if(!strcmp(photo + len -4, ".PNG") || !strcmp(photo + len -4, ".JPG") || !strcmp(photo + len -8, "_COV.JPG") || !strncasecmp(photo + len -8, ".iso.jpg", 8) || !strncasecmp(photo + len -8, ".iso.png", 8))
 					{
@@ -834,43 +859,42 @@ LV2_HOOKED_FUNCTION_POSTCALL_2(void, open_path_hook, (char *path0, int mode))
 			#ifdef  DEBUG
 				//DPRINTF("open_path_hook=: mutex locked\n");
 			#endif
-			
 			MapEntry_t* curr = findMapping(path);
 			if(curr) {
 				if (curr->oldpath)
 				{
 					if (curr->oldpath_len==strlen(path) && strncmp(path, curr->oldpath, curr->oldpath_len) == 0)
 					{
-						#ifdef  DEBUG
-							DPRINTF("open_path: function path argument: [%s] \nMap Table oldpath: [%s] \nMap Table newpath: [%s] \nMap Table newpath_len: [0x%x]\n",path0, curr->oldpath,curr->newpath,curr->newpath_len);
-						#endif 
-						strcpy(curr->newpath+curr->newpath_len, path+curr->oldpath_len);
-						set_patched_func_param(1, (uint64_t)curr->newpath);
-						
-						#ifdef  DEBUG
-							//DPRINTF("=: [%s]\n", curr->newpath);
-						#endif 
+						if(curr->oldpath_len + strlen(path+curr->oldpath_len) <= MAX_PATH){
+							strcpy(curr->newpath+curr->newpath_len, path+curr->oldpath_len);
+							set_patched_func_param(1, (uint64_t)curr->newpath);
+							#ifdef  DEBUG
+								DPRINTF("open_path_hook: function path argument: [%s] \nMap Table oldpath: [%s] \nMap Table newpath: [%s] \nMap Table newpath_len: [0x%x]\n",path0, curr->oldpath,curr->newpath,(unsigned int)curr->newpath_len);
+							#endif 
+						}
+						else{
+							#ifdef  DEBUG
+								DPRINTF("open_path_hook=: could not extend newpath due to string size constraints  extra path [%s]\n", path+curr->oldpath_len);
+							#endif
+						}
 					}
 				}
 			}
 			else{
 				#ifdef  DEBUG
-					//DPRINTF("open_path_hook=: could not find map entry for path [%s]\n", path);
-				#endif 
+					DPRINTF("open_path_hook=: no mapping found for path [%s]\n", curr->oldpath);
+				#endif
 			}
 			mutex_unlock(map_mtx);
 			#ifdef  DEBUG
 				//DPRINTF("open_path_hook=: mutex unlocked\n");
 			#endif 
-		//}
-		DPRINTF("open_path %s\n", path); 
+		}
 	}
 }
 
 int sys_aio_copy_root(char *src, char *dst)
 {
-	int len;
-	
 	src = get_secure_user_ptr(src);
 	dst = get_secure_user_ptr(dst);
 	
@@ -878,7 +902,7 @@ int sys_aio_copy_root(char *src, char *dst)
 	if (!src)
 		return EFAULT;
 	
-	len = strlen(src);
+	size_t len = strlen(src);
 	
 	if (len >= 0x420 || len <= 1 || src[0] != '/')
 		return EINVAL;
