@@ -29,7 +29,6 @@ uint8_t photo_gui = 1;
 mutex_t map_mtx = 0;
 MapEntry_t *head = NULL;
 
-void printMappingList();
 bool addMapping(const char *opath, const char *npath, uint32_t flags);
 bool isMapTableEmpty();
 int MapTableLength();
@@ -856,7 +855,7 @@ LV2_HOOKED_FUNCTION_POSTCALL_2(void, open_path_hook, (char *path0, int mode))
 			}
 			else{
 				#ifdef  DEBUG
-					DPRINTF("open_path_hook=: could not find map entry for path [%s]\n", path);
+					//DPRINTF("open_path_hook=: could not find map entry for path [%s]\n", path);
 				#endif 
 			}
 			mutex_unlock(map_mtx);
