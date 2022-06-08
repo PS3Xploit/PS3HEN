@@ -1268,8 +1268,15 @@ int main(void)
 //	enable_ingame_screenshot();
 
 	// This file is installed by default pkg and is used to determine when HEN has finished installing, in henplugin.
-	// Remove it on launch to eliminate false checks.
-	cellFsUnlink("/dev_rewrite/vsh/resource/explore/xmb/zzz_hen_installed.tmp");
+	// If it exists, remove it on launch to eliminate false checks.
+	CellFsStat stat;
+	if(cellFsStat("/dev_rewrite/vsh/resource/explore/xmb/zzz_hen_installed.tmp",&stat)==0)
+	{
+		#ifdef DEBUG
+			//DPRINTF("PAYLOAD->Checking hen_installed temp file flag [/dev_rewrite/vsh/resource/explore/xmb/zzz_hen_installed.tmp]\n");
+		#endif
+		cellFsUnlink("/dev_rewrite/vsh/resource/explore/xmb/zzz_hen_installed.tmp");
+	}
 	
 #ifdef DEBUG
 	// "Laboratory"
