@@ -522,6 +522,8 @@ static void restore_act_dat(void)
 	}
 }
 
+int tick_max=5000,tick_count=0,tick_expire=0;// Used for breaking out of while loop if package install hangs
+
 static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 {
 	View_Find = getNIDfunc("paf", 0xF21655F3, 0);
@@ -645,10 +647,12 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 			
 			while(cellFsStat("/dev_rewrite/vsh/resource/explore/xmb/zzz_hen_installed.tmp",&stat)!=0)
 			{
+				//DPRINTF("tick_count: %i\n",tick_count);
 				sys_timer_usleep(70000);
+				tick_count++;
+				if(tick_count>=tick_max){tick_expire=1;break;};
 				//DPRINTF("Waiting for package to finish installing\n");
 			}
-			
 			reboot_flag=1;
 			
 			goto done;
@@ -667,11 +671,25 @@ done:
 	if(reboot_flag==1)
 	{
 		char reboot_txt[0x80];
-		sprintf(reboot_txt, "Installation Complete!\n\nPrepare For Reboot...");
+		if(tick_expire==0)
+		{
+			sprintf(reboot_txt, "Installation Complete!\n\nPrepare For Reboot...");
+		}
+		else
+		{
+			sprintf(reboot_txt, "Error: Unable to verify finished installation!");
+		}
 		show_msg((char *)reboot_txt);
-		sys_timer_usleep(8000000);
-		cellFsUnlink("/dev_rewrite/vsh/resource/explore/xmb/zzz_hen_installed.tmp");
-		reboot_ps3();
+		cellFsUnlink("/dev_rewrite/vsh/resource/explore/xmb/zzz_hen_installed.tmp");// Remove temp file
+		sys_timer_usleep(8000000);// Wait a few seconds
+		
+		// Verify the temp file is removed
+		while(cellFsStat("/dev_rewrite/vsh/resource/explore/xmb/zzz_hen_installed.tmp",&stat)==0)
+		{
+			sys_timer_usleep(70000);
+			//DPRINTF("Waiting for temporary zzz_hen_installed.tmp file to be removed\n");
+		}
+		if(tick_expire==0){reboot_ps3();}// Default Hard Reboot
 	}
 	
 	sys_ppu_thread_exit(0);
