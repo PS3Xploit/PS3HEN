@@ -38,7 +38,7 @@ bool deleteAllMappings(uint32_t flags);
 bool deleteMapping(const char *opath);
 MapEntry_t* findMapping(const char *opath);
 MapEntry_t* getMapping(const char *opath);
-
+char * path_normalize(const char *);
 //display the list
 void printMappingList() {
 	#ifdef  DEBUG
@@ -61,79 +61,80 @@ uint32_t MapTableLength() {
 	return length;
 }
 bool addMapping(const char *opath, const char *npath, uint32_t flags) {
-	if(!opath || !npath ){
-		return false;
-	}
-	size_t nlen=strlen(npath);
-	MapEntry_t *curr = getMapping(opath);
-    if(curr!=NULL){
-		if (nlen && nlen<MAX_PATH)
-		{
-			strncpy(curr->newpath, npath, nlen);
-			curr->newpath[nlen] = 0;
-			curr->newpath_len = nlen;
-			curr->flags = (curr->flags&FLAG_COPY) | (flags&(~FLAG_COPY));
-			return true;
-		}
-		else
-		{
-			if(!deleteMapping(opath)){
-                #ifdef  DEBUG
-                    DPRINTF("Mapping Deletion error: %s\n",opath);
-                #endif
+	if(opath && npath ){
+		size_t olen=strlen(opath);
+		size_t nlen=strlen(npath);
+		if(olen && nlen){
+			MapEntry_t *curr = getMapping(opath);
+			if(curr!=NULL){
+				if (nlen<MAX_PATH)
+				{
+					strncpy(curr->newpath, npath, nlen+1);
+					curr->newpath[nlen] = 0;
+					curr->newpath_len = nlen;
+					curr->flags = (curr->flags&FLAG_COPY) | (flags&(~FLAG_COPY));
+					return true;
+				}
+				else
+				{
+					if(!deleteMapping(opath)){
+						#ifdef  DEBUG
+							DPRINTF("Mapping Deletion error: %s\n",opath);
+						#endif
+					}
+				}
+			}
+			else{
+			   // if(MapTableLength() >= MAX_TABLE_ENTRIES || !nlen || nlen>=MAX_PATH){
+				if(nlen>=MAX_PATH){
+					return false;
+				}
+				//create a link
+				MapEntry_t *link = (MapEntry_t*) alloc(sizeof(MapEntry_t),0x27);
+				if(!link)
+					return false;
+				
+				link->flags = flags;
+				link->oldpath_len = olen;
+				if (flags & FLAG_COPY){
+					link->oldpath = (char*)alloc(olen+1, 0x27);
+					if(!link->oldpath){
+						dealloc(link, 0x27);
+						return false;
+					}
+					strncpy(link->oldpath, opath, olen+1);
+					link->oldpath[olen] = 0;
+				}
+				else{
+					link->oldpath = (char*)opath;
+				}
+				link->newpath_len = nlen;
+				link->newpath_len = link->newpath_len < MAX_PATH ? link->newpath_len : MAX_PATH-1;
+				link->newpath = (char*)alloc(MAX_PATH, 0x27);
+				if(!link->newpath){
+					if(flags & FLAG_COPY){
+						dealloc(link->oldpath, 0x27);
+					}
+					dealloc(link, 0x27);
+					return false;
+				}
+				strncpy(link->newpath, npath, link->newpath_len+1);
+				link->newpath[link->newpath_len] = 0;
+				for(curr = head; curr != NULL; curr = curr->next) {
+					if(curr->next== NULL)
+						break;
+				}
+				if(curr){
+					curr->next = link;
+					link->next = NULL;
+				}
+				else{
+				   link->next = head;
+				   head = link;
+				}
+				return true;
 			}
 		}
-	}
-	else{
-       // if(MapTableLength() >= MAX_TABLE_ENTRIES || !nlen || nlen>=MAX_PATH){
-		if(!nlen || nlen>=MAX_PATH){
-            return false;
-        }
-		//create a link
-		MapEntry_t *link = (MapEntry_t*) alloc(sizeof(MapEntry_t),0x27);
-		if(!link)
-			return false;
-		
-		link->flags = flags;
-		size_t len = strlen(opath);
-		link->oldpath_len = len;
-		if (flags & FLAG_COPY){
-			link->oldpath = (char*)alloc(len+1, 0x27);
-			if(!link->oldpath){
-				dealloc(link, 0x27);
-				return false;
-			}
-			strncpy(link->oldpath, opath, len);
-			link->oldpath[len] = 0;
-		}
-		else{
-			link->oldpath = (char*)opath;
-		}
-		link->newpath_len = strlen(npath);
-		link->newpath_len = link->newpath_len < MAX_PATH ? link->newpath_len : MAX_PATH-1;
-		link->newpath = (char*)alloc(MAX_PATH, 0x27);
-		if(!link->newpath){
-			if(flags & FLAG_COPY){
-				dealloc(link->oldpath, 0x27);
-			}
-			dealloc(link, 0x27);
-			return false;
-		}
-		strncpy(link->newpath, npath, link->newpath_len);
-		link->newpath[link->newpath_len] = 0;
-		for(curr = head; curr != NULL; curr = curr->next) {
-			if(curr->next== NULL)
-				break;
-		}
-		if(curr){
-            curr->next = link;
-            link->next = NULL;
-		}
-		else{
-           link->next = head;
-           head = link;
-		}
-		return true;
 	}
 	return false;
 }
@@ -157,13 +158,33 @@ MapEntry_t* getMapping(const char *opath) {
 	}
 	return ret;
 }
+// char * path_normalize(const char *path) {
+  // if (!path) return NULL;
 
+  // char *copy = strdup(path);
+  // if (NULL == copy) return NULL;
+  // char *ptr = copy;
+
+  // for (int i = 0; copy[i]; i++) {
+    // *ptr++ = path[i];
+    // if ('/' == path[i]) {
+      // i++;
+      // while ('/' == path[i]) i++;
+      // i--;
+    // }
+  // }
+
+  // *ptr = '\0';
+
+  // return copy;
+// }
 MapEntry_t* mcount[0x40]; // to keep track of mappings already applied to the path so they cannot be reapllied even when they fit, a dept of 64 is probably overkill, 16 might actually be sufficient for this, 32 max???
 size_t count = 0; // to keep track of mcount length
 MapEntry_t* findMapping(const char *opath) {
 	MapEntry_t *ret = NULL;
 	MapEntry_t *curr = NULL;
 	char tmp_mapping[MAX_PATH]="";
+	//const char *holder=opath;
 	if(head && opath) {
 		size_t len = strlen(opath);
 		if(len>6) { // length of /dev_cf
@@ -221,12 +242,15 @@ MapEntry_t* findMapping(const char *opath) {
 				}
 			}
 		}
+		tmp_mapping[0]=0;
 		if(ret){
-			strncpy(tmp_mapping, ret->newpath,ret->newpath_len);
+			if(ret->newpath_len)
+				strncpy(tmp_mapping, ret->newpath,ret->newpath_len);
 			tmp_mapping[ret->newpath_len]=0;
 			len = strlen(opath+ret->oldpath_len);
 			if(ret->newpath_len + len < MAX_PATH){
-				strncpy(tmp_mapping+ret->newpath_len, opath+ret->oldpath_len, len);
+				if(len)
+					strncpy(tmp_mapping+ret->newpath_len, opath+ret->oldpath_len, len);
 				tmp_mapping[ret->newpath_len+len]=0;
 			}
 			if(found!=ret){
@@ -234,7 +258,8 @@ MapEntry_t* findMapping(const char *opath) {
 				ret = findMapping(tmp_mapping);
 			}
 			else{
-				strncpy(ret->newpath+ret->newpath_len, opath+ret->oldpath_len,len);
+				if(len)
+					strncpy(ret->newpath+ret->newpath_len, opath+ret->oldpath_len,len);
 				ret->newpath[ret->newpath_len+len]=0;
 				found=NULL;
 				// set count to 0 to reset mcount
@@ -243,8 +268,10 @@ MapEntry_t* findMapping(const char *opath) {
 		}
 		else if(found){
 			ret=found;
-			len = strlen(opath+ret->oldpath_len);
-			strncpy(ret->newpath+ret->newpath_len, opath+ret->newpath_len, len);
+			//len = strlen(opath+ret->oldpath_len)+1;
+			len = strlen(opath+ret->newpath_len);
+			if(len)
+                strncpy(ret->newpath+ret->newpath_len, opath+ret->newpath_len, len);
 			ret->newpath[ret->newpath_len+len]=0;
 			found=NULL;
 			// set count to 0 to reset mcount
@@ -767,6 +794,19 @@ int read_act_dat_and_make_rif(uint8_t *idps,uint8_t *rap, uint8_t *act_dat, char
 
 LV2_HOOKED_FUNCTION_POSTCALL_2(void, open_path_hook, (char *path0, int mode))
 {
+	#ifdef  DEBUG
+		if(strstr(path0,"/../"))
+			DPRINTF("open_path_hook=: found /../ in path: %s\n",path0);
+		if(strstr(path0,"dev_flash"))
+			DPRINTF("open_path_hook=: found dev_flash in path: %s\n",path0);
+		if(strstr(path0,"xcb:"))
+			DPRINTF("open_path_hook=: found xcb: in path: %s\n",path0);
+		if(strstr(path0,"xmb:"))
+			DPRINTF("open_path_hook=: found xmb: in path: %s\n",path0);
+		if(strstr(path0,"hen_enable.xml"))
+			DPRINTF("open_path_hook=: found hen_enable.xml in path: %s\n",path0);
+	#endif
+	
 	int syscalls_disabled = ((*(uint64_t *)MKA(syscall_table_symbol + 8 * 6)) == (*(uint64_t *)MKA(syscall_table_symbol)));
 
 	if (syscalls_disabled && path0 && !strncmp(path0, "/dev_hdd0/game/", 15) && strstr(path0 + 15, "/EBOOT.BIN"))
@@ -900,6 +940,7 @@ LV2_HOOKED_FUNCTION_POSTCALL_2(void, open_path_hook, (char *path0, int mode))
 		while(path[1]=='/' || path[2]=='/'){
 			path++;
 		}
+		//char *path = path_normalize(path0);
         
         /*if (path && ((strcmp(path, "/dev_bdvd/PS3_UPDATE/PS3UPDAT.PUP") == 0)))  // Blocks FW update from Game discs!     
         {    
@@ -953,7 +994,6 @@ LV2_HOOKED_FUNCTION_POSTCALL_2(void, open_path_hook, (char *path0, int mode))
 			mutex_lock(map_mtx, 0);
 			#ifdef  DEBUG
 				//DPRINTF("open_path_hook=: mutex 0x%8lX locked\n",(uint64_t)map_mtx);
-				//DPRINTF("open_path_hook=: findMapping call for path: %s\n",path);
 			#endif
 			MapEntry_t* curr = findMapping(path);
 			if(curr) {
