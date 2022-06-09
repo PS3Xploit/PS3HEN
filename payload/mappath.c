@@ -14,41 +14,41 @@
 #include <lv2/synchronization.h>
 #include <stdbool.h>
 
-typedef struct MapEntry
-{
+typedef struct MapEntry {
 	char *oldpath;
 	char *newpath;
-	size_t  newpath_len;
-	size_t  oldpath_len;
+	size_t newpath_len;
+	size_t oldpath_len;
 	uint32_t flags;
 	struct MapEntry *next;
 } MapEntry_t;
 
-
 uint8_t photo_gui = 1;
 mutex_t map_mtx = 0;
 MapEntry_t *head = NULL;
+MapEntry_t *found = NULL;
+
 void init_mtx();
+void destroy_mtx();
+uint32_t  MapTableLength();
 bool addMapping(const char *opath, const char *npath, uint32_t flags);
 bool isMapTableEmpty();
-uint32_t  MapTableLength();
-MapEntry_t* findMapping(const char *opath);
 bool patchAllMappingStartingWith(const char *opath, char* dst);
 bool deleteAllMappings(uint32_t flags);
 bool deleteMapping(const char *opath);
+MapEntry_t* findMapping(const char *opath);
+MapEntry_t* getMapping(const char *opath);
+
 //display the list
 void printMappingList() {
 	#ifdef  DEBUG
 		init_mtx();
 		mutex_lock(map_mtx, 0);
-		MapEntry_t* ptr = head;
-		DPRINTF("Mappings:{\n");
-		//start from the beginning
-		while(ptr != NULL) {
-			DPRINTF("mapping: %s len: 0x%X\nto\n%s len: 0x%X\nflags: %X\n",ptr->oldpath,(unsigned int)ptr->oldpath_len,ptr->newpath,(unsigned int)ptr->newpath_len,ptr->flags);
-			ptr = ptr->next;
+		DPRINTF("Mappings Count 0x%X : {\n", MapTableLength());
+		for(MapEntry_t* ptr = head; ptr != NULL; ptr = ptr->next) {
+			DPRINTF("mapping: %s len: 0x%X\nto\n%s len: 0x%X\nflags: %X\n", ptr->oldpath, (unsigned int)ptr->oldpath_len, ptr->newpath, (unsigned int)ptr->newpath_len, ptr->flags);
 		}
-		DPRINTF(" }\n\n");
+		DPRINTF("}\n");
 		mutex_unlock(map_mtx);
 	#endif
 }
@@ -57,10 +57,7 @@ bool isMapTableEmpty() {
 }
 uint32_t MapTableLength() {
 	uint32_t length = 0;
-	MapEntry_t *curr=NULL;
-	for(curr = head; curr != NULL; curr = curr->next) {
-		length++;
-	}
+	for(MapEntry_t *curr = head; curr != NULL; curr = curr->next,length++) {}
 	return length;
 }
 bool addMapping(const char *opath, const char *npath, uint32_t flags) {
@@ -68,7 +65,7 @@ bool addMapping(const char *opath, const char *npath, uint32_t flags) {
 		return false;
 	}
 	size_t nlen=strlen(npath);
-	MapEntry_t *curr = findMapping(opath);
+	MapEntry_t *curr = getMapping(opath);
     if(curr!=NULL){
 		if (nlen && nlen<MAX_PATH)
 		{
@@ -92,7 +89,6 @@ bool addMapping(const char *opath, const char *npath, uint32_t flags) {
 		if(!nlen || nlen>=MAX_PATH){
             return false;
         }
-		
 		//create a link
 		MapEntry_t *link = (MapEntry_t*) alloc(sizeof(MapEntry_t),0x27);
 		if(!link)
@@ -101,8 +97,7 @@ bool addMapping(const char *opath, const char *npath, uint32_t flags) {
 		link->flags = flags;
 		size_t len = strlen(opath);
 		link->oldpath_len = len;
-		if (flags & FLAG_COPY)
-		{
+		if (flags & FLAG_COPY){
 			link->oldpath = (char*)alloc(len+1, 0x27);
 			if(!link->oldpath){
 				dealloc(link, 0x27);
@@ -111,9 +106,9 @@ bool addMapping(const char *opath, const char *npath, uint32_t flags) {
 			strncpy(link->oldpath, opath, len);
 			link->oldpath[len] = 0;
 		}
-		else
+		else{
 			link->oldpath = (char*)opath;
-
+		}
 		link->newpath_len = strlen(npath);
 		link->newpath_len = link->newpath_len < MAX_PATH ? link->newpath_len : MAX_PATH-1;
 		link->newpath = (char*)alloc(MAX_PATH, 0x27);
@@ -127,6 +122,8 @@ bool addMapping(const char *opath, const char *npath, uint32_t flags) {
 		strncpy(link->newpath, npath, link->newpath_len);
 		link->newpath[link->newpath_len] = 0;
 		for(curr = head; curr != NULL; curr = curr->next) {
+			if(curr->next== NULL)
+				break;
 		}
 		if(curr){
             curr->next = link;
@@ -142,30 +139,119 @@ bool addMapping(const char *opath, const char *npath, uint32_t flags) {
 }
 
 //find a link with given key
+MapEntry_t* getMapping(const char *opath) {
+	MapEntry_t *ret = NULL;
+	MapEntry_t *curr = NULL;
+	if(head && opath) {
+		size_t len = strlen(opath);
+		if(len>6) { // length of /dev_cf
+            //start from the first link, slot order matters
+            for(curr = head; curr != NULL; curr = curr->next) {
+                if(curr->oldpath_len == len && strncmp(curr->oldpath, opath, curr->oldpath_len)==0){
+                    //if data found, return the current Link
+                    ret=curr;
+                    break;
+                }
+            }
+		}
+	}
+	return ret;
+}
+
+MapEntry_t* mcount[0x40]; // to keep track of mappings already applied to the path so they cannot be reapllied even when they fit, a dept of 64 is probably overkill, 16 might actually be sufficient for this, 32 max???
+size_t count = 0; // to keep track of mcount length
 MapEntry_t* findMapping(const char *opath) {
+	MapEntry_t *ret = NULL;
+	MapEntry_t *curr = NULL;
+	char tmp_mapping[MAX_PATH]="";
+	if(head && opath) {
+		size_t len = strlen(opath);
+		if(len>6) { // length of /dev_cf
+			//start from the first link, slot order matters
+			for(curr = head; curr != NULL; curr = curr->next) {
+				if(curr->flags&FLAG_MAX_PRIORITY && curr->oldpath_len <= len && strncmp(curr->oldpath, opath, curr->oldpath_len)==0){
 
-   //if list is empty
-   if(head == NULL || opath == NULL) {
-      return NULL;
-   }
-   //start from the first link
-   MapEntry_t* curr = head;
-
-	size_t len = strlen(opath);
-   //navigate through list
-   while(curr->oldpath_len != len || strncmp(curr->oldpath, opath, len)!=0) {
-
-      //if it is last node
-      if(curr->next == NULL) {
-         return NULL;
-      } else {
-         //go to next link
-         curr = curr->next;
-      }
-   }
-
-   //if data found, return the current Link
-   return curr;
+					//if data found, return the current Link
+					if(curr->flags&FLAG_FOLDER && strncmp(curr->newpath, opath, curr->newpath_len)==0)
+                        continue;
+                    bool mcount_found = false;
+                    for(size_t i=0;i<count;i++){
+                       if(mcount[i]==curr){
+                            mcount_found = true;
+							// mapping found in mcount
+                            break;
+                        }
+                    }
+                    if(mcount_found){
+						// mapping already applied, continue looping
+                        continue;
+					}
+					ret=curr;
+					//add  mapping to mcount array
+					mcount[count]=ret;
+					count++;
+					break;
+				}
+			}
+			if(!ret){ // if no item with
+				//start from the first link, slot order matters
+				for(curr = head; curr != NULL; curr = curr->next) {
+					if(curr->oldpath_len <= len && strncmp(curr->oldpath, opath, curr->oldpath_len)==0){
+						//if data found, return the current Link
+						if(curr->flags&FLAG_FOLDER && strncmp(curr->newpath, opath, curr->newpath_len)==0)
+                            continue;
+                        bool mcount_found = false;
+                        for(size_t j=0;j<count;j++){
+                            if(mcount[j]==curr){
+                                mcount_found = true;
+								// mapping found in mcount
+								break;
+                            }
+                        }
+                        if(mcount_found){
+							// mapping already applied, continue looping
+							continue;
+						}
+						ret=curr;
+						//add  mapping to mcount array
+						mcount[count]=ret;
+						count++;
+						break;
+					}
+				}
+			}
+		}
+		if(ret){
+			strncpy(tmp_mapping, ret->newpath,ret->newpath_len);
+			tmp_mapping[ret->newpath_len]=0;
+			len = strlen(opath+ret->oldpath_len);
+			if(ret->newpath_len + len < MAX_PATH){
+				strncpy(tmp_mapping+ret->newpath_len, opath+ret->oldpath_len, len);
+				tmp_mapping[ret->newpath_len+len]=0;
+			}
+			if(found!=ret){
+				found = ret;
+				ret = findMapping(tmp_mapping);
+			}
+			else{
+				strncpy(ret->newpath+ret->newpath_len, opath+ret->oldpath_len,len);
+				ret->newpath[ret->newpath_len+len]=0;
+				found=NULL;
+				// set count to 0 to reset mcount
+                count=0;
+			}
+		}
+		else if(found){
+			ret=found;
+			len = strlen(opath+ret->oldpath_len);
+			strncpy(ret->newpath+ret->newpath_len, opath+ret->newpath_len, len);
+			ret->newpath[ret->newpath_len+len]=0;
+			found=NULL;
+			// set count to 0 to reset mcount
+			count=0;
+		}
+	}
+	return ret;
 }
 //find a link with given key
 bool patchAllMappingStartingWith(const char *opath, char* dst) {
@@ -232,13 +318,13 @@ bool deleteAllMappings(uint32_t flags) {
 }
 //delete a link with given key
 bool deleteMapping(const char *opath) {
-	//start from the first link
-	MapEntry_t* curr = head;
-	MapEntry_t* previous = NULL;
 	//if list is empty
 	if(head == NULL || opath == NULL) {
 		return false;
 	}
+	//start from the first link
+	MapEntry_t* curr = head;
+	MapEntry_t* previous = NULL;
 	size_t len = strlen(opath);
 	//navigate through list
 	while(curr->oldpath_len != len || strncmp(curr->oldpath, opath, len)!=0) {
@@ -280,6 +366,16 @@ void init_mtx(){
 	}
 }
 
+void destroy_mtx(){
+	if(map_mtx){
+		mutex_destroy(map_mtx);
+		#ifdef  DEBUG
+			DPRINTF("destroy_mtx=: Mutex map_mtx 0x%8lx destroyed\n", (uint64_t)map_mtx);
+		#endif
+		map_mtx=0;
+	}
+}
+
 int map_path(char *oldpath, char *newpath, uint32_t flags)
 {
 	int ret = -1;
@@ -287,7 +383,7 @@ int map_path(char *oldpath, char *newpath, uint32_t flags)
 		return -1;
 	
 	#ifdef  DEBUG
-		//DPRINTF("Map path: %s -> %s\n", oldpath, newpath);
+		DPRINTF("Map path: %s -> %s\n", oldpath, newpath);
 	#endif
 
 	if (newpath && strcmp(oldpath, newpath) == 0)
@@ -299,13 +395,13 @@ int map_path(char *oldpath, char *newpath, uint32_t flags)
 	init_mtx();
 	mutex_lock(map_mtx, 0);
 	#ifdef  DEBUG
-		//DPRINTF("map_path=: mutex locked\n");
+		//DPRINTF("map_path=: mutex 0x%8lX locked\n",(uint64_t)map_mtx);
 	#endif 
 	if(addMapping(oldpath, newpath, flags))
 		ret = 0;
 	mutex_unlock(map_mtx);
 	#ifdef  DEBUG
-		//DPRINTF("map_path=: mutex unlocked\n");
+		//DPRINTF("map_path=: mutex 0x%8lX unlocked\n",(uint64_t)map_mtx);
 	#endif 
 	return 0;	
 }
@@ -315,7 +411,7 @@ int map_path_user(char *oldpath, char *newpath, uint32_t flags)
 	char *oldp, *newp;
 	
 	#ifdef  DEBUG
-		//DPRINTF("map_path_user, called by process %s: %s -> %s\n", get_process_name(get_current_process_critical()), oldpath, newpath); 
+		DPRINTF("map_path_user, called by process %s: %s -> %s\n", get_process_name(get_current_process_critical()), oldpath, newpath); 
 	#endif
 	
 	if (oldpath == 0)
@@ -350,22 +446,24 @@ int get_map_path(uint32_t num, char *path, char *new_path)
 {
 	//if(num > MAX_TABLE_ENTRIES) return MAX_TABLE_ENTRIES;
 	if(!path || !new_path) return -1;
+	#ifdef  DEBUG
+		DPRINTF("get_map_path slot: %u\n", num);
+	#endif
 	init_mtx();
 	mutex_lock(map_mtx, 0);
 	#ifdef  DEBUG
-		//DPRINTF("get_map_path=: mutex locked\n");
+		//DPRINTF("get_map_path=: mutex 0x%8lX locked\n",(uint64_t)map_mtx);
 	#endif 
 	MapEntry_t* curr = head;
 	uint32_t i=0;
 	while(curr && i<num){
-		i++;
 		curr = curr->next;
 	}
 	
 	if(!curr || curr->oldpath_len == 0 || curr->newpath_len == 0 || !curr->newpath || !curr->oldpath) {
 		mutex_unlock(map_mtx);
 		#ifdef  DEBUG
-			//DPRINTF("get_map_path=: mutex unlocked\n");
+			//DPRINTF("get_map_path=: mutex 0x%8lX unlocked\n",(uint64_t)map_mtx);
 		#endif 
 		return -1;
 	}
@@ -375,7 +473,7 @@ int get_map_path(uint32_t num, char *path, char *new_path)
 	
 	mutex_unlock(map_mtx);
 	#ifdef  DEBUG
-		//DPRINTF("get_map_path=: mutex unlocked\n");
+		//DPRINTF("get_map_path=: mutex 0x%8lX unlocked\n",(uint64_t)map_mtx);
 	#endif 
 	return 0;
 }
@@ -388,8 +486,8 @@ LV2_SYSCALL2(int, sys_map_path, (char *oldpath, char *newpath))
 
 int sys_map_paths(char *paths[], char *new_paths[], uint32_t num)
 {
-	uint32_t *u_paths = (uint32_t *)get_secure_user_ptr(paths);
-	uint32_t *u_new_paths = (uint32_t *)get_secure_user_ptr(new_paths);
+	uint32_t *u_paths = (uint32_t*)get_secure_user_ptr(paths);
+	uint32_t *u_new_paths = (uint32_t*)get_secure_user_ptr(new_paths);
 	int unmap = 0;	
 	int ret = 0;
 	
@@ -416,18 +514,15 @@ int sys_map_paths(char *paths[], char *new_paths[], uint32_t num)
 		init_mtx();
 		mutex_lock(map_mtx, 0);
 		#ifdef  DEBUG
-			//DPRINTF("sys_map_paths=: mutex locked\n");
+			//DPRINTF("sys_map_paths=: mutex 0x%8lX locked\n",(uint64_t)map_mtx);
 		#endif 
 		deleteAllMappings(FLAG_TABLE);
 		mutex_unlock(map_mtx);
-		mutex_destroy(map_mtx);
-		map_mtx=0;
 		#ifdef  DEBUG
 			//DPRINTF("sys_map_paths=: mutex unlocked and destroyed\n");
 		#endif 
 		
 	}
-	
 	return ret;
 }
 //////////////////////////////////////////////////////////////////////////////////////
@@ -541,7 +636,7 @@ static uint8_t libft2d_access = 0;
 // After the core tests it will test first if the gameid is in whitelist.cfg (superseeds previous tests)
 // In the it will test if the gameid is in blacklist.cfg (superseeds all previous tests)
 // ** WARNING ** This syscall disablement test assumes that the syscall table entry 6 (peek) was replaced by the original value (equals syscall 0 entry) as done by PSNPatch
-// ** WARNING ** If only a parcial disablement was made, this assumption WILL FAIL !!!
+// ** WARNING ** If only a partial disablement was made, this assumption WILL FAIL !!!
 //
 // Iniziato da KW & AV blocca l'accesso a homebrews quando le syscalls sono disabilitati
 // Dopo i test di base, verificherà innanzitutto se il gameid è in whitelist.cfg (test superiori precedenti)
@@ -610,7 +705,6 @@ void get_rif_key(unsigned char* rap, unsigned char* rif)
 			}
 		}
 	}
-
 	memcpy(rif, key, 0x10);
 }
 
@@ -796,12 +890,14 @@ LV2_HOOKED_FUNCTION_POSTCALL_2(void, open_path_hook, (char *path0, int mode))
 			page_free(NULL, (void *)buf, 0x2F);
 		}
 	}
-	
+	#ifdef  DEBUG
+		//DPRINTF("open_path_hook=: processing path [%s]\n", path0);
+	#endif
 	if (path0[0]=='/')
 	{
         char *path=path0;
 		//if(path[1]=='/') path++;
-		while(path[1]=='/'){
+		while(path[1]=='/' || path[2]=='/'){
 			path++;
 		}
         
@@ -853,41 +949,27 @@ LV2_HOOKED_FUNCTION_POSTCALL_2(void, open_path_hook, (char *path0, int mode))
 				}
 			}
 			////////////////////////////////////////////////////////////////////////////////////
-
 			init_mtx();
 			mutex_lock(map_mtx, 0);
 			#ifdef  DEBUG
-				//DPRINTF("open_path_hook=: mutex locked\n");
+				//DPRINTF("open_path_hook=: mutex 0x%8lX locked\n",(uint64_t)map_mtx);
+				//DPRINTF("open_path_hook=: findMapping call for path: %s\n",path);
 			#endif
 			MapEntry_t* curr = findMapping(path);
 			if(curr) {
-				if (curr->oldpath)
-				{
-					if (curr->oldpath_len==strlen(path) && strncmp(path, curr->oldpath, curr->oldpath_len) == 0)
-					{
-						if(curr->oldpath_len + strlen(path+curr->oldpath_len) <= MAX_PATH){
-							strcpy(curr->newpath+curr->newpath_len, path+curr->oldpath_len);
-							set_patched_func_param(1, (uint64_t)curr->newpath);
-							#ifdef  DEBUG
-								DPRINTF("open_path_hook: function path argument: [%s] \nMap Table oldpath: [%s] \nMap Table newpath: [%s] \nMap Table newpath_len: [0x%x]\n",path0, curr->oldpath,curr->newpath,(unsigned int)curr->newpath_len);
-							#endif 
-						}
-						else{
-							#ifdef  DEBUG
-								DPRINTF("open_path_hook=: could not extend newpath due to string size constraints  extra path [%s]\n", path+curr->oldpath_len);
-							#endif
-						}
-					}
-				}
+				set_patched_func_param(1, (uint64_t)curr->newpath);
+				#ifdef  DEBUG
+					DPRINTF("open_path_hook: found matching entry for %s in Map Table oldpath: [%s] \nMap Table newpath: [%s] \nMap Table newpath_len: [0x%x]\n",path,curr->oldpath,curr->newpath,(unsigned int)curr->newpath_len);
+				#endif 
 			}
 			else{
 				#ifdef  DEBUG
-					DPRINTF("open_path_hook=: no mapping found for path [%s]\n", curr->oldpath);
+					//DPRINTF("open_path_hook=: no mapping found for path [%s]\n", path);
 				#endif
 			}
 			mutex_unlock(map_mtx);
 			#ifdef  DEBUG
-				//DPRINTF("open_path_hook=: mutex unlocked\n");
+				//DPRINTF("open_path_hook=: mutex 0x%8lX unlocked\n",(uint64_t)map_mtx);
 			#endif 
 		}
 	}
@@ -895,8 +977,8 @@ LV2_HOOKED_FUNCTION_POSTCALL_2(void, open_path_hook, (char *path0, int mode))
 
 int sys_aio_copy_root(char *src, char *dst)
 {
-	src = get_secure_user_ptr(src);
-	dst = get_secure_user_ptr(dst);
+	src = (char*)get_secure_user_ptr(src);
+	dst = (char*)get_secure_user_ptr(dst);
 	
 	// Begin original function implementation	
 	if (!src)
@@ -926,17 +1008,20 @@ int sys_aio_copy_root(char *src, char *dst)
 	// Here begins custom part of the implementation
 	if (strcmp(dst, "/dev_bdvd") == 0 && condition_apphome) // if dev_bdvd and jb game mounted 
 	{
+		#ifdef  DEBUG
+			DPRINTF("sys_aio_copy_root=: processing /dev_bdvd\n");
+		#endif 
 		init_mtx();
 		mutex_lock(map_mtx, 0);
 		#ifdef  DEBUG
-			//DPRINTF("sys_aio_copy_root=: mutex locked\n");
+			//DPRINTF("sys_aio_copy_root=: mutex 0x%8lX locked\n",(uint64_t)map_mtx);
 		#endif 
 		// find /dev_bdvd
 		patchAllMappingStartingWith("/dev_bdvd", dst);
 		
 		mutex_unlock(map_mtx);
 		#ifdef  DEBUG
-			//DPRINTF("sys_aio_copy_root=: mutex unlocked\n");
+			//DPRINTF("sys_aio_copy_root=: mutex 0x%8lX unlocked\n",(uint64_t)map_mtx);
 		#endif 
 	}			
 		
