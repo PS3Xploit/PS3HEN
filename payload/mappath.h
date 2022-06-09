@@ -5,11 +5,21 @@
 
 #define SYS_MAP_PATH	35
 #define SYS_MAP_GAME	36
+
 //#define MAX_TABLE_ENTRIES 18
+
 #define FLAG_COPY						1
 #define FLAG_TABLE						2
 #define FLAG_FOLDER						4
 #define FLAG_MAX_PRIORITY				8
+
+// #define FLAG_COPY						1
+// #define FLAG_TABLE						4
+// #define FLAG_FOLDER						6
+// #define FLAG_MAX_PRIORITY				8
+// #define FLAG_RESOLVE_PATH				16
+
+
 
 void 	printMappingList();
 void	map_path_patches(int syscall);
