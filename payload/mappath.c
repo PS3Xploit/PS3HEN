@@ -28,8 +28,10 @@ mutex_t map_mtx = 0;
 MapEntry_t *head = NULL;
 MapEntry_t *found = NULL;
 
-void init_mtx();
-void destroy_mtx();
+int init_mtx();
+int lock_mtx();
+int unlock_mtx();
+int destroy_mtx();
 uint32_t  MapTableLength();
 bool addMapping(const char *opath, const char *npath, uint32_t flags);
 bool isMapTableEmpty();
@@ -38,18 +40,16 @@ bool deleteAllMappings(uint32_t flags);
 bool deleteMapping(const char *opath);
 MapEntry_t* findMapping(const char *opath);
 MapEntry_t* getMapping(const char *opath);
-char * path_normalize(const char *);
+//char * path_normalize(const char *);
 //display the list
 void printMappingList() {
 	#ifdef  DEBUG
-		init_mtx();
-		mutex_lock(map_mtx, 0);
-		DPRINTF("Mappings Count 0x%X : {\n", MapTableLength());
+		lock_mtx();
+		DPRINTF("Mappings Count 0x%X : \n", MapTableLength());
 		for(MapEntry_t* ptr = head; ptr != NULL; ptr = ptr->next) {
-			DPRINTF("mapping: %s len: 0x%X\nto\n%s len: 0x%X\nflags: %X\n", ptr->oldpath, (unsigned int)ptr->oldpath_len, ptr->newpath, (unsigned int)ptr->newpath_len, ptr->flags);
+			DPRINTF("mapping: %s len: 0x%X byte(s) to %s len: 0x%X byte(s) with flags: %X\n", ptr->oldpath, (unsigned int)ptr->oldpath_len, ptr->newpath, (unsigned int)ptr->newpath_len, ptr->flags);
 		}
-		DPRINTF("}\n");
-		mutex_unlock(map_mtx);
+		unlock_mtx();
 	#endif
 }
 bool isMapTableEmpty() {
@@ -384,23 +384,77 @@ bool deleteMapping(const char *opath) {
 }
 
 
-void init_mtx(){
+int init_mtx(){
+	int ret=0;
 	if(!map_mtx){
-		mutex_create(&map_mtx, SYNC_PRIORITY, SYNC_NOT_RECURSIVE);
+		ret = mutex_create(&map_mtx, SYNC_PRIORITY, SYNC_NOT_RECURSIVE);
+		//ret = mutex_create(&map_mtx, SYNC_PRIORITY, SYNC_RECURSIVE);
 		#ifdef  DEBUG
-			DPRINTF("init_mtx=: Mutex map_mtx 0x%8lx created\n", (uint64_t)map_mtx);
+			if(ret)
+				DPRINTF("init_mtx=: mutex map_mtx creation error 0x%x\n",ret);
+			else
+				DPRINTF("init_mtx=: mutex map_mtx 0x%8lx created\n", (uint64_t)map_mtx);
 		#endif 
 	}
+	return ret;
 }
 
-void destroy_mtx(){
-	if(map_mtx){
-		mutex_destroy(map_mtx);
-		#ifdef  DEBUG
-			DPRINTF("destroy_mtx=: Mutex map_mtx 0x%8lx destroyed\n", (uint64_t)map_mtx);
-		#endif
-		map_mtx=0;
+int lock_mtx(){
+	int ret=0;
+	if(!map_mtx){
+		ret = init_mtx();
 	}
+	if(!ret){
+		ret = mutex_lock(map_mtx, 0);
+		#ifdef  DEBUG
+			if(ret)
+				DPRINTF("lock_mtx=: mutex map_mtx 0x%8lx lock error 0x%x\n", (uint64_t)map_mtx, ret);
+			//else
+				//DPRINTF("lock_mtx=: mutex map_mtx 0x%8lx locked\n", (uint64_t)map_mtx);
+		#endif
+	}
+	return ret;
+}
+int unlock_mtx(){
+	int ret=0;
+	if(!map_mtx){
+		ret = init_mtx();
+	}
+	if(!ret){
+		ret = mutex_unlock(map_mtx);
+		#ifdef  DEBUG
+			if(ret)
+				DPRINTF("unlock_mtx=: mutex map_mtx 0x%8lx unlock error 0x%x\n", (uint64_t)map_mtx, ret);
+			//else
+				//DPRINTF("unlock_mtx=: mutex map_mtx 0x%8lx unlocked\n", (uint64_t)map_mtx);
+		#endif
+	}
+	return ret;
+}
+
+int destroy_mtx(){
+	int ret=0;
+	if(map_mtx){
+		ret=mutex_destroy(map_mtx);
+		if(ret){
+		#ifdef  DEBUG
+			DPRINTF("destroy_mtx=: mutex map_mtx 0x%8lx destroy error 0x%x\n", (uint64_t)map_mtx, ret);
+		#endif 
+			if(ret==ESRCH){ //ESRCH error
+				#ifdef  DEBUG
+					DPRINTF("destroy_mtx=: mutex map_mtx 0x%8lx reset to 0\n", (uint64_t)map_mtx);
+				#endif 
+				map_mtx=0;
+			}
+		}
+		else{
+		#ifdef  DEBUG
+			DPRINTF("destroy_mtx=: mutex map_mtx 0x%8lx destroyed\n", (uint64_t)map_mtx);
+		#endif 
+			map_mtx=0;
+		}
+	}
+	return ret;
 }
 
 int map_path(char *oldpath, char *newpath, uint32_t flags)
@@ -419,17 +473,10 @@ int map_path(char *oldpath, char *newpath, uint32_t flags)
 	if (strcmp(oldpath, "/dev_bdvd") == 0)	
 		condition_apphome = (newpath != NULL);	
 		
-	init_mtx();
-	mutex_lock(map_mtx, 0);
-	#ifdef  DEBUG
-		//DPRINTF("map_path=: mutex 0x%8lX locked\n",(uint64_t)map_mtx);
-	#endif 
+	lock_mtx();
 	if(addMapping(oldpath, newpath, flags))
 		ret = 0;
-	mutex_unlock(map_mtx);
-	#ifdef  DEBUG
-		//DPRINTF("map_path=: mutex 0x%8lX unlocked\n",(uint64_t)map_mtx);
-	#endif 
+	unlock_mtx();
 	return 0;	
 }
 
@@ -472,37 +519,29 @@ int map_path_user(char *oldpath, char *newpath, uint32_t flags)
 int get_map_path(uint32_t num, char *path, char *new_path)
 {
 	//if(num > MAX_TABLE_ENTRIES) return MAX_TABLE_ENTRIES;
-	if(!path || !new_path) return -1;
-	#ifdef  DEBUG
-		DPRINTF("get_map_path slot: %u\n", num);
-	#endif
-	init_mtx();
-	mutex_lock(map_mtx, 0);
-	#ifdef  DEBUG
-		//DPRINTF("get_map_path=: mutex 0x%8lX locked\n",(uint64_t)map_mtx);
-	#endif 
-	MapEntry_t* curr = head;
-	uint32_t i=0;
-	while(curr && i<num){
-		curr = curr->next;
+	int ret = EINVAL;
+	if(path && new_path){
+		lock_mtx();
+		MapEntry_t* curr = NULL;
+		uint32_t i=0;
+		for(curr=head;curr != NULL && i!=num;curr=curr->next,i++) {}
+		if(curr && i==num && curr->oldpath_len && curr->newpath_len && curr->newpath && curr->oldpath) {
+			copy_to_user(&path, get_secure_user_ptr(curr->oldpath),curr->oldpath_len);
+			copy_to_user(&new_path, get_secure_user_ptr(curr->newpath), curr->newpath_len);
+			ret=0;
+			#ifdef  DEBUG
+				DPRINTF("get_map_path: slot: 0x%x oldpath: %s -> newpath: %s\n", num, path, new_path);
+			#endif
+		}
+		else{
+			ret=ESRCH;
+			#ifdef  DEBUG
+				DPRINTF("get_map_path slot %u not found\n", num);
+			#endif
+		}
+		unlock_mtx();
 	}
-	
-	if(!curr || curr->oldpath_len == 0 || curr->newpath_len == 0 || !curr->newpath || !curr->oldpath) {
-		mutex_unlock(map_mtx);
-		#ifdef  DEBUG
-			//DPRINTF("get_map_path=: mutex 0x%8lX unlocked\n",(uint64_t)map_mtx);
-		#endif 
-		return -1;
-	}
-
-	copy_to_user(&path, get_secure_user_ptr(curr->oldpath),curr->oldpath_len);
-	copy_to_user(&new_path, get_secure_user_ptr(curr->newpath), curr->newpath_len);
-	
-	mutex_unlock(map_mtx);
-	#ifdef  DEBUG
-		//DPRINTF("get_map_path=: mutex 0x%8lX unlocked\n",(uint64_t)map_mtx);
-	#endif 
-	return 0;
+	return ret;
 }
 
 LV2_SYSCALL2(int, sys_map_path, (char *oldpath, char *newpath))
@@ -538,16 +577,9 @@ int sys_map_paths(char *paths[], char *new_paths[], uint32_t num)
 	
 	if (unmap)
 	{
-		init_mtx();
-		mutex_lock(map_mtx, 0);
-		#ifdef  DEBUG
-			//DPRINTF("sys_map_paths=: mutex 0x%8lX locked\n",(uint64_t)map_mtx);
-		#endif 
+		lock_mtx();
 		deleteAllMappings(FLAG_TABLE);
-		mutex_unlock(map_mtx);
-		#ifdef  DEBUG
-			//DPRINTF("sys_map_paths=: mutex unlocked and destroyed\n");
-		#endif 
+		unlock_mtx();
 		
 	}
 	return ret;
@@ -792,19 +824,27 @@ int read_act_dat_and_make_rif(uint8_t *idps,uint8_t *rap, uint8_t *act_dat, char
 		return 0;
 }
 
-LV2_HOOKED_FUNCTION_POSTCALL_2(void, open_path_hook, (char *path0, int mode))
+//LV2_HOOKED_FUNCTION_POSTCALL_2(void, open_path_hook, (char *path0, int mode))
+LV2_HOOKED_FUNCTION_POSTCALL_2(int, open_path_hook, (char *path0, char *path1))
 {
+	//extend_kstack(0);
 	#ifdef  DEBUG
-		if(strstr(path0,"/../"))
-			DPRINTF("open_path_hook=: found /../ in path: %s\n",path0);
-		if(strstr(path0,"dev_flash"))
-			DPRINTF("open_path_hook=: found dev_flash in path: %s\n",path0);
-		if(strstr(path0,"xcb:"))
-			DPRINTF("open_path_hook=: found xcb: in path: %s\n",path0);
-		if(strstr(path0,"xmb:"))
-			DPRINTF("open_path_hook=: found xmb: in path: %s\n",path0);
-		if(strstr(path0,"hen_enable.xml"))
-			DPRINTF("open_path_hook=: found hen_enable.xml in path: %s\n",path0);
+		if(path0){
+			if(path1)
+				DPRINTF("open_path_hook=: path0: %s - path1 len: 0x%X offset: 0x%8lx\n",path0, (unsigned int)strlen(path1), (uint64_t)path1);
+			else
+				DPRINTF("open_path_hook=: path0: %s\n",path0);
+		}
+		// if(strstr(path0,"/../"))
+			// DPRINTF("open_path_hook=: found /../ in path: %s\n",path0);
+		// if(strstr(path0,"dev_flash"))
+			// DPRINTF("open_path_hook=: found dev_flash in path: %s\n",path0);
+		// if(strstr(path0,"xcb:"))
+			// DPRINTF("open_path_hook=: found xcb: in path: %s\n",path0);
+		// if(strstr(path0,"xmb:"))
+			// DPRINTF("open_path_hook=: found xmb: in path: %s\n",path0);
+		// if(strstr(path0,"hen_enable.xml"))
+			// DPRINTF("open_path_hook=: found hen_enable.xml in path: %s\n",path0);
 	#endif
 	
 	int syscalls_disabled = ((*(uint64_t *)MKA(syscall_table_symbol + 8 * 6)) == (*(uint64_t *)MKA(syscall_table_symbol)));
@@ -850,7 +890,9 @@ LV2_HOOKED_FUNCTION_POSTCALL_2(void, open_path_hook, (char *path0, int mode))
 		if (!allow)
 		{
 			set_patched_func_param(1, (uint64_t)crap_pants);
-			return;
+			return 0;
+			// strncpy(path1, (const char*)crap_pants, 13);
+			// return 0;
 		}
 	}
 
@@ -863,6 +905,7 @@ LV2_HOOKED_FUNCTION_POSTCALL_2(void, open_path_hook, (char *path0, int mode))
 		page_allocate_auto(NULL, 0x60, 0x2F, (void *)&buf);
 		memset(buf,0,0x60);
 		
+		// hard coded usb path 000 & 001 should be replaced with usb mount points detection!!!
 		sprintf(buf,"/dev_usb000/exdata/%.36s.rap",content_id);
 		int path_chk=cellFsStat(buf,&stat);
 		if(path_chk!=0)
@@ -933,14 +976,35 @@ LV2_HOOKED_FUNCTION_POSTCALL_2(void, open_path_hook, (char *path0, int mode))
 	#ifdef  DEBUG
 		//DPRINTF("open_path_hook=: processing path [%s]\n", path0);
 	#endif
-	if (path0[0]=='/')
-	{
-        char *path=path0;
-		//if(path[1]=='/') path++;
-		while(path[1]=='/' || path[2]=='/'){
+	
+	char *path=path0;
+	if(path){
+		size_t plen = strlen(path);
+		while(path[0]!='/' || path[1]=='/' || path[1]=='.'){
 			path++;
+			if(path >= path0+plen){
+				path=NULL;
+				break;
+			}
 		}
+	}
+	if(path && (strncmp(path,"/dev_",5)==0 || strncmp(path,"/app_",5)==0 || strncmp(path,"/host_",6)==0))
+	{
 		//char *path = path_normalize(path0);
+		
+		// Testing the path_clean sub at 0x80000000002B17F8 (DEX) / 0x8000000000296738 (CEX) to scrub the path's extra slashes????
+		/* char *path2 = strdup(path0);
+		if(path2){
+			char *path3 = path_clean(path2);
+			#ifdef  DEBUG
+				if(path3)
+					DPRINTF("open_path_hook=: scrubbed path: %s\n", path3);
+				else 
+					DPRINTF("open_path_hook=: no scrubbed path output for %s\n",path2);
+			#endif
+			dealloc(path2,0x27);
+		} */
+		// end test
         
         /*if (path && ((strcmp(path, "/dev_bdvd/PS3_UPDATE/PS3UPDAT.PUP") == 0)))  // Blocks FW update from Game discs!     
         {    
@@ -990,14 +1054,15 @@ LV2_HOOKED_FUNCTION_POSTCALL_2(void, open_path_hook, (char *path0, int mode))
 				}
 			}
 			////////////////////////////////////////////////////////////////////////////////////
-			init_mtx();
-			mutex_lock(map_mtx, 0);
-			#ifdef  DEBUG
-				//DPRINTF("open_path_hook=: mutex 0x%8lX locked\n",(uint64_t)map_mtx);
-			#endif
+			lock_mtx();
 			MapEntry_t* curr = findMapping(path);
 			if(curr) {
 				set_patched_func_param(1, (uint64_t)curr->newpath);
+				// size_t nplen = strlen(curr->newpath);
+				// if(nplen>6 && nplen<MAX_PATH){
+					// strncpy(path1, curr->newpath, nplen);
+					// path1[nplen]=0;
+				// }
 				#ifdef  DEBUG
 					DPRINTF("open_path_hook: found matching entry for %s in Map Table oldpath: [%s] \nMap Table newpath: [%s] \nMap Table newpath_len: [0x%x]\n",path,curr->oldpath,curr->newpath,(unsigned int)curr->newpath_len);
 				#endif 
@@ -1007,12 +1072,11 @@ LV2_HOOKED_FUNCTION_POSTCALL_2(void, open_path_hook, (char *path0, int mode))
 					//DPRINTF("open_path_hook=: no mapping found for path [%s]\n", path);
 				#endif
 			}
-			mutex_unlock(map_mtx);
-			#ifdef  DEBUG
-				//DPRINTF("open_path_hook=: mutex 0x%8lX unlocked\n",(uint64_t)map_mtx);
-			#endif 
+			unlock_mtx();
 		}
 	}
+	//return 0 if declared as int, not void
+	return 0;
 }
 
 int sys_aio_copy_root(char *src, char *dst)
@@ -1026,7 +1090,7 @@ int sys_aio_copy_root(char *src, char *dst)
 	
 	size_t len = strlen(src);
 	
-	if (len >= 0x420 || len <= 1 || src[0] != '/')
+	if (len >= MAX_PATH || len <= 1 || src[0] != '/')
 		return EINVAL;
 	
 	strcpy(dst, src); 
@@ -1048,21 +1112,10 @@ int sys_aio_copy_root(char *src, char *dst)
 	// Here begins custom part of the implementation
 	if (strcmp(dst, "/dev_bdvd") == 0 && condition_apphome) // if dev_bdvd and jb game mounted 
 	{
-		#ifdef  DEBUG
-			DPRINTF("sys_aio_copy_root=: processing /dev_bdvd\n");
-		#endif 
-		init_mtx();
-		mutex_lock(map_mtx, 0);
-		#ifdef  DEBUG
-			//DPRINTF("sys_aio_copy_root=: mutex 0x%8lX locked\n",(uint64_t)map_mtx);
-		#endif 
+		lock_mtx();
 		// find /dev_bdvd
 		patchAllMappingStartingWith("/dev_bdvd", dst);
-		
-		mutex_unlock(map_mtx);
-		#ifdef  DEBUG
-			//DPRINTF("sys_aio_copy_root=: mutex 0x%8lX unlocked\n",(uint64_t)map_mtx);
-		#endif 
+		unlock_mtx();
 	}			
 		
 	return 0;
