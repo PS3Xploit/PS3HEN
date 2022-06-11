@@ -117,5 +117,7 @@ LV2_EXPORT int close_fs_object(void *unk, fs_object_handle_t handle);
 
 LV2_EXPORT int get_path_by_fd(int fd, char *path);
 
+LV2_EXPORT char* path_clean(char* path);
+
 #endif /* __LV2_IO_H__ */
 

@@ -122,6 +122,8 @@
 #define open_fs_object_symbol							0x18A970
 #define close_fs_object_symbol							0x1898AC
 
+#define path_clean_symbol								0x296738
+
 #define storage_get_device_info_symbol					0x279B00
 #define storage_get_device_config_symbol				0x278F90
 #define storage_open_symbol								0x279510
@@ -404,6 +406,8 @@
 #define open_path_symbol								0x2B25D0
 #define open_fs_object_symbol							0x190CFC
 #define close_fs_object_symbol							0x18FC38
+
+#define path_clean_symbol								0x2B17F8
 
 #define storage_get_device_info_symbol					0x28CA00
 #define storage_get_device_config_symbol				0x28B08C
