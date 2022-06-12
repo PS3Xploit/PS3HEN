@@ -17,6 +17,7 @@
 #include <lv2/security.h>
 #include <lv2/error.h>
 #include <lv2/symbols.h>
+#include <lv2/pad.h>
 #include <lv1/stor.h>
 #include <lv1/patch.h>
 #include "common.h"
@@ -1217,8 +1218,42 @@ void cleanup_old_files(void)
 	cellFsUnlink(clean_hen_updater);
 }
 
-extern volatile int sleep_done;
+// Hotkey Buttons pressed at launch
+int mappath_disabled=0;// Disable all mappath mappings at launch
+int print_mapping_list_disabled=0;// Disable mappath mappings list in debug log
+int boot_plugins_disabled=0;// Disable user and kernel plugins on launch
 
+static void check_combo_buttons(void);
+static void check_combo_buttons(void)
+{
+	#ifdef DEBUG
+		DPRINTF("check_combo_buttons\n");
+	#endif
+	
+	pad_data onboot;
+	
+	timer_usleep(80000);
+	
+	if (pad_get_data(&onboot) >= ((PAD_BTN_OFFSET_DIGITAL+1)*2)){
+
+		if((onboot.button[PAD_BTN_OFFSET_DIGITAL] & (PAD_CTRL_L2)) == (PAD_CTRL_L2)){
+
+			DPRINTF("L2 Pressed\n");
+			mappath_disabled=1;
+			DPRINTF("mappath remappings disabled\n");
+		}
+
+		if((onboot.button[PAD_BTN_OFFSET_DIGITAL] & (PAD_CTRL_R2)) == (PAD_CTRL_R2)){
+
+			DPRINTF("R2 Pressed\n");
+			boot_plugins_disabled=1;
+			DPRINTF("load_boot_plugins() disabled\nload_boot_plugins_kernel() disabled\n");
+		}
+	}
+	timer_usleep(20000);
+}
+
+extern volatile int sleep_done;
 
 int main(void)
 {
@@ -1240,32 +1275,52 @@ int main(void)
 	// Cleanup Old HEN Files
 	cleanup_old_files();
 	
-	//map_path("/dev_hdd0/hen/xml","/dev_flash/hen/remap/xml",FLAG_PROTECT|FLAG_TABLE); // Remap path to XML
-	map_path("/dev_hdd0/hen/xml/hfw_settings.xml","/dev_flash/hen/remap/xml/hfw_settings.xml",0); // Enable HFW Tools on Launch 2.3.3+
-	map_path("/dev_hdd0/hen/xml/hen_pkg_manager_full.xml","/dev_flash/hen/remap/xml/hen_pkg_manager_full.xml",0); // Show PKG Manager
-	map_path("/dev_hdd0/hen/xml/hen_enable.xml","/dev_flash/hen/remap/xml/hen_enable.xml",0); // Hide Enable HEN Menu Item
-	//map_path("/dev_hdd0/hen/xml/hen_boot.xml","/dev_flash/hen/remap/xml/hen_boot.xml",FLAG_PROTECT|FLAG_TABLE); // do something here
-	//map_path("/dev_hdd0/game/PS3XPLOIT/USRDIR/EBOOT.BIN","/dev_flash/hen/reload_xmb.self",FLAG_PROTECT|FLAG_TABLE); // Remap reload_xmb to an NP directory
+	// Check for hotkey button presses on launch
+	check_combo_buttons();
 	
-	printMappingList();
+	if(mappath_disabled==0)
+	{
+		//map_path("/dev_flash/hen/xml","/dev_flash/hen/remap/xml",FLAG_FOLDER|FLAG_MAX_PRIORITY); // Remap path to XML
+		map_path("/dev_hdd0/hen/xml/hfw_settings.xml","/dev_flash/hen/remap/xml/hfw_settings.xml",0); // Enable HFW Tools on Launch 2.3.3+
+		map_path("/dev_hdd0/hen/xml/hen_pkg_manager_full.xml","/dev_flash/hen/remap/xml/hen_pkg_manager_full.xml",0); // Show PKG Manager
+		map_path("/dev_hdd0/hen/xml/hen_enable.xml","/dev_flash/hen/remap/xml/hen_enable.xml",0); // Hide Enable HEN Menu Item
+	}
+	
+	if(print_mapping_list_disabled==0)
+	{
+		printMappingList();
+	}
 	
 	storage_ext_init();
 	modules_patch_init();
-//	drm_init();
+	//drm_init();
 
 	apply_kernel_patches();
 	map_path_patches(1);
 	storage_ext_patches();
 	region_patches();
-//	permissions_patches();
+	//permissions_patches();
+	#ifdef DEBUG
+		DPRINTF("PAYLOAD->patches applied\n");
+	#endif
+	
 	init_mount_hdd0();
 	sleep_done=1;
 	do_hook_all_syscalls();
 	memset((void *)MKA(0x7e0000),0,0x100);
 	memset((void *)MKA(0x7f0000),0,0x1000);
-	load_boot_plugins();
-	load_boot_plugins_kernel();
-//	enable_ingame_screenshot();
+	
+	if(boot_plugins_disabled==0)
+	{
+		load_boot_plugins();
+		load_boot_plugins_kernel();
+	}
+	
+	#ifdef DEBUG
+		DPRINTF("PAYLOAD->plugins loaded\n");
+	#endif
+	
+	//enable_ingame_screenshot();
 
 	// This file is installed by default pkg and is used to determine when HEN has finished installing, in henplugin.
 	// If it exists, remove it on launch to eliminate false checks.
