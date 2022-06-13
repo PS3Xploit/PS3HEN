@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <string.h>
 #include <lv2/lv2.h>
 #include <lv2/libc.h>
@@ -17,7 +18,7 @@
 #include <lv2/security.h>
 #include <lv2/error.h>
 #include <lv2/symbols.h>
-#include <lv2/pad.h>
+//#include <lv2/pad.h>
 #include <lv1/stor.h>
 #include <lv1/patch.h>
 #include "common.h"
@@ -1205,31 +1206,30 @@ static INLINE void apply_kernel_patches(void)
 	set_SSHT(1);
 }*/
 
-// Old HEN files
-const char* clean_hfw_settings = "/dev_hdd0/hen/xml/hfw_settings.xml";
-const char* clean_old_hfw_settings = "/dev_hdd0/hen/hfw_settings.xml";
-const char* clean_hen_updater = "/dev_hdd0/hen/xml/ps3hen_updater.xml";
-
-void cleanup_old_files(void)
+// Cleanup Old and Temp HEN Files
+//const char* clean_old_hfw_settings = "/dev_hdd0/hen/hfw_settings.xml";
+//const char* clean_hfw_settings = "/dev_hdd0/hen/xml/hfw_settings.xml";
+//const char* clean_hen_updater = "/dev_hdd0/hen/xml/ps3hen_updater.xml";
+void cleanup_files(void)
 {
 	// Old 2.x.x xml paths to avoid conflict for remap fix
-	cellFsUnlink(clean_old_hfw_settings);
-	cellFsUnlink(clean_hfw_settings);
-	cellFsUnlink(clean_hen_updater);
+	cellFsUnlink("/dev_hdd0/hen/hfw_settings.xml");
+	cellFsUnlink("/dev_hdd0/hen/xml/hfw_settings.xml");
+	cellFsUnlink("/dev_hdd0/hen/xml/ps3hen_updater.xml");
+	
+	// This file is installed by default pkg and is used to determine when HEN has finished installing, in henplugin.
+	// Remove it on launch to eliminate false checks.
+	cellFsUnlink("/dev_rewrite/vsh/resource/explore/xmb/zzz_hen_installed.tmp");
 }
 
-// Hotkey Buttons pressed at launch
-int mappath_disabled=0;// Disable all mappath mappings at launch
-int print_mapping_list_disabled=0;// Disable mappath mappings list in debug log
-int boot_plugins_disabled=0;// Disable user and kernel plugins on launch
+/*
+// Hotkey Buttons pressed at launch (Disabled, as it makes stage2 too big)
+static int mappath_disabled=0;// Disable all mappath mappings at launch
+static int boot_plugins_disabled=0;// Disable user and kernel plugins on launch
 
 static void check_combo_buttons(void);
 static void check_combo_buttons(void)
 {
-	#ifdef DEBUG
-		DPRINTF("check_combo_buttons\n");
-	#endif
-	
 	pad_data onboot;
 	
 	timer_usleep(80000);
@@ -1238,20 +1238,23 @@ static void check_combo_buttons(void)
 
 		if((onboot.button[PAD_BTN_OFFSET_DIGITAL] & (PAD_CTRL_L2)) == (PAD_CTRL_L2)){
 
-			DPRINTF("L2 Pressed\n");
 			mappath_disabled=1;
-			DPRINTF("mappath remappings disabled\n");
+			#ifdef DEBUG
+				DPRINTF("PAYLOAD->L2 Pressed: mappath remappings disabled\n");
+			#endif
 		}
 
 		if((onboot.button[PAD_BTN_OFFSET_DIGITAL] & (PAD_CTRL_R2)) == (PAD_CTRL_R2)){
 
-			DPRINTF("R2 Pressed\n");
 			boot_plugins_disabled=1;
-			DPRINTF("load_boot_plugins() disabled\nload_boot_plugins_kernel() disabled\n");
+			#ifdef DEBUG
+				//DPRINTF("PAYLOAD->R2 Pressed: boot plugins disabled\n");
+			#endif
 		}
 	}
 	timer_usleep(20000);
 }
+*/
 
 extern volatile int sleep_done;
 
@@ -1267,29 +1270,45 @@ int main(void)
 
 //	poke_count=0;
 #if defined(FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX) || defined (FIRMWARE_4_82)
-			ecdsa_set_curve();
-			ecdsa_set_pub();
-			ecdsa_set_priv();
+	ecdsa_set_curve();
+	ecdsa_set_pub();
+	ecdsa_set_priv();
 #endif
 		
-	// Cleanup Old HEN Files
-	cleanup_old_files();
+	// Cleanup Old and Temp HEN Files
+	cleanup_files();
 	
 	// Check for hotkey button presses on launch
-	check_combo_buttons();
+	//check_combo_buttons();
 	
-	if(mappath_disabled==0)
-	{
-		//map_path("/dev_flash/hen/xml","/dev_flash/hen/remap/xml",FLAG_FOLDER|FLAG_MAX_PRIORITY); // Remap path to XML
-		map_path("/dev_hdd0/hen/xml/hfw_settings.xml","/dev_flash/hen/remap/xml/hfw_settings.xml",0); // Enable HFW Tools on Launch 2.3.3+
-		map_path("/dev_hdd0/hen/xml/hen_pkg_manager_full.xml","/dev_flash/hen/remap/xml/hen_pkg_manager_full.xml",0); // Show PKG Manager
-		map_path("/dev_hdd0/hen/xml/hen_enable.xml","/dev_flash/hen/remap/xml/hen_enable.xml",0); // Hide Enable HEN Menu Item
+	// File and folder redirections using mappath mappings
+	//map_path("/dev_hdd0/hen/xml","/dev_flash/hen/remap/xml",FLAG_FOLDER|FLAG_MAX_PRIORITY); // Remap path to XML
+	map_path("/dev_hdd0/hen/xml/hfw_settings.xml","/dev_flash/hen/remap/xml/hfw_settings.xml",0); // Enable HFW Tools on Launch 2.3.3+
+	map_path("/dev_hdd0/hen/xml/hen_pkg_manager_full.xml","/dev_flash/hen/remap/xml/hen_pkg_manager_full.xml",0); // Show PKG Manager
+	map_path("/dev_hdd0/hen/xml/hen_enable.xml","/dev_flash/hen/remap/xml/hen_enable.xml",0); // Hide Enable HEN Menu Item
+	
+	/*
+	// Testing Only - mappath performance with multiple mappings
+	char p1[0x20]="";
+	char p2[0x20]="";
+	bool mdone = false;
+	for(uint32_t i=1;i<101;i++){
+		for(uint32_t j=1;j<11;j++){
+			sprintf(p1,"/dev_hdd0/test/%u/%u.txt",i,j);
+			sprintf(p2,"/dev_hdd0/test2/%u/%u.txt",i,j);
+			if(map_path(p1,p2,FLAG_COPY)!=0){
+				mdone=true;
+				break;
+			}
+		}
+		if(mdone)
+			break;
 	}
+	*/
 	
-	if(print_mapping_list_disabled==0)
-	{
+	#ifdef DEBUG
 		printMappingList();
-	}
+	#endif
 	
 	storage_ext_init();
 	modules_patch_init();
@@ -1300,8 +1319,9 @@ int main(void)
 	storage_ext_patches();
 	region_patches();
 	//permissions_patches();
+	
 	#ifdef DEBUG
-		DPRINTF("PAYLOAD->patches applied\n");
+		//DPRINTF("PAYLOAD->patches applied\n");
 	#endif
 	
 	init_mount_hdd0();
@@ -1310,28 +1330,14 @@ int main(void)
 	memset((void *)MKA(0x7e0000),0,0x100);
 	memset((void *)MKA(0x7f0000),0,0x1000);
 	
-	if(boot_plugins_disabled==0)
-	{
-		load_boot_plugins();
-		load_boot_plugins_kernel();
-	}
+	load_boot_plugins();
+	load_boot_plugins_kernel();
 	
 	#ifdef DEBUG
-		DPRINTF("PAYLOAD->plugins loaded\n");
+		//DPRINTF("PAYLOAD->plugins loaded\n");
 	#endif
 	
 	//enable_ingame_screenshot();
-
-	// This file is installed by default pkg and is used to determine when HEN has finished installing, in henplugin.
-	// If it exists, remove it on launch to eliminate false checks.
-	CellFsStat stat;
-	if(cellFsStat("/dev_rewrite/vsh/resource/explore/xmb/zzz_hen_installed.tmp",&stat)==0)
-	{
-		#ifdef DEBUG
-			//DPRINTF("PAYLOAD->Checking hen_installed temp file flag [/dev_rewrite/vsh/resource/explore/xmb/zzz_hen_installed.tmp]\n");
-		#endif
-		cellFsUnlink("/dev_rewrite/vsh/resource/explore/xmb/zzz_hen_installed.tmp");
-	}
 	
 #ifdef DEBUG
 	// "Laboratory"
