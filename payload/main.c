@@ -23,7 +23,6 @@
 #include <lv1/patch.h>
 #include "common.h"
 #include "syscall8.h"
-//#include "cobra.h"
 #include "modulespatch.h"
 #include "mappath.h"
 #include "storage_ext.h"
@@ -31,7 +30,7 @@
 #include "config.h"
 #include "psp.h"
 #include "sm_ext.h"
-#include "laboratory.h"
+//#include "laboratory.h"
 #include "ps3mapi_core.h"
 #include "qa.h"
 

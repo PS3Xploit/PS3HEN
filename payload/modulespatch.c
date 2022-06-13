@@ -661,10 +661,14 @@ LV2_HOOKED_FUNCTION_PRECALL_2(int, post_lv1_call_99_wrapper, (uint64_t *spu_obj,
 			event_port_send(command_port, CMD_DISABLE_PATCHES, (uint64_t)&res,0);
 			event_queue_receive(result_queue, &event, 0);
 			event_queue_drain(result_queue);
-			DPRINTF("SELF loading!\n");
+			#ifdef DEBUG
+				DPRINTF("SELF loading!\n");
+			#endif
 			suspend_intr();
 			uint64_t state = spin_lock_irqsave();
-			DPRINTF("interrupt suspended! 6:20am\n");;
+			#ifdef DEBUG
+				//DPRINTF("interrupt suspended!\n");
+			#endif
 			current_ticks=get_ticks();
 			target_ticks=current_ticks+0x3000000; // Testing
 			while(get_ticks()<target_ticks)
@@ -674,7 +678,9 @@ LV2_HOOKED_FUNCTION_PRECALL_2(int, post_lv1_call_99_wrapper, (uint64_t *spu_obj,
 //			uint64_t (*sleep_thread_user)(uint64_t usecs)=(void*)&func_sleep;
 //			sleep_thread_user(500000);
 			sleep_done=1;
-			DPRINTF("sleep finished!\n");
+			#ifdef DEBUG
+				//DPRINTF("sleep finished!\n");
+			#endif
 			spin_unlock_irqrestore(state);
 			resume_intr();
 			event_port_send(command_port, CMD_ENABLE_PATCHES, (uint64_t)&res,0);
@@ -720,7 +726,7 @@ LV2_PATCHED_FUNCTION(int, modules_patching, (uint64_t *arg1, uint32_t *arg2))
 #endif
 	{
 		#ifdef	DEBUG
-			DPRINTF("We are in decrypted module or in cobra encrypted\n");
+			//DPRINTF("We are in decrypted module or in cobra encrypted\n");
 		#endif
 
 		int last_chunk = 0;
@@ -801,7 +807,7 @@ LV2_PATCHED_FUNCTION(int, modules_patching, (uint64_t *arg1, uint32_t *arg2))
 		#ifdef	DEBUG
 			if (last_chunk)
 			{
-				DPRINTF("Total section size: %x\n", total+ptr32[4/4]);
+				//DPRINTF("Total section size: %x\n", total+ptr32[4/4]);
 			}
 		#endif
 
@@ -882,7 +888,7 @@ LV2_PATCHED_FUNCTION(int, modules_patching, (uint64_t *arg1, uint32_t *arg2))
 
 						if((data.button[PAD_BTN_OFFSET_DIGITAL] & (PAD_CTRL_CROSS|PAD_CTRL_R1)) == (PAD_CTRL_CROSS|PAD_CTRL_R1)){
 
-							DPRINTF("Button Shortcut detected! Applying pemucorelib Extra Savedata Patch...\n");
+							//DPRINTF("Button Shortcut detected! Applying pemucorelib Extra Savedata Patch...\n");
 
 							DPRINTF("Now patching %s %lx\n", hash_to_name(hash), hash);
 
@@ -905,7 +911,7 @@ LV2_PATCHED_FUNCTION(int, modules_patching, (uint64_t *arg1, uint32_t *arg2))
 			if (patch_table[i].hash == hash)
 			{
 				#ifdef	DEBUG
-				DPRINTF("Now patching  %s %lx\n", hash_to_name(hash), hash);
+					DPRINTF("Now patching  %s %lx\n", hash_to_name(hash), hash);
 				#endif
 
 				int j = 0;
@@ -926,7 +932,7 @@ LV2_PATCHED_FUNCTION(int, modules_patching, (uint64_t *arg1, uint32_t *arg2))
 						buf[patch->offset/4] = data;
 
 						#ifdef	DEBUG
-						DPRINTF("Offset: 0x%08X | Data: 0x%08X\n", (uint32_t)patch->offset, (uint32_t)data);
+							//DPRINTF("Offset: 0x%08X | Data: 0x%08X\n", (uint32_t)patch->offset, (uint32_t)data);
 						#endif
 					}
 
@@ -949,7 +955,7 @@ LV2_HOOKED_FUNCTION_COND_POSTCALL_2(int, pre_modules_verification, (uint32_t *re
 /*
 	// Patch original from psjailbreak. Needs some tweaks to fix some games
 	#ifdef	DEBUG
-	DPRINTF("err = %x\n", error);
+		DPRINTF("err = %x\n", error);
 	#endif
 	if (error == 0x13)
 	{
@@ -976,7 +982,7 @@ uint8_t cleared_stage0 = 0;
 LV2_HOOKED_FUNCTION_POSTCALL_7(void, pre_map_process_memory, (void *object, uint64_t process_addr, uint64_t size, uint64_t flags, void *unk, void *elf, uint64_t *out))
 {
 	#ifdef	DEBUG
-	DPRINTF("Map %lx %lx %s\n", process_addr, size, get_current_process() ? get_process_name(get_current_process())+8 : "KERNEL");
+		//DPRINTF("Map %lx %lx %s\n", process_addr, size, get_current_process() ? get_process_name(get_current_process())+8 : "KERNEL");
 	#endif
 
 	// Not the call address, but the call to the caller (process load code for .self)
@@ -985,7 +991,7 @@ LV2_HOOKED_FUNCTION_POSTCALL_7(void, pre_map_process_memory, (void *object, uint
 		if ((process_addr == 0x10000) && (size == vsh_text_size) && (flags == 0x2008004) && (cleared_stage0 == 0))
 		{
 			#ifdef	DEBUG
-				DPRINTF("Making Retail VSH text writable, Size: 0x%lx\n", size);
+				//DPRINTF("Making Retail VSH text writable, Size: 0x%lx\n", size);
 			#endif
 
 			// Change flags, RX -> RWX, make vsh text writable
@@ -1394,8 +1400,9 @@ LV2_HOOKED_FUNCTION_POSTCALL_8(void, create_process_common_hooked_pre, (process_
 									 void **sp_88, uint64_t *sp_90, process_t *process, uint64_t *sp_A0,
 									  uint64_t *sp_A8))
 {
-
-	DPRINTF("Pre-process\n");
+	#ifdef DEBUG
+		//DPRINTF("Pre-process\n");
+	#endif
 }
 
 #endif
