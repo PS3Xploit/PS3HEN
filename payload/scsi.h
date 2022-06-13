@@ -324,7 +324,7 @@ static INLINE void lba_to_msf_bcd(uint64_t lba, uint8_t *m, uint8_t *s, uint8_t 
 	*f = itob(*f);
 }
 
-static inline uint16_t msf_to_lba(MSF msf)
+static INLINE uint16_t msf_bcd_to_lba(MSF msf)
 {
 	uint32_t lba = (60 * btoi(msf.amin)) + btoi(msf.asec);
 	return (uint16_t)((lba * 75) + btoi(msf.aframe));

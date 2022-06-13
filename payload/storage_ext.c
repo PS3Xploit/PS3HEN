@@ -152,9 +152,10 @@ static event_port_t proxy_command_port;
 static event_queue_t proxy_result_queue;
 
 #define LC_SECTORS	32
-#define LSD_STRUCT	15
 
-static uint16_t lsd[LC_SECTORS];
+static u8  lsd_header; // 0(lsd) / 4(sbi)
+static u8  lsd_struct; // 15(lsd)/14(sbi)
+static u16 lsd[LC_SECTORS];
 
 static int subqfd = UNDEFINED;
 static int discfd = UNDEFINED;
@@ -899,14 +900,20 @@ static void read_libcrypt_sectors(const char *file)
 {
 	int ret = cellFsOpen(file, CELL_FS_O_RDONLY, &subqfd, 0, NULL, 0);
 	if(ret) return;
+
+	if(strstr(file, ".sbi"))
+		lsd_struct = 14, lsd_header = 4;
+	else
+		lsd_struct = 15, lsd_header = 0;
+
 	// Read list of LibCrypt sectors in MSF
 	size_t r; MSF msf;
-	for(uint8_t n = 0; n < LC_SECTORS; n++)
+	for(u8 n = 0; n < LC_SECTORS; n++)
 	{
-		cellFsLseek(subqfd, n * LSD_STRUCT, SEEK_SET, &r);
+		cellFsLseek(subqfd, lsd_header + (n * lsd_struct), SEEK_SET, &r);
 		ret = cellFsRead(subqfd, &msf, sizeof(MSF), &r);
 		if(ret) break;
-		lsd[n] = msf_to_lba(msf);
+		lsd[n] = msf_bcd_to_lba(msf);
 	}
 	if(ret)
 	{
@@ -914,6 +921,10 @@ static void read_libcrypt_sectors(const char *file)
 		cellFsClose(subqfd);
 		subqfd = UNDEFINED;
 	}
+	if(lsd_header)
+		lsd_header = 8;
+	else
+		lsd_header = 3;
 }
 
 ////////////// PROCESS PSX VIDEO MODE //////////////
@@ -1185,6 +1196,11 @@ int process_get_psx_video_mode(void)
 						if(subqfd == UNDEFINED)
 						{
 							sprintf(buf, "/dev_hdd0/tmp/lsd/%s.lsd", exe_path);
+							read_libcrypt_sectors(buf);
+						}
+						if(subqfd == UNDEFINED)
+						{
+							sprintf(buf, "/dev_hdd0/tmp/sbi/%s.sbi", exe_path);
 							read_libcrypt_sectors(buf);
 						}
 
@@ -1899,7 +1915,7 @@ static INLINE ScsiTrackDescriptor *find_track_by_lba(uint32_t lba)
 
 	return NULL;
 }
-
+/*
 static uint16_t q_crc_lut[256] = {
     0x0000, 0x1021, 0x2042, 0x3063, 0x4084, 0x50A5, 0x60C6, 0x70E7, 0x8108,
     0x9129, 0xA14A, 0xB16B, 0xC18C, 0xD1AD, 0xE1CE, 0xF1EF, 0x1231, 0x0210,
@@ -1942,7 +1958,7 @@ static INLINE uint16_t calculate_subq_crc(uint8_t *data) {
 
     return ~crc;
 }
-
+*/
 int process_cd_iso_scsi_cmd(uint8_t *indata, uint64_t inlen, uint8_t *outdata, uint64_t outlen, int is2048)
 {
 	if (inlen < 1)
@@ -2330,18 +2346,21 @@ int process_cd_iso_scsi_cmd(uint8_t *indata, uint64_t inlen, uint8_t *outdata, u
 
 					// custom subchannel
 					ret = UNDEFINED;
-					uint32_t lba2 = lba + 150;
-					if((subqfd != UNDEFINED) && (lba2 >= lsd[0]) && (lba2 <= lsd[31]))
+					u32 lba2 = lba + 150;
+					if(subqfd != UNDEFINED)
 					{
-						for(uint8_t n = 0; n < LC_SECTORS; n++)
+						u8 n = LC_SECTORS, max = LC_SECTORS;
+						if(lba2 <= lsd[15] && lba2 >= lsd[00]) n = 0, max = 16; else // min 3
+						if(lba2 <= lsd[31] && lba2 >= lsd[16]) n = 16; // min 9
+						for(; n < max; n++)
 						{
 							if(lsd[n] >  lba2) break;
 							if(lsd[n] == lba2)
 							{
 								size_t r;
-								cellFsLseek(subqfd, (n * LSD_STRUCT) + sizeof(MSF), SEEK_SET, &r);
-								ret = cellFsRead(subqfd, (void *)subq, LSD_STRUCT - sizeof(MSF), &r);
-								if(subq->control_adr <= 0 || r != LSD_STRUCT - sizeof(MSF)) ret = UNDEFINED;
+								cellFsLseek(subqfd, lsd_header + (n * lsd_struct), SEEK_SET, &r);
+								ret = cellFsRead(subqfd, (void *)subq, 10, &r);
+								if(subq->control_adr <= 0 || r != 10) ret = UNDEFINED;
 								break;
 							}
 						}
@@ -2358,7 +2377,7 @@ int process_cd_iso_scsi_cmd(uint8_t *indata, uint64_t inlen, uint8_t *outdata, u
 						lba_to_msf_bcd(lba, &subq->min, &subq->sec, &subq->frame);
 
 						lba_to_msf_bcd(lba2, &subq->amin, &subq->asec, &subq->aframe);
-					subq->crc = calculate_subq_crc((uint8_t *)subq);
+						//subq->crc = calculate_subq_crc((u8 *)subq);
 					}
 
 					p += sizeof(SubChannelQ);
@@ -3425,10 +3444,10 @@ if(cd_sector_size != 2352 && cd_sector_size != 2048 && cd_sector_size != 2336 &&
 				ret = cellFsStat(file, &stat);
 				if(ret)
 				{
-					strcpy(ext, ".LSD");
+					strcpy(ext, ".sbi");
 					ret = cellFsStat(file, &stat);
 				}
-				if((ret == CELL_FS_SUCCEEDED) && (stat.st_size == (LC_SECTORS * LSD_STRUCT)))
+				if(ret == CELL_FS_SUCCEEDED)
 				{
 					read_libcrypt_sectors(file);
 				}
