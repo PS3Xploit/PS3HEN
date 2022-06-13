@@ -294,12 +294,29 @@ static void unload_prx_module(void)
 
 }
 
+/*
 static void stop_prx_module(void)
 {
 	sys_prx_id_t prx = prx_get_module_id_by_address(stop_prx_module);
 	int *result=NULL;
 
 	{system_call_6(SC_STOP_PRX_MODULE, (uint64_t)prx, 0, NULL, (uint64_t)(uint32_t)result, 0, NULL);}
+
+}
+*/
+
+// Updated 20220613 (thanks TheRouLetteBoi)
+static void stop_prx_module(void)
+{
+    sys_prx_id_t prx = prx_get_module_id_by_address(stop_prx_module);
+    int *result=NULL;
+   
+    uint64_t meminfo[5];
+    meminfo[0] = 0x28;
+    meminfo[1] = 2;
+    meminfo[3] = 0;
+
+    {system_call_6(SC_STOP_PRX_MODULE, (uint64_t)prx, 0, (uint64_t)(uint32_t)meminfo, (uint64_t)(uint32_t)result, 0, NULL);}
 
 }
 
@@ -712,6 +729,7 @@ static void henplugin_stop_thread(__attribute__((unused)) uint64_t arg)
 	sys_ppu_thread_exit(0);
 }
 
+/*
 int henplugin_stop()
 {
 	sys_ppu_thread_t t_id;
@@ -723,6 +741,24 @@ int henplugin_stop()
 
 	//sys_timer_usleep(70000);
 	unload_prx_module();
+
+	_sys_ppu_thread_exit(0);
+
+	return SYS_PRX_STOP_OK;
+}
+*/
+
+// Updated 20220613 (thanks TheRouLetteBoi)
+int henplugin_stop()
+{
+	sys_ppu_thread_t t_id;
+	int ret = sys_ppu_thread_create(&t_id, henplugin_stop_thread, 0, 3000, 0x2000, SYS_PPU_THREAD_CREATE_JOINABLE, STOP_THREAD_NAME);
+
+	uint64_t exit_code;
+	if (ret == 0) sys_ppu_thread_join(t_id, &exit_code);
+
+	sys_timer_usleep(7000);
+	stop_prx_module();
 
 	_sys_ppu_thread_exit(0);
 
