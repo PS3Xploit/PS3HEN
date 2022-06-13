@@ -609,7 +609,6 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 	
 	if((do_install_hen!=0) || (do_update==1))
 	{
-		cellFsUnlink("/dev_hdd0/theme/PS3HEN.p3t");
 		int is_browser_open=View_Find("webbrowser_plugin");
 		
 		while(is_browser_open)
@@ -665,8 +664,9 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 	
 done:
 	DPRINTF("Exiting main thread!\n");	
+	
+	cellFsUnlink("/dev_hdd0/theme/PS3HEN.p3t");// Removing temp HEN installer
 	done=1;
-	//reload_xmb();
 	
 	if(reboot_flag==1)
 	{
@@ -680,14 +680,15 @@ done:
 			sprintf(reboot_txt, "Error: Unable to verify finished installation!");
 		}
 		show_msg((char *)reboot_txt);
-		cellFsUnlink("/dev_rewrite/vsh/resource/explore/xmb/zzz_hen_installed.tmp");// Remove temp file
+		//cellFsUnlink("/dev_rewrite/vsh/resource/explore/xmb/zzz_hen_installed.tmp");// Remove temp file
 		sys_timer_usleep(8000000);// Wait a few seconds
 		
 		// Verify the temp file is removed
 		while(cellFsStat("/dev_rewrite/vsh/resource/explore/xmb/zzz_hen_installed.tmp",&stat)==0)
 		{
 			sys_timer_usleep(70000);
-			//DPRINTF("Waiting for temporary zzz_hen_installed.tmp file to be removed\n");
+			cellFsUnlink("/dev_rewrite/vsh/resource/explore/xmb/zzz_hen_installed.tmp");// Remove temp file
+			DPRINTF("Waiting for temporary zzz_hen_installed.tmp file to be removed\n");
 		}
 		if(tick_expire==0){reboot_ps3();}// Default Hard Reboot
 	}
