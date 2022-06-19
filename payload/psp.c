@@ -269,7 +269,7 @@ int sys_psp_set_umdfile(char *file, char *id, int prometheus)
 	
 #ifdef DEBUG
 	if (prometheus)	
-		//DPRINTF("Using prometheus patch.\n");	
+		DPRINTF("Using prometheus patch.\n");	
 #endif
 
 	return 0;
