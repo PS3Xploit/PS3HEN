@@ -18,7 +18,7 @@
 #include <lv2/security.h>
 #include <lv2/error.h>
 #include <lv2/symbols.h>
-//#include <lv2/pad.h>
+#include <lv2/pad.h>
 #include <lv1/stor.h>
 #include <lv1/patch.h>
 #include "common.h"
@@ -185,33 +185,34 @@ LV2_HOOKED_FUNCTION_COND_POSTCALL_3(int,bnet_ioctl,(int socket,uint32_t flags, v
 	else
 		return DO_POSTCALL;
 }
+
 #if defined(FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX) || defined (FIRMWARE_4_82)
-LV2_HOOKED_FUNCTION_PRECALL_SUCCESS_6(int,sys_fs_open,(const char *path, int flags, int *fd, uint64_t mode, const void *arg, uint64_t size))
-{
-/*	if(!strstr(get_process_name(get_current_process_critical()),"vsh"))
+	LV2_HOOKED_FUNCTION_PRECALL_SUCCESS_6(int,sys_fs_open,(const char *path, int flags, int *fd, uint64_t mode, const void *arg, uint64_t size))
 	{
-		rif_fd=0;
-		act_fd=0;
-		misc_fd=0;
+	/*	if(!strstr(get_process_name(get_current_process_critical()),"vsh"))
+		{
+			rif_fd=0;
+			act_fd=0;
+			misc_fd=0;
+			return 0;
+		}*/
+		int path_len=strlen(path);
+		if(strstr(path,".rif"))
+		{
+			DPRINTF("RIF fd open called:%s\n",path);
+			rif_fd=*fd;
+		}
+		else if(strstr(path,"act.dat"))
+		{
+			DPRINTF("act.dat fd open called:%s\n",path);
+			act_fd=*fd;
+		}
+		else if((strstr(path,".edat")) || (strstr(path,".EDAT")) || (strstr(path,"ISO.BIN.ENC")) || (strstr(path+path_len-7,"CONFIG")))
+		{
+			misc_fd=*fd;
+		}
 		return 0;
-	}*/
-	int path_len=strlen(path);
-	if(strstr(path,".rif"))
-	{
-		DPRINTF("RIF fd open called:%s\n",path);
-		rif_fd=*fd;
 	}
-	else if(strstr(path,"act.dat"))
-	{
-		DPRINTF("act.dat fd open called:%s\n",path);
-		act_fd=*fd;
-	}
-	else if((strstr(path,".edat")) || (strstr(path,".EDAT")) || (strstr(path,"ISO.BIN.ENC")) || (strstr(path+path_len-7,"CONFIG")))
-	{
-		misc_fd=*fd;
-	}
-	return 0;
-}
 #endif
 
 int sha1(uint8_t *buf, uint64_t size, uint8_t *out)
@@ -360,90 +361,92 @@ LV2_HOOKED_FUNCTION_COND_POSTCALL_3(int,read_eeprom_by_offset,(uint32_t offset, 
 	}
 	return DO_POSTCALL;
 }
-#if defined(FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX) || defined (FIRMWARE_4_82)
-LV2_HOOKED_FUNCTION_PRECALL_SUCCESS_4(int,sys_fs_read,(int fd, void *buf, uint64_t nbytes, uint64_t *nread))
-{
-	if(rif_fd==fd)
-	{
-		DPRINTF("RIF fd read called:%x %p %016lx %p\n",fd,buf,nbytes,nread);
-		if(*nread==0x98)
-		{
-			DPRINTF("generating rif ECDSA\n");
-			uint8_t *buf1;
-			page_allocate_auto(NULL, 0x98, 0x2F, (void*)&buf1);
-			memcpy(buf1,buf,0x98);
-			uint8_t sha1_digest[20];
-			sha1(buf1, 0x70,sha1_digest);
-			uint8_t R[0x15];
-			uint8_t S[0x15];
-			ecdsa_sign(sha1_digest, R, S);
-			memcpy(buf1+0x70, R+1, 0x14);
-			memcpy(buf1+0x70+0x14, S+1, 0x14);
-			memcpy(buf+0x70,buf1+0x70,0x28);
-			page_free(NULL, buf1, 0x2F);
-//			DPRINTF("R:%015x\nS:%015x\n",R,S);
-		}
-	}
-	else if(act_fd==fd)
-	{
-		DPRINTF("act fd read called:%x %p %016lx %p\n\n",fd,buf,nbytes,nread);
-		if(*nread==0x1038)
-		{
-			DPRINTF("generating act ECDSA\n");
-			uint8_t *buf1;
-			page_allocate_auto(NULL, 0x1038, 0x2F, (void*)&buf1);
-			memcpy(buf1,buf,0x1038);
-			uint8_t sha1_digest[20];
-			sha1(buf1, 0x1010,sha1_digest);
-			uint8_t R[0x15];
-			uint8_t S[0x15];
-			ecdsa_sign(sha1_digest, R, S);
-			memcpy(buf1+0x1010, R+1, 0x14);
-			memcpy(buf1+0x1010+0x14, S+1, 0x14);
-			memcpy(buf+0x1010,buf1+0x1010,0x28);
-			page_free(NULL, buf1, 0x2F);
-//			DPRINTF("R:%015x\nS:%015x\n",R,S);
-		}
-	}
-	else if(misc_fd==fd)
-	{
-		if(*nread==0x100)
-		{
-			DPRINTF("generating misc ECDSA\n");
-			uint8_t *buf1;
-			page_allocate_auto(NULL, 0x100, 0x2F, (void*)&buf1);
-			memcpy(buf1,buf,0x100);
-			uint8_t sha1_digest[20];
-			sha1(buf1, 0xd8,sha1_digest);
-			uint8_t R[0x15];
-			uint8_t S[0x15];
-			ecdsa_sign(sha1_digest, R, S);
-			memcpy(buf1+0xd8, R+1, 0x14);
-			memcpy(buf1+0xd8+0x14, S+1, 0x14);
-			memcpy(buf+0xd8,buf1+0xd8,0x28);
-			page_free(NULL, buf1, 0x2F);
-		}
-	}
-	return 0;
-}
 
-LV2_HOOKED_FUNCTION_PRECALL_SUCCESS_1(int,sys_fs_close,(int fd))
-{
-	if(rif_fd==fd)
+#if defined(FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX) || defined (FIRMWARE_4_82)
+	LV2_HOOKED_FUNCTION_PRECALL_SUCCESS_4(int,sys_fs_read,(int fd, void *buf, uint64_t nbytes, uint64_t *nread))
 	{
-		rif_fd=0;
+		if(rif_fd==fd)
+		{
+			DPRINTF("RIF fd read called:%x %p %016lx %p\n",fd,buf,nbytes,nread);
+			if(*nread==0x98)
+			{
+				DPRINTF("generating rif ECDSA\n");
+				uint8_t *buf1;
+				page_allocate_auto(NULL, 0x98, 0x2F, (void*)&buf1);
+				memcpy(buf1,buf,0x98);
+				uint8_t sha1_digest[20];
+				sha1(buf1, 0x70,sha1_digest);
+				uint8_t R[0x15];
+				uint8_t S[0x15];
+				ecdsa_sign(sha1_digest, R, S);
+				memcpy(buf1+0x70, R+1, 0x14);
+				memcpy(buf1+0x70+0x14, S+1, 0x14);
+				memcpy(buf+0x70,buf1+0x70,0x28);
+				page_free(NULL, buf1, 0x2F);
+	//			DPRINTF("R:%015x\nS:%015x\n",R,S);
+			}
+		}
+		else if(act_fd==fd)
+		{
+			DPRINTF("act fd read called:%x %p %016lx %p\n\n",fd,buf,nbytes,nread);
+			if(*nread==0x1038)
+			{
+				DPRINTF("generating act ECDSA\n");
+				uint8_t *buf1;
+				page_allocate_auto(NULL, 0x1038, 0x2F, (void*)&buf1);
+				memcpy(buf1,buf,0x1038);
+				uint8_t sha1_digest[20];
+				sha1(buf1, 0x1010,sha1_digest);
+				uint8_t R[0x15];
+				uint8_t S[0x15];
+				ecdsa_sign(sha1_digest, R, S);
+				memcpy(buf1+0x1010, R+1, 0x14);
+				memcpy(buf1+0x1010+0x14, S+1, 0x14);
+				memcpy(buf+0x1010,buf1+0x1010,0x28);
+				page_free(NULL, buf1, 0x2F);
+	//			DPRINTF("R:%015x\nS:%015x\n",R,S);
+			}
+		}
+		else if(misc_fd==fd)
+		{
+			if(*nread==0x100)
+			{
+				DPRINTF("generating misc ECDSA\n");
+				uint8_t *buf1;
+				page_allocate_auto(NULL, 0x100, 0x2F, (void*)&buf1);
+				memcpy(buf1,buf,0x100);
+				uint8_t sha1_digest[20];
+				sha1(buf1, 0xd8,sha1_digest);
+				uint8_t R[0x15];
+				uint8_t S[0x15];
+				ecdsa_sign(sha1_digest, R, S);
+				memcpy(buf1+0xd8, R+1, 0x14);
+				memcpy(buf1+0xd8+0x14, S+1, 0x14);
+				memcpy(buf+0xd8,buf1+0xd8,0x28);
+				page_free(NULL, buf1, 0x2F);
+			}
+		}
+		return 0;
 	}
-	else if(act_fd==fd)
+
+	LV2_HOOKED_FUNCTION_PRECALL_SUCCESS_1(int,sys_fs_close,(int fd))
 	{
-		act_fd=0;
+		if(rif_fd==fd)
+		{
+			rif_fd=0;
+		}
+		else if(act_fd==fd)
+		{
+			act_fd=0;
+		}
+		else if(misc_fd==fd)
+		{
+			misc_fd=0;
+		}
+		return 0;
 	}
-	else if(misc_fd==fd)
-	{
-		misc_fd=0;
-	}
-	return 0;
-}
 #endif
+
 int unload_plugin_kernel(uint64_t residence)
 {
 	dealloc((void*)residence,0x27);
@@ -911,18 +914,18 @@ LV2_SYSCALL2(int64_t, syscall8, (uint64_t function, uint64_t param1, uint64_t pa
 
 		case SYSCALL8_OPCODE_STEALTH_ACTIVATE: //KW PSNPatch stealth extension compatibility
 		{
-				uint64_t syscall_not_impl = *(uint64_t *)MKA(syscall_table_symbol);
-				//*(uint64_t *)MKA(syscall_table_symbol+ 8* 8) = syscall_not_impl;
-				ps3mapi_partial_disable_syscall8 = 2; //NzV Edit: Keep PS3M_API Features only.
-				*(uint64_t *)MKA(syscall_table_symbol + 8 * 9) = syscall_not_impl;
-				*(uint64_t *)MKA(syscall_table_symbol + 8 * 10) = syscall_not_impl;
-				*(uint64_t *)MKA(syscall_table_symbol + 8 * 11) = syscall_not_impl;
-				*(uint64_t *)MKA(syscall_table_symbol + 8 * 15) = syscall_not_impl;
-				*(uint64_t *)MKA(syscall_table_symbol + 8 * 35) = syscall_not_impl;
-				*(uint64_t *)MKA(syscall_table_symbol + 8 * 36) = syscall_not_impl;
-				*(uint64_t *)MKA(syscall_table_symbol + 8 * 38) = syscall_not_impl;
-				*(uint64_t *)MKA(syscall_table_symbol + 8 * 6) = syscall_not_impl;
-				*(uint64_t *)MKA(syscall_table_symbol + 8 * 7) = syscall_not_impl;
+			uint64_t syscall_not_impl = *(uint64_t *)MKA(syscall_table_symbol);
+			//*(uint64_t *)MKA(syscall_table_symbol+ 8* 8) = syscall_not_impl;
+			ps3mapi_partial_disable_syscall8 = 2; //NzV Edit: Keep PS3M_API Features only.
+			*(uint64_t *)MKA(syscall_table_symbol + 8 * 9) = syscall_not_impl;
+			*(uint64_t *)MKA(syscall_table_symbol + 8 * 10) = syscall_not_impl;
+			*(uint64_t *)MKA(syscall_table_symbol + 8 * 11) = syscall_not_impl;
+			*(uint64_t *)MKA(syscall_table_symbol + 8 * 15) = syscall_not_impl;
+			*(uint64_t *)MKA(syscall_table_symbol + 8 * 35) = syscall_not_impl;
+			*(uint64_t *)MKA(syscall_table_symbol + 8 * 36) = syscall_not_impl;
+			*(uint64_t *)MKA(syscall_table_symbol + 8 * 38) = syscall_not_impl;
+			*(uint64_t *)MKA(syscall_table_symbol + 8 * 6) = syscall_not_impl;
+			*(uint64_t *)MKA(syscall_table_symbol + 8 * 7) = syscall_not_impl;
 			return SYSCALL8_STEALTH_OK;
 		}
 		break;
@@ -1077,16 +1080,21 @@ LV2_SYSCALL2(int64_t, syscall8, (uint64_t function, uint64_t param1, uint64_t pa
 			return get_map_path((unsigned int)param1, (char *)param2, (char *)param3);
 		break;
 		
-		case SYSCALL8_OPCODE_UNMAP_PATH:
-			return unmap_path((char *)param1);
+		case SYSCALL8_OPCODE_MAP_PATH:
+			return map_path((char *)param1,(char *)param2,(unsigned int)param3);
 		break;
+		
+		//case SYSCALL8_OPCODE_UNMAP_PATH:
+			//return unmap_path((char *)param1);
+		//break;
 
-#ifdef DEBUG
-		case SYSCALL8_OPCODE_DUMP_STACK_TRACE:
-			dump_stack_trace3((void *)param1, 16);
-			return 0;
-		break;
-#endif
+		#ifdef DEBUG
+			case SYSCALL8_OPCODE_DUMP_STACK_TRACE:
+				dump_stack_trace3((void *)param1, 16);
+				return 0;
+			break;
+		#endif
+		
 		case SYSCALL8_OPCODE_POKE_LV2:
 			*(uint64_t *)param1=param2;
 			return 0;
@@ -1156,9 +1164,9 @@ LV2_SYSCALL2(int, sm_get_fan_policy_sc,(uint8_t id, uint8_t *st, uint8_t *policy
 static INLINE void apply_kernel_patches(void)
 {
     /// Adding HEN patches on init for stability /// -- START
-		#if defined (FIRMWARE_4_82DEX) ||  defined (FIRMWARE_4_84DEX)
+	#if defined (FIRMWARE_4_82DEX) ||  defined (FIRMWARE_4_84DEX)
 		do_patch(MKA(vsh_patch),0x386000014E800020);
-		#endif
+	#endif
 	//do_patch32(MKA(patch_data1_offset), 0x01000000);
 	do_patch32(MKA(module_sdk_version_patch_offset), NOP);
 	do_patch32(MKA(patch_func8_offset1),0x38600000);
@@ -1176,18 +1184,19 @@ static INLINE void apply_kernel_patches(void)
 	do_patch(MKA(fix_8001003E),0x3FE080013BE00000);
 	do_patch(MKA(PATCH_JUMP),0x2F84000448000098);
 	*(uint64_t *)MKA(ECDSA_FLAG)=0;
+	
 	/// Adding HEN patches on init for stability ///	 -- END
 	#if defined(FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX) || defined (FIRMWARE_4_82)
-	hook_function_with_precall(get_syscall_address(801),sys_fs_open,6);
+		hook_function_with_precall(get_syscall_address(801),sys_fs_open,6);
 	#endif
 	hook_function_with_cond_postcall(get_syscall_address(724),bnet_ioctl,3);
 	#if defined(FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX) || defined (FIRMWARE_4_82)
-	hook_function_with_precall(get_syscall_address(804),sys_fs_close,1);
-	hook_function_with_precall(get_syscall_address(802),sys_fs_read,4);
+		hook_function_with_precall(get_syscall_address(804),sys_fs_close,1);
+		hook_function_with_precall(get_syscall_address(802),sys_fs_read,4);
 	#endif
 	#if defined (FIRMWARE_4_82) || defined (FIRMWARE_4_84) || defined (FIRMWARE_4_85) || defined (FIRMWARE_4_86) || defined (FIRMWARE_4_87) || defined (FIRMWARE_4_88) || defined (FIRMWARE_4_89)
-	hook_function_with_cond_postcall(um_if_get_token_symbol,um_if_get_token,5);
-	hook_function_with_cond_postcall(update_mgr_read_eeprom_symbol,read_eeprom_by_offset,3);
+		hook_function_with_cond_postcall(um_if_get_token_symbol,um_if_get_token,5);
+		hook_function_with_cond_postcall(update_mgr_read_eeprom_symbol,read_eeprom_by_offset,3);
 	#endif
 	create_syscall2(8, syscall8);
 	create_syscall2(6, sys_cfw_peek);
@@ -1210,9 +1219,6 @@ static INLINE void apply_kernel_patches(void)
 }*/
 
 // Cleanup Old and Temp HEN Files
-//const char* clean_old_hfw_settings = "/dev_hdd0/hen/hfw_settings.xml";
-//const char* clean_hfw_settings = "/dev_hdd0/hen/xml/hfw_settings.xml";
-//const char* clean_hen_updater = "/dev_hdd0/hen/xml/ps3hen_updater.xml";
 void cleanup_files(void)
 {
 	// Old 2.x.x xml paths to avoid conflict for remap fix
@@ -1225,9 +1231,9 @@ void cleanup_files(void)
 	cellFsUnlink("/dev_rewrite/vsh/resource/explore/xmb/zzz_hen_installed.tmp");
 }
 
-/*
-// Hotkey Buttons pressed at launch (Disabled, as it makes stage2 too big)
-static int mappath_disabled=0;// Disable all mappath mappings at launch
+
+// Hotkey Buttons pressed at launch
+//static int mappath_disabled=0;// Disable all mappath mappings at launch
 static int boot_plugins_disabled=0;// Disable user and kernel plugins on launch
 
 static void check_combo_buttons(void);
@@ -1235,10 +1241,10 @@ static void check_combo_buttons(void)
 {
 	pad_data onboot;
 	
-	timer_usleep(80000);
+	timer_usleep(40000);
 	
 	if (pad_get_data(&onboot) >= ((PAD_BTN_OFFSET_DIGITAL+1)*2)){
-
+/*
 		if((onboot.button[PAD_BTN_OFFSET_DIGITAL] & (PAD_CTRL_L2)) == (PAD_CTRL_L2)){
 
 			mappath_disabled=1;
@@ -1246,7 +1252,7 @@ static void check_combo_buttons(void)
 				DPRINTF("PAYLOAD->L2 Pressed: mappath remappings disabled\n");
 			#endif
 		}
-
+*/
 		if((onboot.button[PAD_BTN_OFFSET_DIGITAL] & (PAD_CTRL_R2)) == (PAD_CTRL_R2)){
 
 			boot_plugins_disabled=1;
@@ -1257,57 +1263,38 @@ static void check_combo_buttons(void)
 	}
 	timer_usleep(20000);
 }
-*/
+
 
 extern volatile int sleep_done;
 
 int main(void)
 {
-#ifdef DEBUG
-	debug_init();
-	debug_install();
-	extern uint64_t _start;
-	extern uint64_t __self_end;
-	DPRINTF("PS3HEN loaded (load base = %p, end = %p) (version = %08X)\n", &_start, &__self_end, MAKE_VERSION(COBRA_VERSION, FIRMWARE_VERSION, IS_CFW));
-#endif
+	#ifdef DEBUG
+		debug_init();
+		debug_install();
+		extern uint64_t _start;
+		extern uint64_t __self_end;
+		DPRINTF("PS3HEN loaded (load base = %p, end = %p) (version = %08X)\n", &_start, &__self_end, MAKE_VERSION(COBRA_VERSION, FIRMWARE_VERSION, IS_CFW));
+	#endif
 
-//	poke_count=0;
-#if defined(FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX) || defined (FIRMWARE_4_82)
-	ecdsa_set_curve();
-	ecdsa_set_pub();
-	ecdsa_set_priv();
-#endif
+	//	poke_count=0;
+	#if defined(FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX) || defined (FIRMWARE_4_82)
+		ecdsa_set_curve();
+		ecdsa_set_pub();
+		ecdsa_set_priv();
+	#endif
 		
 	// Cleanup Old and Temp HEN Files
 	cleanup_files();
 	
 	// Check for hotkey button presses on launch
-	//check_combo_buttons();
+	check_combo_buttons();
 	
 	// File and folder redirections using mappath mappings
-	//map_path("/dev_hdd0/hen/xml","/dev_flash/hen/remap/xml",FLAG_FOLDER|FLAG_MAX_PRIORITY); // Remap path to XML
-	map_path("/dev_hdd0/hen/xml/hfw_settings.xml","/dev_flash/hen/remap/xml/hfw_settings.xml",0); // Enable HFW Tools on Launch 2.3.3+
-	map_path("/dev_hdd0/hen/xml/hen_pkg_manager_full.xml","/dev_flash/hen/remap/xml/hen_pkg_manager_full.xml",0); // Show PKG Manager
-	map_path("/dev_hdd0/hen/xml/hen_enable.xml","/dev_flash/hen/remap/xml/hen_enable.xml",0); // Hide Enable HEN Menu Item
-	
-	/*
-	// Testing Only - mappath performance with multiple mappings
-	char p1[0x20]="";
-	char p2[0x20]="";
-	bool mdone = false;
-	for(uint32_t i=1;i<101;i++){
-		for(uint32_t j=1;j<11;j++){
-			sprintf(p1,"/dev_hdd0/test/%u/%u.txt",i,j);
-			sprintf(p2,"/dev_hdd0/test2/%u/%u.txt",i,j);
-			if(map_path(p1,p2,FLAG_COPY)!=0){
-				mdone=true;
-				break;
-			}
-		}
-		if(mdone)
-			break;
-	}
-	*/
+	//map_path("/dev_hdd0/hen/xml","/dev_flash/hen/remap/xml",FLAG_MAX_PRIORITY|FLAG_PROTECT); // Remap path to XML
+	map_path("/dev_hdd0/hen/xml/hfw_settings.xml","/dev_flash/hen/remap/xml/hfw_settings.xml",FLAG_MAX_PRIORITY|FLAG_PROTECT); // Enable HFW Tools on Launch 2.3.3+
+	map_path("/dev_hdd0/hen/xml/hen_pkg_manager_full.xml","/dev_flash/hen/remap/xml/hen_pkg_manager_full.xml",FLAG_MAX_PRIORITY|FLAG_PROTECT); // Show PKG Manager
+	map_path("/dev_hdd0/hen/xml/hen_enable.xml","/dev_flash/hen/remap/xml/hen_enable.xml",FLAG_MAX_PRIORITY|FLAG_PROTECT); // Hide Enable HEN Menu Item
 	
 	#ifdef DEBUG
 		printMappingList();
@@ -1333,25 +1320,36 @@ int main(void)
 	memset((void *)MKA(0x7e0000),0,0x100);
 	memset((void *)MKA(0x7f0000),0,0x1000);
 	
-	load_boot_plugins();
-	load_boot_plugins_kernel();
+	if(boot_plugins_disabled==0)
+	{
+		load_boot_plugins();
+		load_boot_plugins_kernel();
 	
-	#ifdef DEBUG
-		//DPRINTF("PAYLOAD->plugins loaded\n");
-	#endif
+		#ifdef DEBUG
+			//DPRINTF("PAYLOAD->plugins loaded\n");
+		#endif
+	}
+/*
+	else
+	{
+		#ifdef DEBUG
+			//DPRINTF("PAYLOAD->plugins not loaded\n");
+		#endif
+	}
+*/
 	
 	//enable_ingame_screenshot();
 	
-#ifdef DEBUG
-	// "Laboratory"
-	//do_dump_threads_info_test();
-	//do_dump_processes_test();
-	//do_hook_load_module();
-	//do_hook_mutex_create();
-	//do_ps2net_copy_test();
-	//do_dump_modules_info_test();
-	//do_pad_test();
-#endif
+	#ifdef DEBUG
+		// Laboratory
+		//do_dump_threads_info_test();
+		//do_dump_processes_test();
+		//do_hook_load_module();
+		//do_hook_mutex_create();
+		//do_ps2net_copy_test();
+		//do_dump_modules_info_test();
+		//do_pad_test();
+	#endif
 
 	return 0;
 }
