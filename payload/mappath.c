@@ -526,19 +526,30 @@ LV2_HOOKED_FUNCTION_POSTCALL_2(void, open_path_hook, (char *path0, int mode))
 		char *buf;
 		page_allocate_auto(NULL, 0x60, 0x2F, (void *)&buf);
 		memset(buf,0,0x60);
+	
+		// Support for rap and RAP extension (By aldostools)
+		int path_chk;
+		const char *ext = "rap";
+		for(uint8_t retry = 0; retry < 2; retry++)
+		{
+			sprintf(buf,"/dev_usb000/exdata/%.36s.%s",content_id, ext);
+			path_chk=cellFsStat(buf,&stat);
+			if(path_chk!=0)
+			{
+				sprintf(buf,"/dev_usb001/exdata/%.36s.%s",content_id, ext);
+				path_chk=cellFsStat(buf,&stat);
+			}
+			if(path_chk!=0)
+			{
+				sprintf(buf,"/dev_hdd0/exdata/%.36s.%s",content_id, ext);
+				path_chk=cellFsStat(buf,&stat);
+			}
+			if(path_chk!=0)
+				ext = "RAP"; 
+			else 
+				break;		
+		}
 		
-		sprintf(buf,"/dev_usb000/exdata/%.36s.rap",content_id);
-		int path_chk=cellFsStat(buf,&stat);
-		if(path_chk!=0)
-		{
-			sprintf(buf,"/dev_usb001/exdata/%.36s.rap",content_id);
-			path_chk=cellFsStat(buf,&stat);
-		}
-		if(path_chk!=0)
-		{
-			sprintf(buf,"/dev_hdd0/exdata/%.36s.rap",content_id);
-			path_chk=cellFsStat(buf,&stat);
-		}
 		uint8_t is_ps2_classic = !strncmp(content_id, "2P0001-PS2U10000_00-0000111122223333", 0x24);
 		uint8_t is_psp_launcher = !strncmp(content_id, "UP0001-PSPC66820_00-0000111122223333", 0x24);
 		if(path_chk==0 || is_ps2_classic || is_psp_launcher)
