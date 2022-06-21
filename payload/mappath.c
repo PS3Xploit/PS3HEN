@@ -500,8 +500,8 @@ LV2_HOOKED_FUNCTION_POSTCALL_2(void, open_path_hook, (char *path0, int mode))
 			!strncmp(gameid, "BLES13408", 9) || // FCEU NES Emulator
 			!strncmp(gameid, "BLES01337", 9) || // Awesome File Manager
 			!strncmp(gameid, "BLND00001", 9) || // dev_blind
-			!strncmp(gameid, "NPEA90124", 9) //|| // SEN Enabler
-			//!strcmp (path0, "/dev_bdvd/PS3_UPDATE/PS3UPDAT.PUP") //bluray disk updates
+			!strncmp(gameid, "NPEA90124", 9) || // SEN Enabler
+			!strncmp(gameid, "NP0", 3)          // NP0APOLLO / NP00PKGI3
 			) allow = 0;
 
 			// test whitelist.cfg and blacklist.cfg
