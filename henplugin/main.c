@@ -301,7 +301,7 @@ static uint64_t peekq(uint64_t addr)
 	return_to_user_prog(uint64_t);
 }
 
-
+// FW version values are checked using a partial date from lv2 kernel. 4.89 Sample: 323032322F30322F = 2022/02/
 static void downloadPKG_thread2(void)
 {
 
@@ -334,6 +334,10 @@ static void downloadPKG_thread2(void)
 	else if(val==0x323032312F30342FULL)
 		{
 			download_interface->DownloadURL(0,(wchar_t *) L"http://ps3xploit.com/hen/release/488/cex/installer/Latest_HEN_Installer_signed.pkg", (wchar_t *) L"/dev_hdd0");
+		}		
+	else if(val==0x323032322F30322FULL)
+		{
+			download_interface->DownloadURL(0,(wchar_t *) L"http://ps3xploit.com/hen/release/489/cex/installer/Latest_HEN_Installer_signed.pkg", (wchar_t *) L"/dev_hdd0");
 		}	
 	thread2_download_finish=1;
 }
@@ -454,6 +458,7 @@ int hen_updater(void)
 	return 0;
 }
 
+// Restore act.dat (thanks bucanero)
 void restore_act_dat(void);
 void restore_act_dat(void)
 {
@@ -506,10 +511,10 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 	
 	enable_ingame_screenshot();
 	reload_xmb();
-	// restore act.dat from act.bak backup
-	restore_act_dat();
+	
 	CellFsStat stat;
 	
+	// Emergency USB HEN Installer
 	if(cellFsStat("/dev_usb000/HEN_UPD.pkg",&stat)==0)
 	{
 		memset(pkg_path,0,256);
@@ -521,7 +526,13 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 		}
 		goto done;
 	}
+	
+	// restore act.dat from act.bak backup
+	restore_act_dat();
+	
 	int do_update=(cellFsStat("/dev_hdd0/hen_updater.off",&stat) ? hen_updater() : 0);// 20211011 Added update toggle thanks bucanero for original PR
+	
+	// Check local HEN file in flash. If missing or if hen_updater file missing, then proceed to update
 	if((cellFsStat("/dev_flash/vsh/resource/explore/icon/hen_enable.png",&stat)!=0) || (do_update==1))
 	{
 		cellFsUnlink("/dev_hdd0/theme/PS3HEN.p3t");

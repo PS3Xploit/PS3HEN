@@ -5,6 +5,7 @@ clean:
 	rm -f *.o *.elf *.self *.486 *.bin *.map ../lv1/src/*.o ../debug/src/*.o ../lv2/src/*.o
 	rm -f *.o *.elf *.self *.487 *.bin *.map ../lv1/src/*.o ../debug/src/*.o ../lv2/src/*.o
 	rm -f *.o *.elf *.self *.488 *.bin *.map ../lv1/src/*.o ../debug/src/*.o ../lv2/src/*.o
+	rm -f *.o *.elf *.self *.489 *.bin *.map ../lv1/src/*.o ../debug/src/*.o ../lv2/src/*.o
 
 all:
 	rm -f *.o *.elf *.self *.484 *.bin *.484C *.map ../lv1/src/*.o ../debug/src/*.o ../lv2/src/*.o
@@ -26,3 +27,7 @@ all:
 	rm -f *.o *.elf *.self *.488 *.bin *.488 *.map ../lv1/src/*.o ../debug/src/*.o ../lv2/src/*.o
 	make -f Makefile_488C --no-print-directory 
 	rm -f *.o *.bin *.elf *.488 *.488 *.map ../lv1/src/*.o ../debug/src/*.o ../lv2/src/*.o
+
+	rm -f *.o *.elf *.self *.489 *.bin *.489 *.map ../lv1/src/*.o ../debug/src/*.o ../lv2/src/*.o
+	make -f Makefile_489C --no-print-directory 
+	rm -f *.o *.bin *.elf *.489 *.489 *.map ../lv1/src/*.o ../debug/src/*.o ../lv2/src/*.o
