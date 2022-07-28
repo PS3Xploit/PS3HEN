@@ -423,7 +423,7 @@ PatchTableEntry patch_table[] =
 	{ PEMUCORELIB_HASH, pemucorelib_patches },
 	{ LIBSYSUTIL_SAVEDATA_PSP_HASH, libsysutil_savedata_psp_patches },
 	{ LIBFS_EXTERNAL_HASH, libfs_external_patches },
-	//{ LIBAUDIO_HASH, libaudio_patches }, (bugged, it  causes an issue with Sony BT headset (Pulse) https://github.com/PS3Xploit/PS3HEN/issues/20
+	{ LIBAUDIO_HASH, libaudio_patches }, // Now toggled via HFW Tools (bugged, it causes an issue with Sony BT headset Pulse) https://github.com/PS3Xploit/PS3HEN/issues/20
 	{ NAS_PLUGIN_HASH, nas_plugin_patches },
 	{ BDP_BDMV_HASH, bdp_bdmv_patches },
 	{ BDP_BDVD_HASH, bdp_bdvd_patches },
@@ -906,6 +906,7 @@ LV2_PATCHED_FUNCTION(int, modules_patching, (uint64_t *arg1, uint32_t *arg2))
 			break;
 		}
 
+		CellFsStat stat;
 		for (int i = 0; i < N_PATCH_TABLE_ENTRIES; i++)
 		{
 			if (patch_table[i].hash == hash)
@@ -915,6 +916,15 @@ LV2_PATCHED_FUNCTION(int, modules_patching, (uint64_t *arg1, uint32_t *arg2))
 				#endif
 
 				int j = 0;
+				
+				// Check libaudio patch toggle (thanks in1975)
+				// Default is OFF
+				if((i==11) && (cellFsStat("/dev_hdd0/hen/toggles/patch_libaudio.on",&stat)!=0))
+                {
+                    i++;
+                    j++;
+                }
+				
 				SprxPatch *patch = &patch_table[i].patch_table[j];
 
 				while (patch->offset != 0)
