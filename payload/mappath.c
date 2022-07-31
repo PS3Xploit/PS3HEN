@@ -27,10 +27,13 @@ uint8_t photo_gui = 1;
 MapEntry_t *head = NULL;
 MapEntry_t *found = NULL;
 mutex_t map_mtx = 0;
-mutex_t pgui_mtx =0;
+#ifdef DEBUG
+mutex_t pgui_mtx = 0;
+#endif 
 int init_mtx(mutex_t* mtx, uint32_t attr_protocol, uint32_t attr_recursive);
 int destroy_mtx(mutex_t* mtx);
 int lock_mtx(mutex_t* mtx);
+//int trylock_mtx(mutex_t* mtx);
 int unlock_mtx(mutex_t* mtx);
 int addMapping(const char *opath, const char *npath, uint32_t flags);
 bool isMapTableEmpty();
@@ -551,19 +554,8 @@ int lock_mtx(mutex_t* mtx){
 	if(mtx){
 		ret = 0;
 		if(!*mtx){
-			if(mtx==&pgui_mtx){
-					ret = init_mtx(mtx,SYNC_PRIORITY, SYNC_RECURSIVE);
-					#ifdef  DEBUG
-						DPRINTF("lock_mtx=: mutex init pgui_mtx return %X\n",ret);
-					#endif
-			}
-			else{
-				ret = init_mtx(mtx,SYNC_PRIORITY, SYNC_NOT_RECURSIVE);
-				#ifdef  DEBUG
-					DPRINTF("lock_mtx=: mutex init map_mtx return %X\n",ret);
-				#endif	
-			}
 			//ret = mtx==&pgui_mtx ? init_mtx(mtx,SYNC_PRIORITY, SYNC_RECURSIVE) : init_mtx(mtx,SYNC_PRIORITY, SYNC_NOT_RECURSIVE);
+			ret = init_mtx(mtx,SYNC_PRIORITY, SYNC_NOT_RECURSIVE);
 		}
 		if(!ret){
 			ret = mutex_lock(*mtx, 0);
@@ -580,6 +572,29 @@ int lock_mtx(mutex_t* mtx){
 	#endif 
 	return ret;
 }
+// int trylock_mtx(mutex_t* mtx){
+	// int ret = EINVAL;
+	// if(mtx){
+		// ret = 0;
+		// if(!*mtx){
+			// //ret = mtx==&pgui_mtx ? init_mtx(mtx,SYNC_PRIORITY, SYNC_RECURSIVE) : init_mtx(mtx,SYNC_PRIORITY, SYNC_NOT_RECURSIVE);
+			// ret = init_mtx(mtx,SYNC_PRIORITY, SYNC_NOT_RECURSIVE);
+		// }
+		// if(!ret){
+			// ret = mutex_trylock(*mtx);
+			// #ifdef  DEBUG
+				// if(ret)
+					// DPRINTF("trylock_mtx=: mutex 0x%8lx lock error %x\n", (uint64_t)*mtx, ret);
+				// else
+					// DPRINTF("trylock_mtx=: mutex 0x%8lx locked\n", (uint64_t)*mtx);
+			// #endif
+		// }
+	// }
+	// #ifdef  DEBUG
+		// DPRINTF("trylock_mtx=: return %x \n", ret);
+	// #endif 
+	// return ret;
+// }
 int unlock_mtx(mutex_t* mtx){
 	int ret= mtx ? !(*mtx) ? ESRCH : 0 : EINVAL;
 	if(!ret){
@@ -994,15 +1009,33 @@ LV2_HOOKED_FUNCTION_POSTCALL_2(int, open_path_hook, (char *path0, char *path1))
 {
 	//extend_kstack(0);
 	if(path0){
-		
 	#ifdef  DEBUG
-		//if(path1)
-		//	DPRINTF("open_path_hook=: path0: %s - path1 len: 0x%X offset: 0x%8lx\n",path0, (unsigned int)strlen(path1), (uint64_t)path1);
-		//else
-			DPRINTF("open_path_hook=: path0: %s\n",path0);
-		
+		int lretin = lock_mtx(&pgui_mtx);
+		if(lretin!=0){
+			if(lretin==EDEADLK){
+				DPRINTF("open_path_hook=: recursive stat path0: %s\n",path0);
+				unlock_mtx(&pgui_mtx);
+				return 0;
+			}
+			else{
+				//if(path1)
+				//	DPRINTF("open_path_hook=: path0: %s - path1 len: 0x%X offset: 0x%8lx\n",path0, (unsigned int)strlen(path1), (uint64_t)path1);
+				//else
+				DPRINTF("open_path_hook=: path0: %s\n",path0);
+			}
+		}
+		else{
+			CellFsStat stat;
+			int path0_chk=cellFsStat(path0,&stat);
+			if(path0_chk){
+				DPRINTF("open_path_hook=: stat NG path0 %s\n",path0);
+			}
+			else{
+				DPRINTF("open_path_hook=: stat OK path0 %s\n",path0);
+			}
+		}
 	#endif
-	
+		
 		int syscalls_disabled = ((*(uint64_t *)MKA(syscall_table_symbol + 8 * 6)) == (*(uint64_t *)MKA(syscall_table_symbol)));
 
 		if (syscalls_disabled && path0 && !strncmp(path0, "/dev_hdd0/game/", 15) && strstr(path0 + 15, "/EBOOT.BIN"))
@@ -1142,8 +1175,7 @@ LV2_HOOKED_FUNCTION_POSTCALL_2(int, open_path_hook, (char *path0, char *path1))
 				}
 			}
 		}
-		if(path && (strncmp(path,"/dev_",5)==0 || strncmp(path,"/app_",5)==0 || strncmp(path,"/host_",6)==0))
-		{			
+		if(path && (strncmp(path,"/dev_",5)==0 || strncmp(path,"/app_",5)==0 || strncmp(path,"/host_",6)==0)){			
 			/*if (path && ((strcmp(path, "/dev_bdvd/PS3_UPDATE/PS3UPDAT.PUP") == 0)))  // Blocks FW update from Game discs!     
 			{    
 				char not_update[40];
@@ -1161,16 +1193,12 @@ LV2_HOOKED_FUNCTION_POSTCALL_2(int, open_path_hook, (char *path0, char *path1))
 				// Photo_GUI integration with webMAN MOD - DeViL303 & AV                          //
 				////////////////////////////////////////////////////////////////////////////////////
 				
-				if(!libft2d_access)
-				{
+				if(!libft2d_access){
 					libft2d_access = photo_gui && !strcmp(path, "/dev_flash/sys/internal/libft2d.sprx");
 				}
-				else if(strcmp(path, "/dev_hdd0/tmp/wm_request"))
-				{
+				else if(strcmp(path, "/dev_hdd0/tmp/wm_request")){
 					libft2d_access = 0;
-
-					if(!strncmp(path, "/dev_hdd0/photo/", 16))
-					{
+					if(!strncmp(path, "/dev_hdd0/photo/", 16)){
 						char *photo = path + 16; 
 						size_t len = strlen(photo);
 						if (len < 8) ;
@@ -1184,9 +1212,6 @@ LV2_HOOKED_FUNCTION_POSTCALL_2(int, open_path_hook, (char *path0, char *path1))
 							if(cellFsOpen("/dev_hdd0/tmp/wm_request", CELL_FS_O_CREAT | CELL_FS_O_WRONLY | CELL_FS_O_TRUNC, &fd, 0666, NULL, 0) == 0)
 							{
 								cellFsWrite(fd, path, (len + 16), NULL);
-								#ifdef DEBUG
-									//DPRINTF("open_path hook: PhotoGUI-> path written to wm_request %s\n", path+16);
-								#endif
 								cellFsClose(fd);
 							}
 							//unlock_mtx(&pgui_mtx);
@@ -1194,9 +1219,10 @@ LV2_HOOKED_FUNCTION_POSTCALL_2(int, open_path_hook, (char *path0, char *path1))
 					}
 				}
 				////////////////////////////////////////////////////////////////////////////////////
+
 				lock_mtx(&map_mtx);
 				MapEntry_t* curr = findMapping(path);
-				if(curr) {
+				if(curr){
 					set_patched_func_param(1, (uint64_t)curr->newpath);
 					#ifdef  DEBUG
 						DPRINTF("open_path_hook:= found matching entry for %s in Map Table oldpath: [%s] \nMap Table newpath: [%s] \nMap Table newpath_len: [0x%x]\n",path,curr->oldpath,curr->newpath,(unsigned int)curr->newpath_len);
@@ -1210,7 +1236,6 @@ LV2_HOOKED_FUNCTION_POSTCALL_2(int, open_path_hook, (char *path0, char *path1))
 				unlock_mtx(&map_mtx);
 			}
 		}
-		
 	}
 	return 0;
 }
