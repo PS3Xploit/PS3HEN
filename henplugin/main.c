@@ -25,6 +25,7 @@
 #include <string.h>
 #include <time.h>
 #include <types.h>
+#include "allocator.h"
 #include "common.h"
 #include "stdc.h"
 #include "download_plugin.h"
@@ -111,7 +112,7 @@ typedef struct
 	int (*DoUnk8)(void);  // 3 Parameter:
 	int (*DoUnk9)(void);  // 3 Parameter: void *, void *, void *
 	int (*DoUnk10)(void); // 2 Parameter: char * , int * out
-	int (*DoUnk11)(void); // 3 Parameter: char * query , char * attribute? , uint8 output[]
+	int (*DoUnk11)(char*,char*,uint8_t[]); // 3 Parameter: char * query , char * attribute? , uint8 output[]
 	int (*DoUnk12)(void); // 1 Parameter: struct
 	int (*DoUnk13)(void); // return 0 / 1 Parameter: int 0-9
 	int (*DoUnk14)(void); // return 0 / 2 Parameter: int 0-9,
@@ -268,6 +269,28 @@ static void reload_xmb(void)
 	}
 	explore_interface->ExecXMBcommand("reload_category game",0,0);
 	explore_interface->ExecXMBcommand("reload_category network",0,0);
+	
+	/*
+	char* q=(char*)malloc(89);
+	char* a=(char*)malloc(18);
+	memcpy(q,"xcb://localhost/query?sort=+Game:Common.titleForSort&cond=Oe+Game:Game.titleId RELOADXMB",89);
+	memcpy(a,"Game:Game.titleId",18);
+	q[89]='\0'; // add null termination
+	a[18]='\0'; // add null termination
+	uint8_t output[8]={0,0,0,0,0,0,0,0};
+	int ret=explore_interface->DoUnk11(&q[0],&a[0],&output[0]);
+	if(ret)
+	{
+		printf ("Error 0x%X\n",ret);
+	}
+	else
+	{
+		for(int i=0;i<8;i++)
+		{
+			printf ("Output %i = 0x%X\n", i, output[i]);
+		}
+	}
+	*/
 }
 
 static inline void _sys_ppu_thread_exit(uint64_t val)
