@@ -539,7 +539,7 @@ static void restore_act_dat(void)
 	}
 }
 
-int tick_max=5000,tick_count=0,tick_expire=0;// Used for breaking out of while loop if package install hangs
+static int tick_max=1000,tick_count=0,tick_expire=0;// Used for breaking out of while loop if package install hangs
 
 static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 {
@@ -593,6 +593,7 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 	if(cellFsStat("/dev_usb000/HEN_UPD.pkg",&stat)==0)
 	{
 		//DPRINTF("Installing Emergency Package From USB\n");
+		tick_count=0;// Reset tick count for package installation
 		char hen_usb_update[0x80];
 		sprintf(hen_usb_update, "Installing Emergency Package\n\nRemove HEN_UPD.pkg after install");
 		memset(pkg_path,0,256);
@@ -606,6 +607,8 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 		while(cellFsStat("/dev_rewrite/vsh/resource/explore/xmb/zzz_hen_installed.tmp",&stat)!=0)
 		{
 			sys_timer_usleep(70000);
+			tick_count++;
+			if(tick_count>=tick_max){tick_expire=1;break;};
 			//DPRINTF("Waiting for package to finish installing\n");
 		}
 		reboot_flag=1;
@@ -661,6 +664,7 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 				sys_timer_usleep(70000);
 			}
 			
+			tick_count=0;// Reset tick count for package installation
 			while(cellFsStat("/dev_rewrite/vsh/resource/explore/xmb/zzz_hen_installed.tmp",&stat)!=0)
 			{
 				//DPRINTF("tick_count: %i\n",tick_count);
