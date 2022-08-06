@@ -698,7 +698,7 @@ done:
 		}
 		else
 		{
-			sprintf(reboot_txt, "Error: Unable to verify finished installation!");
+			sprintf(reboot_txt, "Error: Unable To Verify Installation!\nYou Must Reboot Manually!");
 		}
 		show_msg((char *)reboot_txt);
 		//cellFsUnlink("/dev_rewrite/vsh/resource/explore/xmb/zzz_hen_installed.tmp");// Remove temp file
@@ -709,7 +709,7 @@ done:
 		{
 			sys_timer_usleep(70000);
 			cellFsUnlink("/dev_rewrite/vsh/resource/explore/xmb/zzz_hen_installed.tmp");// Remove temp file
-			DPRINTF("Waiting for temporary zzz_hen_installed.tmp file to be removed\n");
+			//DPRINTF("Waiting for temporary zzz_hen_installed.tmp file to be removed\n");
 		}
 		if(tick_expire==0){reboot_ps3();}// Default Hard Reboot
 	}
