@@ -1038,30 +1038,24 @@ LV2_HOOKED_FUNCTION_POSTCALL_2(int, open_path_hook, (char *path0, char *path1))
 			int lretin = lock_mtx(&pgui_mtx);
 			if(lretin!=0){
 				if(lretin==EDEADLK){
-					#ifdef DEBUG
-						//DPRINTF("open_path_hook=: recursive: %s\n",path0);
-					#endif
+					//DPRINTF("open_path_hook=: recursive: %s\n",path0);
 					unlock_mtx(&pgui_mtx);// unlock mutex and exit hook
 					return 0;
 				}
 				else{
-					#ifdef DEBUG
 					//if(path1)
 					//	DPRINTF("open_path_hook=: path0: %s - path1 len: 0x%X offset: 0x%8lx\n",path0, (unsigned int)strlen(path1), (uint64_t)path1);
 					//else
-						DPRINTF("open_path_hook=: %s\n",path0);
-					#endif
+					DPRINTF("open_path_hook=: %s\n",path0);
 				}
 			}
 			else{
-				#ifdef DEBUG
 				if(cellFsStat(path0,&stat)){
 					DPRINTF("open_path_hook=: [NG] %s\n",path0);
 				}
 				else{
 					DPRINTF("open_path_hook=: [OK] %s\n",path0);
 				}
-				#endif
 			}
 		#endif
 		
