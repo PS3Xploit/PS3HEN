@@ -13,6 +13,7 @@
 #include <lv2/security.h>
 #include <lv2/synchronization.h>
 #include <stdbool.h>
+#include <stdio.h>
 
 typedef struct MapEntry {
 	char *oldpath;
@@ -22,6 +23,14 @@ typedef struct MapEntry {
 	uint32_t flags;
 	struct MapEntry *next;
 } MapEntry_t;
+
+// typedef struct CellFsMountInformation {
+	// char p_name[0x20];
+	// char p_type[0x20];
+	// char p_systype[0x20];
+	// char padding[0x33];
+	// unsigned char p_writable;
+// } CellFsMountInformation_t;
 
 uint8_t photo_gui = 1;
 MapEntry_t *head = NULL;
@@ -512,9 +521,13 @@ int init_mtx(mutex_t* mtx, uint32_t attr_protocol, uint32_t attr_recursive){
 		ret = mutex_create(mtx, attr_protocol, attr_recursive);
 		#ifdef  DEBUG
 			if(ret)
+			{
 				DPRINTF("init_mtx=: mutex creation error %x\n",ret);
+			}
 			else
+			{
 				DPRINTF("init_mtx=: mutex 0x%8lx created\n", (uint64_t)*mtx);
+			}
 		#endif 
 	}
 	#ifdef  DEBUG
@@ -561,14 +574,18 @@ int lock_mtx(mutex_t* mtx){
 			ret = mutex_lock(*mtx, 0);
 			#ifdef  DEBUG
 				if(ret)
-					DPRINTF("lock_mtx=: mutex 0x%8lx lock error %x\n", (uint64_t)*mtx, ret);
+				{
+					//DPRINTF("lock_mtx=: mutex 0x%8lx lock error %x\n", (uint64_t)*mtx, ret);
+				}
 				else
-					DPRINTF("lock_mtx=: mutex 0x%8lx locked\n", (uint64_t)*mtx);
+				{
+					//DPRINTF("lock_mtx=: mutex 0x%8lx locked\n", (uint64_t)*mtx);
+				}
 			#endif
 		}
 	}
 	#ifdef  DEBUG
-		DPRINTF("lock_mtx=: return %x \n", ret);
+		//DPRINTF("lock_mtx=: return %x \n", ret);
 	#endif 
 	return ret;
 }
@@ -601,13 +618,17 @@ int unlock_mtx(mutex_t* mtx){
 		ret = mutex_unlock(*mtx);
 		#ifdef  DEBUG
 			if(ret)
-				DPRINTF("unlock_mtx=: mutex 0x%8lx unlock error %x\n", (uint64_t)*mtx, ret);
+			{
+				//DPRINTF("unlock_mtx=: mutex 0x%8lx unlock error %x\n", (uint64_t)*mtx, ret);
+			}
 			else
-				DPRINTF("unlock_mtx=: mutex 0x%8lx unlocked\n", (uint64_t)map_mtx);
+			{
+				//DPRINTF("unlock_mtx=: mutex 0x%8lx unlocked\n", (uint64_t)map_mtx);
+			}
 		#endif
 	}
 	#ifdef  DEBUG
-		DPRINTF("unlock_mtx=: return %x \n", ret);
+		//DPRINTF("unlock_mtx=: return %x \n", ret);
 	#endif 
 	return ret;
 }
@@ -796,7 +817,8 @@ char line[0x10];
 static int init_list(char *list, char *path, int maxentries)
 {
 	int loaded, f;
-
+	// uncomment this to avoid hook recursivity & remappings if appropriate
+	//lock_mtx(&pgui_mtx); 
 	if (cellFsOpen(path, CELL_FS_O_RDONLY, &f, 0, NULL, 0) != 0)
 		return 0; // failed to open
 	
@@ -996,6 +1018,8 @@ int read_act_dat_and_make_rif(uint8_t *idps,uint8_t *rap, uint8_t *act_dat, char
 
 	int fd;
 	uint64_t size;
+	// uncomment this to avoid hook recursivity & remappings if appropriate
+	// lock_mtx(&pgui_mtx); 
 	if(cellFsOpen(out, CELL_FS_O_WRONLY|CELL_FS_O_CREAT|CELL_FS_O_TRUNC, &fd, 0666, NULL, 0)==0)
 	{
 		cellFsWrite(fd, rif, 0x98, &size);
@@ -1009,32 +1033,37 @@ LV2_HOOKED_FUNCTION_POSTCALL_2(int, open_path_hook, (char *path0, char *path1))
 {
 	//extend_kstack(0);
 	if(path0){
-	#ifdef  DEBUG
-		int lretin = lock_mtx(&pgui_mtx);
-		if(lretin!=0){
-			if(lretin==EDEADLK){
-				DPRINTF("open_path_hook=: recursive stat path0: %s\n",path0);
-				unlock_mtx(&pgui_mtx);
-				return 0;
+		CellFsStat stat;
+		#ifdef DEBUG
+			int lretin = lock_mtx(&pgui_mtx);
+			if(lretin!=0){
+				if(lretin==EDEADLK){
+					#ifdef DEBUG
+						//DPRINTF("open_path_hook=: recursive: %s\n",path0);
+					#endif
+					unlock_mtx(&pgui_mtx);// unlock mutex and exit hook
+					return 0;
+				}
+				else{
+					#ifdef DEBUG
+					//if(path1)
+					//	DPRINTF("open_path_hook=: path0: %s - path1 len: 0x%X offset: 0x%8lx\n",path0, (unsigned int)strlen(path1), (uint64_t)path1);
+					//else
+						DPRINTF("open_path_hook=: %s\n",path0);
+					#endif
+				}
 			}
 			else{
-				//if(path1)
-				//	DPRINTF("open_path_hook=: path0: %s - path1 len: 0x%X offset: 0x%8lx\n",path0, (unsigned int)strlen(path1), (uint64_t)path1);
-				//else
-				DPRINTF("open_path_hook=: path0: %s\n",path0);
+				#ifdef DEBUG
+				if(cellFsStat(path0,&stat)){
+					DPRINTF("open_path_hook=: [NG] %s\n",path0);
+				}
+				else{
+					DPRINTF("open_path_hook=: [OK] %s\n",path0);
+				}
+				#endif
 			}
-		}
-		else{
-			CellFsStat stat;
-			int path0_chk=cellFsStat(path0,&stat);
-			if(path0_chk){
-				DPRINTF("open_path_hook=: stat NG path0 %s\n",path0);
-			}
-			else{
-				DPRINTF("open_path_hook=: stat OK path0 %s\n",path0);
-			}
-		}
-	#endif
+		#endif
 		
 		int syscalls_disabled = ((*(uint64_t *)MKA(syscall_table_symbol + 8 * 6)) == (*(uint64_t *)MKA(syscall_table_symbol)));
 
@@ -1085,24 +1114,65 @@ LV2_HOOKED_FUNCTION_POSTCALL_2(int, open_path_hook, (char *path0, char *path1))
 
 		if((strstr(path0,".rif")) && (!strncmp(path0,"/dev_hdd0/home/",14)))
 		{
-			CellFsStat stat;
 			char content_id[0x24];
 			strncpy(content_id, strrchr(path0,'/')+1, 0x24);
 			char *buf;
 			page_allocate_auto(NULL, 0x60, 0x2F, (void *)&buf);
 			memset(buf,0,0x60);
 			
+			// // Template code to detect usb/sd cards mount points
+			// // cannot use the syscalls directly though as they expect user space pointers, not kernel memory offsets
+			// // we need to reverse engineer the 2 syscalls...
+			// f_desc_t f;	
+			// f.addr=(void*)MKA(get_syscall_address(0x349));
+			// f.toc=(void*)MKA(TOC);
+			// int (*sys_fs_get_mount_info_size)(uint64_t* out_length) =(void*)&f;
+			// f_desc_t f2;	
+			// f2.addr=(void*)MKA(get_syscall_address(0x34A));
+			// f2.toc=(void*)MKA(TOC);
+			// int (*sys_fs_get_mount_info)(CellFsMountInformation_t* info, uint64_t buffer_length, uint64_t* written_length) =(void*)&f2;
+			// uint64_t minfo_size = 0;
+			// uint64_t mcount = 0;
+			// int path_chk = 1;
+			// int misret = sys_fs_get_mount_info_size(&minfo_size);
+			// if(misret==0){
+				// CellFsMountInformation_t *minfo = alloc(minfo_size*sizeof(CellFsMountInformation_t),0x27);
+				// CellFsMountInformation_t *iterator;
+				// int miret = sys_fs_get_mount_info(minfo,minfo_size,&mcount);
+				// if(miret==0){
+					// for(int i=1;i<mcount;i++){
+						// iterator=minfo+i;
+						// if(strcmp(iterator->p_type,"CELL_FS_FAT")==0 && strcmp(iterator->p_systype,"CELL_FS_IOS:USB_MASS_STORAGE000")==0 && iterator->p_writable==0){
+							// sprintf(buf,"%s/exdata/%.36s.rap",iterator->p_name,content_id);
+							// path_chk=cellFsStat(buf,&stat);
+							// if(path_chk==0){
+								// break;
+							// }
+						// }
+						
+					// }
+				// }
+				// iterator=NULL;
+				// dealloc(minfo,0x27);
+			// }
+
 			// hard coded usb path 000 & 001 should be replaced with usb mount points detection!!!
 			sprintf(buf,"/dev_usb000/exdata/%.36s.rap",content_id);
+			// uncomment this to avoid hook recursivity & remappings if appropriate
+			//lock_mtx(&pgui_mtx); 
 			int path_chk=cellFsStat(buf,&stat);
 			if(path_chk!=0)
 			{
 				sprintf(buf,"/dev_usb001/exdata/%.36s.rap",content_id);
+				// uncomment this to avoid hook recursivity & remappings if appropriate
+				//lock_mtx(&pgui_mtx); 
 				path_chk=cellFsStat(buf,&stat);
 			}
 			if(path_chk!=0)
 			{
 				sprintf(buf,"/dev_hdd0/exdata/%.36s.rap",content_id);
+				// uncomment this to avoid hook recursivity & remappings if appropriate
+				//lock_mtx(&pgui_mtx); 
 				path_chk=cellFsStat(buf,&stat);
 			}
 			uint8_t is_ps2_classic = !strncmp(content_id, "2P0001-PS2U10000_00-0000111122223333", 0x24);
@@ -1132,13 +1202,16 @@ LV2_HOOKED_FUNCTION_POSTCALL_2(int, open_path_hook, (char *path0, char *path1))
 
 				if(!is_ps2_classic || !is_psp_launcher)
 				{
+					// uncomment this to avoid hook recursivity & remappings if appropriate
+					//lock_mtx(&pgui_mtx); 
 					if(cellFsOpen(buf, CELL_FS_O_RDONLY, &fd, 0, NULL, 0)==0)
 					{
 						cellFsRead(fd, rap, 0x10, &nread);
 						cellFsClose(fd);
 					}
 				}
-				
+				// uncomment this to avoid hook recursivity & remappings if appropriate
+				//lock_mtx(&pgui_mtx); 
 				if(cellFsOpen(act_path, CELL_FS_O_RDONLY, &fd, 0, NULL, 0)==0)
 				{
 					cellFsRead(fd, act_dat, 0x1038, &nread);
@@ -1208,13 +1281,12 @@ LV2_HOOKED_FUNCTION_POSTCALL_2(int, open_path_hook, (char *path0, char *path1))
 								DPRINTF("open_path_hook:= CREATING /dev_hdd0/tmp/wm_request\n");
 							#endif
 							int fd;
-							//lock_mtx(&pgui_mtx);
+							//lock_mtx(&pgui_mtx)
 							if(cellFsOpen("/dev_hdd0/tmp/wm_request", CELL_FS_O_CREAT | CELL_FS_O_WRONLY | CELL_FS_O_TRUNC, &fd, 0666, NULL, 0) == 0)
 							{
 								cellFsWrite(fd, path, (len + 16), NULL);
 								cellFsClose(fd);
 							}
-							//unlock_mtx(&pgui_mtx);
 						}
 					}
 				}
