@@ -1088,8 +1088,8 @@ LV2_HOOKED_FUNCTION_POSTCALL_2(int, open_path_hook, (char *path0, char *path1))
 			!strncmp(gameid, "BLES13408", 9) || // FCEU NES Emulator
 			!strncmp(gameid, "BLES01337", 9) || // Awesome File Manager
 			!strncmp(gameid, "BLND00001", 9) || // dev_blind
-			!strncmp(gameid, "NPEA90124", 9) //|| // SEN Enabler
-			//!strcmp (path0, "/dev_bdvd/PS3_UPDATE/PS3UPDAT.PUP") //bluray disk updates
+			!strncmp(gameid, "NPEA90124", 9) || // SEN Enabler
+			!strncmp(gameid, "NP0", 3)          // NP0APOLLO / NP00PKGI3
 			) allow = 0;
 
 			// test whitelist.cfg and blacklist.cfg
@@ -1149,26 +1149,38 @@ LV2_HOOKED_FUNCTION_POSTCALL_2(int, open_path_hook, (char *path0, char *path1))
 				// iterator=NULL;
 				// dealloc(minfo,0x27);
 			// }
-
-			// hard coded usb path 000 & 001 should be replaced with usb mount points detection!!!
-			sprintf(buf,"/dev_usb000/exdata/%.36s.rap",content_id);
-			// uncomment this to avoid hook recursivity & remappings if appropriate
-			//lock_mtx(&pgui_mtx); 
-			int path_chk=cellFsStat(buf,&stat);
-			if(path_chk!=0)
+			
+			// Support for rap and RAP extension (By aldostools)
+			int path_chk;
+			const char *ext = "rap";
+			for(uint8_t retry = 0; retry < 2; retry++)
 			{
-				sprintf(buf,"/dev_usb001/exdata/%.36s.rap",content_id);
+				
+				// hard coded usb path 000 & 001 should be replaced with usb mount points detection!!!
+				sprintf(buf,"/dev_usb000/exdata/%.36s.%s",content_id, ext);
 				// uncomment this to avoid hook recursivity & remappings if appropriate
 				//lock_mtx(&pgui_mtx); 
 				path_chk=cellFsStat(buf,&stat);
+				if(path_chk!=0)
+				{
+					sprintf(buf,"/dev_usb001/exdata/%.36s.%s",content_id, ext);
+					// uncomment this to avoid hook recursivity & remappings if appropriate
+					//lock_mtx(&pgui_mtx); 
+					path_chk=cellFsStat(buf,&stat);
+				}
+				if(path_chk!=0)
+				{
+					sprintf(buf,"/dev_hdd0/exdata/%.36s.%s",content_id, ext);
+					// uncomment this to avoid hook recursivity & remappings if appropriate
+					//lock_mtx(&pgui_mtx); 
+					path_chk=cellFsStat(buf,&stat);
+				}
+				if(path_chk!=0)
+					ext = "RAP"; 
+				else 
+					break;		
 			}
-			if(path_chk!=0)
-			{
-				sprintf(buf,"/dev_hdd0/exdata/%.36s.rap",content_id);
-				// uncomment this to avoid hook recursivity & remappings if appropriate
-				//lock_mtx(&pgui_mtx); 
-				path_chk=cellFsStat(buf,&stat);
-			}
+			
 			uint8_t is_ps2_classic = !strncmp(content_id, "2P0001-PS2U10000_00-0000111122223333", 0x24);
 			uint8_t is_psp_launcher = !strncmp(content_id, "UP0001-PSPC66820_00-0000111122223333", 0x24);
 			if(path_chk==0 || is_ps2_classic || is_psp_launcher)
