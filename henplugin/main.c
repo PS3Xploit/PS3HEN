@@ -682,12 +682,14 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 		
 		if(cellFsStat(pkg_path,&stat)==0)
 		{
+			// After package starts installing, this first loop exits
 			LoadPluginById(0x16, (void *)installPKG_thread);
 			while(thread3_install_finish==0)
 			{
 				sys_timer_usleep(70000);
 			}
 			
+			// The package is now installing
 			tick_count=0;// Reset tick count for package installation
 			while(cellFsStat("/dev_rewrite/vsh/resource/explore/xmb/zzz_hen_installed.tmp",&stat)!=0)
 			{
