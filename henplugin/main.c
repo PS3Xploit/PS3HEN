@@ -537,6 +537,63 @@ int hen_updater(void)
 	return 0;
 }
 
+void clear_web_cache_check(void);
+void clear_web_cache_check(void)
+{
+	// Clear WebBrowser cache (thanks xfrcc)
+	// Toggles can be accessed by HFW Tools menu
+	CellFsStat stat;
+	
+	char msg[0x80];
+	int cleared_history = 0;
+	int cleared_auth_cache = 0;
+	int cleared_cookie = 0;
+	int cleared_total = 0;
+	
+	char path1[0x40];
+	sprintf(path1, "/dev_hdd0/home/%08i/webbrowser/history.xml", xsetting_CC56EB2D()->GetCurrentUserNumber());
+
+	char path2[0x40];
+	sprintf(path2, "/dev_hdd0/home/%08i/http/auth_cache.dat", xsetting_CC56EB2D()->GetCurrentUserNumber());
+
+	char path3[0x40];
+	sprintf(path3, "/dev_hdd0/home/%08i/http/cookie.dat", xsetting_CC56EB2D()->GetCurrentUserNumber());
+
+	if(cellFsStat(path1,&stat)==0 && cellFsStat("/dev_hdd0/hen/toggles/clear_web_history.on",&stat)==0)
+	{
+		//DPRINTF("Toggle Activated: clear_web_history\n");
+		cellFsUnlink(path1);
+		cleared_history = 1;
+		cleared_total++;
+	}
+	
+	if(cellFsStat(path2,&stat)==0 && cellFsStat("/dev_hdd0/hen/toggles/clear_web_auth_cache.on",&stat)==0)
+	{
+		//DPRINTF("Toggle Activated: clear_web_auth_cache\n");
+		cellFsUnlink(path2);
+		cleared_auth_cache = 1;
+		cleared_total++;
+	}
+	
+	if(cellFsStat(path3,&stat)==0 && cellFsStat("/dev_hdd0/hen/toggles/clear_web_cookie.on",&stat)==0)
+	{
+		//DPRINTF("Toggle Activated: clear_web_cookie\n");
+		cellFsUnlink(path3);
+		cleared_cookie = 1;
+		cleared_total++;
+	}
+	
+	if(cleared_total>0)
+	{
+		sprintf(msg, "Clear Web Cache\nHistory[%i] / Auth Cache[%i] / Cookie[%i]", cleared_history, cleared_auth_cache, cleared_cookie);
+		show_msg((char*)msg);
+	}
+	else
+	{
+		//DPRINTF("No Clear Web Cache Toggles Activated\n");
+	}
+}
+
 static int sysLv2FsLink(const char *oldpath, const char *newpath)
 {
     system_call_2(810, (uint64_t)(uint32_t)oldpath, (uint64_t)(uint32_t)newpath);
@@ -587,31 +644,6 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 	reload_xmb();
 
 	CellFsStat stat;
-
-	/*
-	// Clear WebBrowser cache (thanks xfrcc)
-	char path1[0x29];
-	sprintf(path1, "/dev_hdd0/home/%08i/webbrowser/history.xml", xsetting_CC56EB2D()->GetCurrentUserNumber());
-
-	char path2[0x26];
-	sprintf(path2, "/dev_hdd0/home/%08i/http/auth_cache.dat", xsetting_CC56EB2D()->GetCurrentUserNumber());
-
-	char path3[0x27];
-	sprintf(path3, "/dev_hdd0/home/%08i/http/cookie.dat", xsetting_CC56EB2D()->GetCurrentUserNumber());
-
-	if(cellFsStat(path1,&stat)==0)
-	{
-		cellFsUnlink(path1);
-	}
-	if(cellFsStat(path2,&stat)==0)
-	{
-		cellFsUnlink(path2);
-	}
-	if(cellFsStat(path3,&stat)==0)
-	{
-		cellFsUnlink(path3);
-	}
-	*/
 
 	// Emergency USB HEN Installer
 	if(cellFsStat("/dev_usb000/HEN_UPD.pkg",&stat)==0)
@@ -739,6 +771,8 @@ done:
 		}
 		if(tick_expire==0){reboot_ps3();}// Default Hard Reboot
 	}
+	
+	clear_web_cache_check();// Clear WebBrowser cache check (thanks xfrcc)
 	
 	sys_ppu_thread_exit(0);
 }
