@@ -684,6 +684,10 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 	reload_xmb();
 
 	CellFsStat stat;
+	
+	// Remove temp install check file here in case a package was installed containing it
+	// If the file exists before the pkg download starts, it will cause an early reboot trigger
+	cellFsUnlink("/dev_rewrite/vsh/resource/explore/xmb/zzz_hen_installed.tmp");
 
 	// Emergency USB HEN Installer
 	if(cellFsStat("/dev_usb000/HEN_UPD.pkg",&stat)==0)
