@@ -624,6 +624,14 @@ void clear_web_cache_check(void)
 	}
 }
 
+void set_build_type(void);
+void set_build_type(void)
+{
+	CellFsStat stat;
+	if(cellFsStat("/dev_hdd0/hen/toggles/dev_build_type.on",&stat)==0){build_type=DEV;}
+	DPRINTF("Setting build_type to %i\n", build_type);
+}
+
 static int sysLv2FsLink(const char *oldpath, const char *newpath)
 {
     system_call_2(810, (uint64_t)(uint32_t)oldpath, (uint64_t)(uint32_t)newpath);
@@ -654,6 +662,8 @@ static int tick_max=1000,tick_count=0,tick_expire=0;// Used for breaking out of 
 
 static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 {
+	set_build_type();
+	
 	View_Find = getNIDfunc("paf", 0xF21655F3, 0);
 	plugin_GetInterface = getNIDfunc("paf", 0x23AFB290, 0);
 	int view = View_Find("explore_plugin");
@@ -700,8 +710,6 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 		reboot_flag=1;
 		goto done;
 	}
-	
-	//char *default_theme="/dev_flash/vsh/resource/theme/01.p3t";
 	
 	// restore act.dat from act.bak backup
 	restore_act_dat();
@@ -789,7 +797,6 @@ done:
 			sprintf(reboot_txt, "Error: Unable To Verify Installation!\nYou Must Reboot Manually!");
 		}
 		show_msg((char *)reboot_txt);
-		//cellFsUnlink("/dev_rewrite/vsh/resource/explore/xmb/zzz_hen_installed.tmp");// Remove temp file
 		sys_timer_usleep(8000000);// Wait a few seconds
 		
 		// Verify the temp file is removed
