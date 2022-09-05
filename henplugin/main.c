@@ -686,7 +686,7 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 	CellFsStat stat;
 	
 	// Remove temp install check file here in case a package was installed containing it
-	// If the file exists before the pkg download starts, it will cause an early reboot trigger
+	// If the file exists before the pkg install starts, it will cause an early reboot trigger
 	cellFsUnlink("/dev_rewrite/vsh/resource/explore/xmb/zzz_hen_installed.tmp");
 
 	// Emergency USB HEN Installer
@@ -753,6 +753,9 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 			sys_timer_usleep(500000);
 			//DPRINTF("Waiting for package to finish downloading\n");
 		}
+		
+		// Fail Safe here in case of manual/other placement of file, will still reboot properly
+		cellFsUnlink("/dev_rewrite/vsh/resource/explore/xmb/zzz_hen_installed.tmp");
 		
 		if(cellFsStat(pkg_path,&stat)==0)
 		{
