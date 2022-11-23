@@ -157,11 +157,13 @@ int ps3mapi_get_current_process(process_t process);
 
 #define PS3MAPI_OPCODE_GET_PROC_MEM				0x0031
 #define PS3MAPI_OPCODE_SET_PROC_MEM				0x0032
-#define PS3MAPI_OPCODE_PROC_PAGE_ALLOCATE			0x0033
+#define PS3MAPI_OPCODE_PROC_PAGE_ALLOCATE		0x0033
+#define PS3MAPI_OPCODE_PROC_PAGE_FREE			0x0034
 
 int ps3mapi_set_process_mem(process_id_t pid, uint64_t addr, char *buf, int size);
 int ps3mapi_get_process_mem(process_id_t pid, uint64_t addr, char *buf, int size);
-int ps3mapi_process_page_allocate(process_id_t pid, uint64_t size, uint64_t page_size, uint64_t flags, uint64_t is_executable, uint64_t *page_address);
+int ps3mapi_process_page_allocate(process_id_t pid, uint64_t size, uint64_t page_size, uint64_t flags, uint64_t is_executable, uint64_t *page_table);
+int ps3mapi_process_page_free(process_id_t pid, uint64_t flags, uint64_t *page_table);
 
 //-----------------------------------------------
 //MODULES
