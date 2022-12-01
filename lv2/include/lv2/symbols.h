@@ -122,6 +122,8 @@
 #define open_fs_object_symbol							0x18A970
 #define close_fs_object_symbol							0x1898AC
 
+#define path_clean_symbol								0x296738
+
 #define storage_get_device_info_symbol					0x279B00
 #define storage_get_device_config_symbol				0x278F90
 #define storage_open_symbol								0x279510
@@ -405,6 +407,8 @@
 #define open_fs_object_symbol							0x190CFC
 #define close_fs_object_symbol							0x18FC38
 
+#define path_clean_symbol								0x2B17F8
+
 #define storage_get_device_info_symbol					0x28CA00
 #define storage_get_device_config_symbol				0x28B08C
 #define storage_open_symbol								0x28CC28
@@ -558,6 +562,10 @@
 
 /* vars */
 #define thread_info_symbol								0x3A4A30
+
+/* mmapper flags temp patch */
+// TODO: Fix offset for DEX
+#define mmapper_flags_temp_patch          0x70F78
 
 /* LV2 POKE */
 #define hash_checked_area                               0x378960

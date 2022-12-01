@@ -1,5 +1,6 @@
 #include <lv2/lv2.h>
 #include <lv2/libc.h>
+#include <lv2/memory.h>
 
 char *strstr(const char *haystack, const char *needle)
 {
@@ -7,14 +8,20 @@ char *strstr(const char *haystack, const char *needle)
 	/* Check for the null needle case.  */
 	if (*needle == '\0')
 		return (char *) haystack;
-
 	needlelen = strlen(needle);
 	for (; (haystack = strchr(haystack, *needle)) != NULL; haystack++)
 		if (strncmp(haystack, needle, needlelen) == 0)
 			return (char *) haystack;		
 		return NULL;
 }
-
+char * strdup (const char *s)
+{
+	size_t len = strlen (s) + 1;
+	void *new = alloc (len, 0x27);
+	if (new == NULL)
+		return NULL;
+	return (char *) memcpy (new, s, len);
+}
 int strncasecmp (__const char *s1, __const char *s2, size_t n)
 {
 	/* TODO: locale support */
