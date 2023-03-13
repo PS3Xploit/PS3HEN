@@ -439,6 +439,13 @@ static void downloadPKG_thread2(void)
 			else{
 				download_interface->DownloadURL(0, (wchar_t *) L"http://www.ps3xploit.me/hen/dev/489/cex/installer/Latest_HEN_Installer_signed.pkg", (wchar_t *) L"/dev_hdd0");}
 		}
+	else if(val==0x3A35340000000000ULL) // for 4.90, kernel offset is off by 0x10 so we are checking this value instead of the timestamp
+		{
+			if(build_type==RELEASE){
+				download_interface->DownloadURL(0, (wchar_t *) L"http://www.ps3xploit.me/hen/release/490/cex/installer/Latest_HEN_Installer_signed.pkg", (wchar_t *) L"/dev_hdd0");}
+			else{
+				download_interface->DownloadURL(0, (wchar_t *) L"http://www.ps3xploit.me/hen/dev/490/cex/installer/Latest_HEN_Installer_signed.pkg", (wchar_t *) L"/dev_hdd0");}
+		}
 		/*
 		// Fix DEX kernel value
 	else if(val==0x323031392F30312FULL)
