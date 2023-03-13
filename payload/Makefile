@@ -19,6 +19,9 @@ all:
 
 	@rm -f *.o *.elf *.bin *.release *.debug *.cex *.dex *.map *.lzma ../lv2/src/*.o ../lv1/src/*.o ../debug/src/*.o
 	@make -f Makefile_489C_release --no-print-directory
+
+	@rm -f *.o *.elf *.bin *.release *.debug *.cex *.dex *.map *.lzma ../lv2/src/*.o ../lv1/src/*.o ../debug/src/*.o
+	@make -f Makefile_484D_debug --no-print-directory
 	
 	@rm -f *.o *.elf *.bin *.map *.lzma ../lv2/src/*.o ../lv1/src/*.o ../debug/src/*.o
 	@make -f Makefile_484C_debug --no-print-directory
@@ -37,8 +40,14 @@ all:
 	
 	@rm -f *.o *.elf *.bin *.map *.lzma ../lv2/src/*.o ../lv1/src/*.o ../debug/src/*.o
 	@make -f Makefile_489C_debug --no-print-directory
+	
+	@rm -f *.o *.elf *.bin *.map *.lzma ../lv2/src/*.o ../lv1/src/*.o ../debug/src/*.o
+	@make -f Makefile_490C_debug --no-print-directory
 
 release:
+	@rm -f *.o *.elf *.bin *.release *.debug *.cex *.dex *.map *.lzma ../lv2/src/*.o ../lv1/src/*.o ../debug/src/*.o
+	@make -f Makefile_484D_release --no-print-directory  
+	
 	@rm -f *.o *.elf *.bin *.release *.debug *.cex *.dex *.map *.lzma ../lv2/src/*.o ../lv1/src/*.o ../debug/src/*.o
 	@make -f Makefile_484C_release --no-print-directory
     
@@ -56,8 +65,14 @@ release:
      
 	@rm -f *.o *.elf *.bin *.release *.debug *.cex *.dex *.map *.lzma ../lv2/src/*.o ../lv1/src/*.o ../debug/src/*.o
 	@make -f Makefile_489C_release --no-print-directory
+     
+	@rm -f *.o *.elf *.bin *.release *.debug *.cex *.dex *.map *.lzma ../lv2/src/*.o ../lv1/src/*.o ../debug/src/*.o
+	@make -f Makefile_490C_release --no-print-directory
 
 debug:	
+	@rm -f *.o *.elf *.bin *.debug *.cex *.dex *.map *.lzma ../lv2/src/*.o ../lv1/src/*.o ../debug/src/*.o
+	@make -f Makefile_484D_debug --no-print-directory
+	
 	@rm -f *.o *.elf *.bin *.map *.lzma ../lv2/src/*.o ../lv1/src/*.o ../debug/src/*.o
 	@make -f Makefile_484C_debug --no-print-directory
 
@@ -75,6 +90,9 @@ debug:
 
 	@rm -f *.o *.elf *.bin *.map *.lzma ../lv2/src/*.o ../lv1/src/*.o ../debug/src/*.o
 	@make -f Makefile_489C_debug --no-print-directory
+
+	@rm -f *.o *.elf *.bin *.map *.lzma ../lv2/src/*.o ../lv1/src/*.o ../debug/src/*.o
+	@make -f Makefile_490C_debug --no-print-directory
 
 debug_484:
 	@rm -f *.o *.elf *.bin *.release *.debug *.cex *.dex *.map *.lzma ../lv2/src/*.o ../lv1/src/*.o ../debug/src/*.o

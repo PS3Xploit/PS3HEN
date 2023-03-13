@@ -18,7 +18,7 @@ PPU_SRCS = main.c printf.c asmcode.s
 PPU_PRX_TARGET = HENplugin.prx
 PPU_PRX_LDFLAGS += $(PRX_LDFLAGS_EXTRA)
 PPU_PRX_STRIP_FLAGS = -s
-PPU_PRX_LDLIBS 	+= -lfs_stub -lnet_stub -lio_stub -lvshmain_export_stub -lstdc_export_stub
+PPU_PRX_LDLIBS 	+= -lfs_stub -lnet_stub -lio_stub -lvshmain_export_stub -lstdc_export_stub -lxsetting_export_stub -lallocator_export_stub
 PPU_CFLAGS += -Os -ffunction-sections -fdata-sections -fno-builtin-printf -nodefaultlibs -std=gnu99 -Wno-shadow -Wno-unused-parameter -Wall
 
 ifeq ($(BUILD_TYPE), debug)

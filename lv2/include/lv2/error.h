@@ -10,10 +10,13 @@ extern "C" {
 
 /** The operation is successfully executed.*/
 
+#define CELL_FS_SUCCEEDED  0
 #define SUCCEEDED    0
 #define CELL_OK	     0
+#define UNDEFINED         -1
+#define FAILED            -1
 
-/** The resource is temporarily unavailable. 
+/** The resource is temporarily unavailable.
  *
  * e.g. The number of threads in the system is exceeding the limit.
  */
@@ -141,4 +144,4 @@ extern "C" {
 #endif
 #endif							/* __LV2_KERNEL_ERROR_CODE_H__ */
 /*@}*/
- 
+

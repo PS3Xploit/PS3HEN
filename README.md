@@ -1,4 +1,4 @@
-# PS3HEN 3.1.1
+# PS3HEN 3.2.0
 
 stage0.bin is appended to actual stackframe
 
@@ -11,6 +11,7 @@ MultiFW support has been added.
 * CEX HFW 4.87.1 (thanks Joonie)
 * CEX HFW 4.88.1 (thanks zecoxao/Joonie)
 * CEX HFW 4.89.1 (thanks littlebalup)
+* CEX HFW 4.90.1 (thanks Joonie)
 
 ** CFWs can be used for testing, but not recommended to use**
 
@@ -19,6 +20,39 @@ MultiFW support has been added.
 
 Changelog<br>
 -----------<br>
+
+# 3.2.0<br>
+# HEN Global Changes<br>
+  - Added support for 4.90 firmware. Special thanks to lmn7 and Joonie for their work on porting offsets, HFW, and other code contributions<br>
+  - Xai updated to support new HFW Tools options. Special thanks to Evilnat for his help and code contributions
+# HEN Plugin Changes<br>
+  - Automatic reboot after successful initial HEN installation from Network and USB<br>
+  - Added Clear Browser Cache code, currently disabled. This will be moved into xai_plugin (thanks xfrcc)<br>
+  - Changes to HEN plugin attempting to make it unload properly (thanks @aldostools, TheRouLetteBoi)<br>
+  - Updated host domain name from ps3xploit.me to ps3xploit.me<br>
+# Payload Changes<br>
+  - Added mutex functionality to map_path and open_path_hook (thanks bguerville)<br>
+  - Updated, fixed, and optimized map_path and open_path_hook. Also kept support for legacy homebrew that uses map_path (thanks bguerville)<br>
+  - Added stat to open_path_hook for DEBUG build only (thanks DeViL303 for the idea and bguerville for the code and implementation)<br>
+  - Changed compatibility for modules patching. Firmware versions 4.84-4.88 share values, but 4.89 has its own values now for hashes and sprx patches<br>
+  - Added support for custom subchannel data via LSD files (thanks @aldostools)<br>
+  - PSX BIOS patched with product code 0x85 for PAL games (thanks @aldostools)<br>
+  - Option to force PAL or NTSC including the word in the file name (thanks @aldostools)<br>
+  - Added support for .sbi files and improve the performance seeking the custom subchannels (thanks @aldostools)<br>
+  - Added toggle for libaudio BT patch (thanks in1975)<br>
+  - Updated act.dat restore function (thanks bucanero)<br>
+  - Support for rap and RAP extension (lowercase/uppercase) (thanks aldostools)<br>
+  - Added button detection on launch. Currently will look for R2 held, to disable boot plugins.<br>
+# Resource Changes<br>
+  - HEN Enable and Package Manager have been separated from category_game.xml<br>
+  - Package Manager hidden on boot and shows full on HEN launch (thanks LuanTeles, DeViL303)<br>
+  - The HEN Enable egg menu item will be shown on boot and will be hidden after the XMB is refreshed. This will be updated later to refresh automatically. (thanks LuanTeles, DeViL303)<br>
+  - Added Developer options under HFW Tools -> Developer<br>
+  - Added the ability to switch HEN from Release and Debug modes via HFW Tools -> Developer (USB will be added next release)<br>
+  - Added the option to remove hen_enable.png to allow install from browser via HFW Tools -> Developer<br>
+  - Only supporting Stock and Rebug themes for now until custom colors can be fixed<br>
+<br>
+<br>
 
 # 3.1.1<br>
 # Payload Changes<br>
@@ -37,8 +71,8 @@ Changelog<br>
 # Payload Changes<br>
   - Updated To Support 4.89 HFW<br>
   - COBRA PS3MAPI Changes: Updated To Identify 4.89 Firmware<br>
-  - Added Dump PSID option to HFW Tools<br>
 # Resource Changes<br>
+  - Added Dump PSID option to HFW Tools<br>
   - Added Toggle Automatic Update option to HFW Tools<br>
   - Updated text on Theme Selector in HFW Tools<br>
   - Added new icons for updated HFW Tools options (thanks xps3riments)<br>

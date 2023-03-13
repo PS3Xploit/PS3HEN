@@ -80,7 +80,7 @@ int sys_psp_read_header(int fd, char *buf, uint64_t nbytes, uint64_t *nread)
 	process_t process;
 	
 	#ifdef DEBUG
-		DPRINTF("umd read header: %p %lx\n", buf, nbytes);
+		//DPRINTF("umd read header: %p %lx\n", buf, nbytes);
 	#endif
 	
 	buf = get_secure_user_ptr(buf);
@@ -115,14 +115,14 @@ int sys_psp_read_header(int fd, char *buf, uint64_t nbytes, uint64_t *nread)
 				{
 					emulator_api_base = segments[0].base;
 					#ifdef DEBUG
-						DPRINTF("emulator_api base = %08lx\n", emulator_api_base);
+						//DPRINTF("emulator_api base = %08lx\n", emulator_api_base);
 					#endif	
 				}
 				else if (strstr(filename, "/PEmuCoreLib.sprx"))
 				{
 					pemucorelib_base = segments[0].base;						
 					#ifdef DEBUG
-						DPRINTF("PEmuCoreLib base = %08lx\n", pemucorelib_base);
+						//DPRINTF("PEmuCoreLib base = %08lx\n", pemucorelib_base);
 					#endif
 				}
 			}
@@ -154,7 +154,7 @@ int sys_psp_read_header(int fd, char *buf, uint64_t nbytes, uint64_t *nread)
 	strncpy(buf+0x70, psp_id, 10);
 						
 	#ifdef DEBUG
-		DPRINTF("ID: %s\n", psp_id);
+		//DPRINTF("ID: %s\n", psp_id);
 	#endif
 	
 	if (mutex && user_mutex)
@@ -173,7 +173,7 @@ int sys_psp_read_umd(int unk, void *buf, uint64_t sector, uint64_t ofs, uint64_t
 	int ret;
 							
 	#ifdef DEBUG
-		DPRINTF("umd read %lx %lx %lx\n", sector, ofs, size);
+		//DPRINTF("umd read %lx %lx %lx\n", sector, ofs, size);
 	#endif
 		
 	if (!mutex)
@@ -186,7 +186,7 @@ int sys_psp_read_umd(int unk, void *buf, uint64_t sector, uint64_t ofs, uint64_t
 		if (ret != 0)
 		{
 			#ifdef DEBUG
-				DPRINTF("Cannot open user mutex, using an own one\n");
+				//DPRINTF("Cannot open user mutex, using an own one\n");
 			#endif
 			mutex_create(&mutex, SYNC_PRIORITY, SYNC_NOT_RECURSIVE);
 			user_mutex = 0;
@@ -194,7 +194,7 @@ int sys_psp_read_umd(int unk, void *buf, uint64_t sector, uint64_t ofs, uint64_t
 		else
 		{
 			#ifdef DEBUG
-				DPRINTF("user mutex opened succesfully\n");
+				//DPRINTF("user mutex opened succesfully\n");
 			#endif
 			user_mutex = 1;
 			close_kernel_object_handle(object_table, obj_handle);
@@ -352,7 +352,7 @@ int sys_psp_set_emu_path(char *path)
 int sys_psp_post_savedata_initstart(int result, void *param)
 {
 	#ifdef DEBUG
-	DPRINTF("Savedata init start\n");
+		//DPRINTF("Savedata init start\n");
 	#endif
 	
 	if (result == 0)	
@@ -364,13 +364,13 @@ int sys_psp_post_savedata_initstart(int result, void *param)
 int sys_psp_post_savedata_shutdownstart(void)
 {
 	#ifdef DEBUG
-		DPRINTF("Savedata shutdown start\n");
+		//DPRINTF("Savedata shutdown start\n");
 	#endif
 	
 	if (savedata_param)
 	{
 		#ifdef DEBUG
-			DPRINTF("Original bind: %08X\n", savedata_param[0x34/4]);
+			//DPRINTF("Original bind: %08X\n", savedata_param[0x34/4]);
 		#endif
 		savedata_param[0x34/4] = swap32(1); // SCE_UTILITY_SAVEDATA_BIND_OK
 		savedata_param = NULL;
@@ -394,6 +394,7 @@ Known values:
 int sys_psp_sony_bug(uint32_t *mips_registers, void *unk, uint32_t mips_PC)
 {
 	DPRINTF("sys_psp_sony_bug, game is gonna crash\n");
+	/*
 	DPRINTF("PSP registers info:\n");
 	DPRINTF("PC: %08X\n", mips_PC);
 	DPRINTF("zr: %08X   at: %08X\n", mips_registers[0], mips_registers[1]);
@@ -412,7 +413,8 @@ int sys_psp_sony_bug(uint32_t *mips_registers, void *unk, uint32_t mips_PC)
 	DPRINTF("k0: %08X   k1: %08X\n", mips_registers[26], mips_registers[27]);
 	DPRINTF("gp: %08X   sp: %08X\n", mips_registers[28], mips_registers[29]);
 	DPRINTF("s8: %08X   ra: %08X\n", mips_registers[30], mips_registers[31]);
-		
+	*/
+	
 	/*for (int i = 32; i < 1024; i += 2)
 	{
 		DPRINTF("%04X: %08X %08X\n", i*4, mips_registers[i], mips_registers[i+1]);

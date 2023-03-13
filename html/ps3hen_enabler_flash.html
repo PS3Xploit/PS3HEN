@@ -60,6 +60,23 @@
         sc_fs_write = 0x323,
         sc_fs_close = 0x324,
         sc_fs_stat = 0x328;
+		
+      if (fwv == "4.80") {
+        (toc_addr = 7296288),
+          (gadget1_addr = 620036),
+          (gadget8_addr = 131072),
+          (gadget_mod1_addr = 6350216),
+          (gadget_mod2_addr = 80756),
+          (gadget_mod3_addr = 757248),
+          (gadget_mod4a_addr = 890500),
+          (gadget_mod4b_addr = 4376448),
+          (gadget_mod4c_addr = 346864),
+          (gadget_mod7_addr = 108204),
+          (gadget_mod8_addr = 2862256),
+          (gadget_mod9_addr = 68384),
+          (gadget_mod12_addr = 6498220),
+          (gadget_mod15_addr = 3788864);
+      }
 
       if (fwv == "4.84") {
         (toc_addr = 7296344),
@@ -112,6 +129,24 @@
           (gadget_mod15_addr = 3788856);
       }
 
+      if (fwv == "4.90") {
+        (toc_addr = 7296344),
+          (gadget1_addr = 620036),
+          (gadget8_addr = 131072),
+          (gadget_mod1_addr = 6352848),
+          (gadget_mod2_addr = 80756),
+          (gadget_mod3_addr = 757248),
+          (gadget_mod4a_addr = 890500),
+          (gadget_mod4b_addr = 4376436),
+          (gadget_mod4c_addr = 346864),
+          (gadget_mod7_addr = 108204),
+          (gadget_mod8_addr = 2862260),
+          (gadget_mod9_addr = 68384),
+          (gadget_mod12_addr = 6500852),
+          (gadget_mod15_addr = 3788852);
+      }
+	 
+	  
       function showResult(str) {
         document.getElementById("result").innerHTML = str;
       }
