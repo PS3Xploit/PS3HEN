@@ -95,7 +95,7 @@ LV2_HOOKED_FUNCTION_PRECALL_SUCCESS_2(int, region_func, (uint64_t func, uint8_t 
 	if (func == 0x19004)
 	{
 		#ifdef DEBUG
-			DPRINTF("We are originally in region %02X\n", buf[3]);
+			//DPRINTF("We are originally in region %02X\n", buf[3]);
 		#endif
 		
 		char *procname = get_process_name(get_current_process_critical());

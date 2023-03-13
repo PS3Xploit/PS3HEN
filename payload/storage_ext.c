@@ -24,12 +24,14 @@
 #include "mappath.h"
 #include "modulespatch.h"
 
-//#define ps2emu_entry1_bc 0x165B44 
+//#define ps2emu_entry1_bc 0x165B44
 //#define ps2emu_entry2_bc 0x165CC0
 
 //#define ps2emu_entry1_semibc 0x165b40
 //#define ps2emu_entry2_semibc 0x165CC0
 
+#define _4KB_	0x1000
+#define _64KB_	0x10000
 
 #define READ_BUF_SIZE			(256*1024)
 #define READ_BUF_SIZE_SECTORS_PSX	(128)
@@ -51,13 +53,13 @@ process_t vsh_process;
 int get_vsh_proc()
 {
 	uint32_t tmp_pid_list[16];
-	uint64_t *proc_list = *(uint64_t **)MKA(TOC+process_rtoc_entry_1);	
+	uint64_t *proc_list = *(uint64_t **)MKA(TOC+process_rtoc_entry_1);
 	proc_list = *(uint64_t **)proc_list;
 	proc_list = *(uint64_t **)proc_list;
 	for (int i = 0; i < 16; i++)
 	{
-		process_t process = (process_t)proc_list[1];	
-		proc_list += 2;	
+		process_t process = (process_t)proc_list[1];
+		proc_list += 2;
 		if ((((uint64_t)process) & 0xFFFFFFFF00000000ULL) != MKA(0)) {tmp_pid_list[i] = 0; continue;}
 		char *proc_name = get_process_name(process);
 		if ( 0 < strlen(proc_name))
@@ -149,8 +151,15 @@ event_queue_t command_queue, result_queue;
 static event_port_t proxy_command_port;
 static event_queue_t proxy_result_queue;
 
-static int discfd = -1;
-static int disc_emulation;	
+#define LC_SECTORS	32
+
+static u8  lsd_header; // 0(lsd) / 4(sbi)
+static u8  lsd_struct; // 15(lsd)/14(sbi)
+static u16 lsd[LC_SECTORS];
+
+static int subqfd = UNDEFINED;
+static int discfd = UNDEFINED;
+static int disc_emulation;
 static int emu_ps3_rec = 0; // Support for burned PS3 DVD/BD Discs by deank
 static int total_emulation;
 static int skip_emu_check = 0;
@@ -166,7 +175,9 @@ static int hdd0_mounted = 0;
 static int ps2emu_type;
 
 static int video_mode = -2;
+uint8_t forced_video_mode = 0; // 0 = Detect, 1 = NTSC, 2 = PAL
 
+static uint32_t base_offset = 0;
 
 unsigned int real_disctype; /* Real disc in the drive */
 unsigned int effective_disctype; /* The type of disc we want it to be, and the one faked in storage event. */
@@ -181,7 +192,7 @@ LV2_EXPORT int storage_internal_get_device_object(void *object, device_handle_t 
 static INLINE void get_next_read(int64_t discoffset, uint64_t bufsize, uint64_t *fileoffset, uint64_t *readsize, int *file)
 {
 	uint64_t base = 0;
-	*file = -1;
+	*file = UNDEFINED;
 	*readsize = bufsize;
 	*fileoffset = 0;
 
@@ -218,7 +229,7 @@ static INLINE int process_read_iso_cmd(ReadIsoCmd *cmd)
 	int ret, iskernel, activefile, doseek;
 	int cache = 0;
 
-	ret = 0;
+	ret = SUCCEEDED;
 	iskernel = (((uint64_t)cmd->buf) >> 63);
 	offset = cmd->offset;
 	remaining = cmd->size;
@@ -264,7 +275,7 @@ static INLINE int process_read_iso_cmd(ReadIsoCmd *cmd)
 	{
 		bufsize = (remaining > READ_BUF_SIZE) ? READ_BUF_SIZE : remaining;
 		ret = page_allocate_auto(NULL, bufsize, 0x2F, &readbuf);
-		if (ret != 0)
+		if (ret != SUCCEEDED)
 			return ret;
 	}
 
@@ -280,19 +291,19 @@ static INLINE int process_read_iso_cmd(ReadIsoCmd *cmd)
 		maxreadsize = (remaining > bufsize) ? bufsize : remaining;
 		get_next_read(offset, maxreadsize, &filepos, &readsize, &file);
 
-		if (file != -1)
+		if (file != UNDEFINED)
 		{
-			if (discfd == -1 || file != activefile)
+			if (discfd == UNDEFINED || file != activefile)
 			{
-				if (discfd != -1)
+				if (discfd != UNDEFINED)
 					cellFsClose(discfd);
 
 				DPRINTF("Changed to part file %d\n", file);
 
 				ret = cellFsOpen(discfile->files[file], CELL_FS_O_RDONLY, &discfd, 0, NULL, 0);
-				if (ret != 0)
+				if (ret != SUCCEEDED)
 				{
-					discfd = -1;
+					discfd = UNDEFINED;
 					break;
 				}
 
@@ -302,20 +313,20 @@ static INLINE int process_read_iso_cmd(ReadIsoCmd *cmd)
 
 			if (doseek)
 			{
-				ret = cellFsLseek(discfd, filepos, SEEK_SET, &v);
-				if (ret != 0)
+				ret = cellFsLseek(discfd, base_offset + filepos, SEEK_SET, &v);
+				if (ret != SUCCEEDED)
 					break;
 
 				doseek = 0;
 			}
 
 			ret = cellFsRead(discfd, readbuf, readsize, &v);
-			if (ret != 0)
+			if (ret != SUCCEEDED)
 				break;
 
 			if (v != readsize)
 			{
-				ret = -1;
+				ret = FAILED;
 				break;
 			}
 		}
@@ -323,13 +334,13 @@ static INLINE int process_read_iso_cmd(ReadIsoCmd *cmd)
 		{
 			// don't know why, but in some video blu ray iso i've seen a read request over the size reported. Let's just dummy data.
 			memset(readbuf, 0, readsize);
-			ret = 0;
+			ret = SUCCEEDED;
 		}
 
 		if (!iskernel)
 		{
 			ret = copy_to_process(cmd->process, readbuf, ptr, readsize);
-			if (ret != 0)
+			if (ret != SUCCEEDED)
 				break;
 		}
 
@@ -341,7 +352,7 @@ static INLINE int process_read_iso_cmd(ReadIsoCmd *cmd)
 			readbuf = ptr;
 	}
 
-	if (ret == 0)
+	if (ret == SUCCEEDED)
 	{
 		if (cache)
 		{
@@ -387,16 +398,16 @@ static INLINE int process_read_cd_iso2048_cmd(ReadIsoCmd *cmd)
 	remaining = cmd->size/2048;
 	iskernel = (((uint64_t)cmd->buf) >> 63);
 
-	if (discfd == -1)
+	if (discfd == UNDEFINED)
 	{
 		ret = cellFsOpen(discfile_cd->file, CELL_FS_O_RDONLY, &discfd, 0, NULL, 0);
-		if (ret != 0)
+		if (ret != SUCCEEDED)
 			return ret;
 	}
 
 	bufsize = (remaining > READ_BUF_SIZE_SECTORS_PSX) ? READ_BUF_SIZE_SECTORS_PSX : remaining;
 	ret = page_allocate_auto(NULL, bufsize * cd_sector_size, 0x2F, (void **)&readbuf);
-	if (ret != 0)
+	if (ret != SUCCEEDED)
 		return ret;
 
 	ptr = cmd->buf;
@@ -416,8 +427,9 @@ static INLINE int process_read_cd_iso2048_cmd(ReadIsoCmd *cmd)
 		{
 			if (doseek)
 			{
-				ret = cellFsLseek(discfd, sector * cd_sector_size, SEEK_SET, &v);
-				if (ret != 0)
+                                //ret = cellFsLseek(discfd, sector * cd_sector_size, SEEK_SET, &v);
+				ret = cellFsLseek(discfd, base_offset + sector * cd_sector_size, SEEK_SET, &v);
+				if (ret != SUCCEEDED)
 					break;
 
 				doseek = 0;
@@ -427,7 +439,7 @@ static INLINE int process_read_cd_iso2048_cmd(ReadIsoCmd *cmd)
 		if (read)
 		{
 			ret = cellFsRead(discfd, readbuf, readsize * cd_sector_size, &v);
-			if (ret != 0)
+			if (ret != SUCCEEDED)
 				break;
 
 			if (v < (readsize * cd_sector_size))
@@ -473,16 +485,16 @@ static INLINE int process_read_cd_iso2352_cmd(ReadCdIso2352Cmd *cmd)
 	uint32_t remaining, bufsize;
 	int iskernel, ret, doseek, cache;
 
-	ret = 0;
+	ret = SUCCEEDED;
 	sector = cmd->start_sector;
 	remaining = cmd->sector_count;
 	buf = cmd->buf;
 	iskernel = (((uint64_t)buf) >> 63);
 
-	if (discfd == -1)
+	if (discfd == UNDEFINED)
 	{
 		ret = cellFsOpen(discfile_cd->file, CELL_FS_O_RDONLY, &discfd, 0, NULL, 0);
-		if (ret != 0)
+		if (ret != SUCCEEDED)
 			return ret;
 	}
 
@@ -557,7 +569,7 @@ static INLINE int process_read_cd_iso2352_cmd(ReadCdIso2352Cmd *cmd)
 		{
 			bufsize = (remaining > READ_BUF_SIZE_SECTORS_PSX) ? READ_BUF_SIZE_SECTORS_PSX : remaining;
 			ret = page_allocate_auto(NULL, bufsize * cd_sector_size, 0x2F, (void **)&readbuf);
-			if (ret != 0)
+			if (ret != SUCCEEDED)
 				return ret;
 		}
 	}
@@ -588,8 +600,9 @@ static INLINE int process_read_cd_iso2352_cmd(ReadCdIso2352Cmd *cmd)
 		{
 			if (doseek)
 			{
-				ret = cellFsLseek(discfd, sector * cd_sector_size, SEEK_SET, &v);
-				if (ret != 0)
+                                //ret = cellFsLseek(discfd, sector * cd_sector_size, SEEK_SET, &v);
+				ret = cellFsLseek(discfd, base_offset + sector * cd_sector_size, SEEK_SET, &v);
+				if (ret != SUCCEEDED)
 					break;
 
 				doseek = 0;
@@ -599,7 +612,7 @@ static INLINE int process_read_cd_iso2352_cmd(ReadCdIso2352Cmd *cmd)
 		if (read)
 		{
 			ret = cellFsRead(discfd, readbuf, readsize * cd_sector_size, &v);
-			if (ret != 0)
+			if (ret != SUCCEEDED)
 				break;
 
 			if (v < (readsize * cd_sector_size))
@@ -661,16 +674,16 @@ int process_read_disc_cmd(ReadDiscCmd *cmd)
 	ret = page_allocate_auto(NULL, 4096, 0x2F, &dma);
 	memset(dma, 0x5B, 4096);
 
-	if (ret == 0)
+	if (ret == SUCCEEDED)
 	{
 		ret = kernel_ea_to_lpar_addr(dma, &dma_lpar);
-		if (ret == 0)
+		if (ret == SUCCEEDED)
 		{
 			suspend_intr();
 			uint64_t state = spin_lock_irqsave();
 
 			ret =  lv1_stor_wrapper_open(LV1_BDVD_DEV_ID, dma, dma_lpar, 12, &var);
-			if (ret == 0)
+			if (ret == SUCCEEDED)
 			{
 				ret = lv1_stor_wrapper_read(&var, 0, cmd->start_sector, cmd->sector_count, 0x2, cmd->buf);
 				lv1_stor_wrapper_close(&var);
@@ -707,7 +720,7 @@ int process_proxy_cmd(uint64_t command, process_t process, uint8_t *buf, uint64_
 		#endif
 
 		ret = event_port_send(proxy_command_port, command, offset, (((uint64_t)buf)<<32ULL) | remaining);
-		if (ret != 0)
+		if (ret != SUCCEEDED)
 		{
 			#ifdef DEBUG
 			DPRINTF("event_port send failed: %x\n", ret);
@@ -716,7 +729,7 @@ int process_proxy_cmd(uint64_t command, process_t process, uint8_t *buf, uint64_
 		}
 
 		ret = event_queue_receive(proxy_result_queue, &event, 0);
-		if (ret != 0)
+		if (ret != SUCCEEDED)
 		{
 			#ifdef DEBUG
 			DPRINTF("event_queue_receive failed: %x\n", ret);
@@ -766,7 +779,7 @@ int process_proxy_cmd(uint64_t command, process_t process, uint8_t *buf, uint64_
 		read_size = (remaining <= discfile_proxy->read_size) ? remaining : discfile_proxy->read_size;
 
 		ret = page_allocate_auto(vsh_process, read_size, 0x2F, &kbuf);
-		if (ret != 0)
+		if (ret != SUCCEEDED)
 		{
 			#ifdef DEBUG
 			DPRINTF("page_allocate failed: %x\n", ret);
@@ -775,7 +788,7 @@ int process_proxy_cmd(uint64_t command, process_t process, uint8_t *buf, uint64_
 		}
 
 		ret = page_export_to_proc(vsh_process, kbuf, 0x40000, &vbuf);
-		if (ret != 0)
+		if (ret != SUCCEEDED)
 		{
 			#ifdef DEBUG
 			DPRINTF("page_export_to_proc failed: %x\n", ret);
@@ -790,15 +803,15 @@ int process_proxy_cmd(uint64_t command, process_t process, uint8_t *buf, uint64_
 
 			this_read_size = (remaining <= read_size) ? remaining : read_size;
 			ret = event_port_send(proxy_command_port, command, offset, (((uint64_t)vbuf)<<32ULL) | this_read_size);
-			if (ret != 0)
+			if (ret != SUCCEEDED)
 				break;
 
 			ret = event_queue_receive(proxy_result_queue, &event, 0);
-			if (ret != 0)
+			if (ret != SUCCEEDED)
 				break;
 
 			ret = (int)event.data1;
-			if (ret != 0)
+			if (ret != SUCCEEDED)
 				break;
 
 			if (iskernel)
@@ -836,7 +849,7 @@ int process_proxy_cmd(uint64_t command, process_t process, uint8_t *buf, uint64_
 	}
 
 	#ifdef DEBUG
-	if (ret != 0)
+	if (ret != SUCCEEDED)
 	{
 		DPRINTF("proxy read failed: %x\n", ret);
 	}
@@ -882,6 +895,54 @@ int process_fake_storage_event_cmd(FakeStorageEventCmd *cmd)
 int emu_read_bdvd1(void *object, void *buf, uint64_t size, uint64_t offset);
 int emu_storage_read(device_handle_t device_handle, uint64_t unk, uint64_t start_sector, uint32_t sector_count, void *buf, uint32_t *nread, uint64_t unk2);
 
+////////////// READ LSD SECTORS ////////////////////
+static void read_libcrypt_sectors(const char *file)
+{
+	int ret = cellFsOpen(file, CELL_FS_O_RDONLY, &subqfd, 0, NULL, 0);
+	if(ret) return;
+
+	if(strstr(file, ".sbi"))
+		lsd_struct = 14, lsd_header = 4;
+	else
+		lsd_struct = 15, lsd_header = 0;
+
+	// Read list of LibCrypt sectors in MSF
+	size_t r; MSF msf;
+	for(u8 n = 0; n < LC_SECTORS; n++)
+	{
+		cellFsLseek(subqfd, lsd_header + (n * lsd_struct), SEEK_SET, &r);
+		ret = cellFsRead(subqfd, &msf, sizeof(MSF), &r);
+		if(ret) break;
+		lsd[n] = msf_bcd_to_lba(msf);
+	}
+	if(ret)
+	{
+		// Close LSD file
+		cellFsClose(subqfd);
+		subqfd = UNDEFINED;
+	}
+	if(lsd_header)
+		lsd_header = 8;
+	else
+		lsd_header = 3;
+}
+
+////////////// PROCESS PSX VIDEO MODE //////////////
+static void get_cd_sector_size(unsigned int trackscount)
+{
+	// -- AV: cd sector size
+	cd_sector_size = (trackscount & 0xffff00)>>4; // <- Use: trackscount = num_of_tracks | (cd_sector_size<<4);
+	if(cd_sector_size > 2448) cd_sector_size = (trackscount & 0xffff00)>>8;
+	if( (cd_sector_size != 2352) && // raw
+		(cd_sector_size != 2048) && // cooked (data)
+		(cd_sector_size != 2328) &&
+		(cd_sector_size != 2336) &&
+		(cd_sector_size != 2340) &&
+		(cd_sector_size != 2368) &&
+		(cd_sector_size != 2448) )
+			cd_sector_size = 2352;
+}
+
 int read_psx_sector(void *dma, void *buf, uint64_t sector)
 {
 	if (disc_emulation == EMU_OFF)
@@ -890,10 +951,10 @@ int read_psx_sector(void *dma, void *buf, uint64_t sector)
 		int ret;
 
 		ret = storage_open(BDVD_DRIVE, 0, &handle, 0);
-		if (ret == 0)
+		if (ret == SUCCEEDED)
 		{
 			ret = storage_map_io_memory(BDVD_DRIVE, dma, 4096);
-			if (ret == 0)
+			if (ret == SUCCEEDED)
 			{
 				for (int i = 0; i < 3; i++)
 				{
@@ -903,7 +964,7 @@ int read_psx_sector(void *dma, void *buf, uint64_t sector)
 					ret = call_hooked_function_7(emu_storage_read, (uint64_t)handle, 0, sector, 1, (uint64_t)dma, (uint64_t)&nread, 0);
 					skip_emu_check = 0;
 
-					if (ret == 0)
+					if (ret == SUCCEEDED)
 					{
 						memcpy(buf, dma, 2048);
 						break;
@@ -929,7 +990,8 @@ int read_psx_sector(void *dma, void *buf, uint64_t sector)
 	{
 		uint64_t x;
 
-		cellFsLseek(discfd, (sector * cd_sector_size)+0x18, SEEK_SET, &x);
+                //cellFsLseek(discfd, (sector * cd_sector_size)+0x18, SEEK_SET, &x);
+		cellFsLseek(discfd, base_offset + (sector * cd_sector_size)+0x18, SEEK_SET, &x);
 		return cellFsRead(discfd, buf, 2048, &x);
 	}
 	else if (discfile_proxy)
@@ -982,14 +1044,14 @@ int enable_patches()
 				#if defined (FIRMWARE_4_82DEX) ||  defined (FIRMWARE_4_84DEX)
 			do_patch(MKA(vsh_patch),0x386000014E800020);
 			#endif
-			//do_patch32(MKA(patch_data1_offset), 0x01000000);				
-			do_patch32(MKA(module_sdk_version_patch_offset), NOP);			
-			do_patch32(MKA(patch_func8_offset1),0x38600000); 
+			//do_patch32(MKA(patch_data1_offset), 0x01000000);
+			do_patch32(MKA(module_sdk_version_patch_offset), NOP);
+			do_patch32(MKA(patch_func8_offset1),0x38600000);
 			do_patch32(MKA(patch_func8_offset2),0x60000000);
 			do_patch32(MKA(user_thread_prio_patch),0x60000000); // for NetISO
 			do_patch32(MKA(user_thread_prio_patch2),0x60000000); // for NetISO
 			do_patch32(MKA(ECDSA_1),0x38600000);
-			do_patch32(MKA(lic_patch),0x38600001); // ignore LIC.DAT check	
+			do_patch32(MKA(lic_patch),0x38600001); // ignore LIC.DAT check
 			do_patch32(MKA(patch_func9_offset),0x60000000);
 			do_patch32(MKA(fix_80010009),0x60000000);
 			do_patch(MKA(ode_patch),0x38600000F8690000); // fix 0x8001002B / 80010017 errors  known as ODE patch
@@ -998,7 +1060,7 @@ int enable_patches()
 			do_patch(MKA(fix_8001003D),0x63FF003D60000000);
 			do_patch(MKA(fix_8001003E),0x3FE080013BE00000);
 			do_patch(MKA(PATCH_JUMP),0x2F84000448000098);
-			
+
 			*(uint64_t *)MKA(ECDSA_FLAG)=0;
 		//	do_pokes();
 		//	*(uint64_t *)(r4+8)=0; //ecdsa flag
@@ -1009,7 +1071,7 @@ int enable_patches()
 			region_patches();
 			modules_patch_init();
 			map_path_patches(0);
-			
+
 			storage_ext_patches();
 			#if defined(FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX) || defined (FIRMWARE_4_82)
 			hook_function_with_precall(get_syscall_address(801),sys_fs_open,6);
@@ -1017,10 +1079,10 @@ int enable_patches()
 			hook_function_with_precall(get_syscall_address(804),sys_fs_close,1);
 			#endif
 			hook_function_with_cond_postcall(get_syscall_address(724),bnet_ioctl,3);
-#if defined (FIRMWARE_4_82) ||  defined (FIRMWARE_4_84) || defined(FIRMWARE_4_85) || defined(FIRMWARE_4_86) || defined(FIRMWARE_4_87) || defined(FIRMWARE_4_88) || defined(FIRMWARE_4_89)
+#if defined (FIRMWARE_4_82) ||  defined (FIRMWARE_4_84) || defined(FIRMWARE_4_85) || defined(FIRMWARE_4_86) || defined(FIRMWARE_4_87) || defined(FIRMWARE_4_88) || defined(FIRMWARE_4_89) || defined(FIRMWARE_4_90)
 			hook_function_with_cond_postcall(um_if_get_token_symbol,um_if_get_token,5);
 			hook_function_with_cond_postcall(update_mgr_read_eeprom_symbol,read_eeprom_by_offset,3);
-#endif			
+#endif
 resume_intr();
 
 	return 0;
@@ -1037,7 +1099,10 @@ int disable_patches()
 #elif defined (FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX)
  		do_patch32(MKA(patch_func8_offset2),0x4821B4BD);
 		do_patch32(MKA(lic_patch),0x482584B5); // ignore LIC.DAT check
-		do_patch(MKA(vsh_patch),0xE92280087C0802A6);		
+		do_patch(MKA(vsh_patch),0xE92280087C0802A6);
+#elif defined (FIRMWARE_4_90)
+		do_patch32(MKA(patch_func8_offset2),0x48216FAD);
+		do_patch32(MKA(lic_patch),0x48240EE5); // ignore LIC.DAT check
 #endif
 		do_patch32(MKA(module_sdk_version_patch_offset), 0x419D0008);        
 		do_patch32(MKA(user_thread_prio_patch),0x419DFF84); // for NetISO
@@ -1055,7 +1120,7 @@ int disable_patches()
 		*(uint64_t *)MKA(ECDSA_FLAG)=0;
 		resume_intr();
 		unhook_all_modules();
-		
+
 		unhook_all_storage_ext();
 		unhook_all_region();
 		unhook_all_map_path();
@@ -1066,7 +1131,7 @@ int disable_patches()
 		#endif
 		unhook_function_with_cond_postcall(get_syscall_address(724),bnet_ioctl,3);
 	//	remove_pokes();
-#if defined (FIRMWARE_4_82) ||  defined (FIRMWARE_4_84) || defined(FIRMWARE_4_85) || defined(FIRMWARE_4_86) || defined(FIRMWARE_4_87) || defined(FIRMWARE_4_88) || defined(FIRMWARE_4_89)
+#if defined (FIRMWARE_4_82) ||  defined (FIRMWARE_4_84) || defined(FIRMWARE_4_85) || defined(FIRMWARE_4_86) || defined(FIRMWARE_4_87) || defined(FIRMWARE_4_88) || defined(FIRMWARE_4_89) || defined(FIRMWARE_4_90)
 		suspend_intr();
 		unhook_function_with_cond_postcall(um_if_get_token_symbol,um_if_get_token,5);
 		unhook_function_with_cond_postcall(update_mgr_read_eeprom_symbol,read_eeprom_by_offset,3);
@@ -1074,7 +1139,7 @@ int disable_patches()
 #endif
 
 	remove_syscall_handler();
-#ifdef DEBUG		
+	#ifdef DEBUG
 		debug_uninstall();
 		#endif
 		return 0;
@@ -1082,55 +1147,77 @@ int disable_patches()
 
 int process_get_psx_video_mode(void)
 {
-	int ret = -1;
-	
+	int ret = UNDEFINED;
+
 	if (effective_disctype == DEVICE_TYPE_PSX_CD)
-	{		
+	{
 		char *buf, *p, *dma;
 		char *exe_path;
-					
+
 		buf = alloc(4096, 0x27);
 		page_allocate_auto(NULL, 4096, 0x2F, (void **)&dma);
-		exe_path = alloc(140, 0x27);	
-		
+		exe_path = alloc(140, 0x27);
+
 		if (read_psx_sector(dma, buf, 0x10) == 0 && read_psx_sector(dma, buf+2048, *(uint32_t *)&buf[0x9C+6]) == 0)
 		{
 			uint32_t sector = find_file_sector((uint8_t *)buf+2048, "SYSTEM.CNF;1");
-					
+
 			if (sector != 0 && read_psx_sector(dma, buf, sector) == 0)
 			{
 				p = strstr(buf, "cdrom");
 				if (!p)
 					p = strstr(buf, "CDROM");
-				
+
 				if (p)
-				{	
+				{
 					p += 5;
-					
+
 					while (*p != 0 && !isalpha(*p))
 						p++;
-				
+
 					if (*p != 0)
 					{
 						int i = 0;
-						
+
 						memset(exe_path, 0, 140);
-											
+
 						while (*p >= ' ' && *p != ';' && i < 117)
 						{
 							exe_path[i] = *p;
 							i++;
 							p++;
 						}
-							
+
+						// detect PAL by title_id
+						if ((exe_path[4] == '_') &&
+							(exe_path[0] == 'S' || exe_path[0] == 'P') &&
+							(exe_path[1] == 'L' || exe_path[1] == 'C' ||	// SLUS, SCUS, SLPM, SLPS, SCPS, SLUD, SCUD, SLKA, SCAJ
+							 exe_path[1] == 'A' || exe_path[1] == 'B' ||	// PAPX, PBPX, PCPX
+							 exe_path[1] == 'I'))							// SIPS
+								ret = (exe_path[2] == 'E');					// SLES, SCES, SCED, SLED
+
+						if(subqfd == UNDEFINED)
+						{
+							sprintf(buf, "/dev_hdd0/tmp/lsd/%s.lsd", exe_path);
+							read_libcrypt_sectors(buf);
+						}
+						if(subqfd == UNDEFINED)
+						{
+							sprintf(buf, "/dev_hdd0/tmp/sbi/%s.sbi", exe_path);
+							read_libcrypt_sectors(buf);
+						}
+
+						// detect PAL by PSX EXE
+						if(ret == UNDEFINED)
+						{
 						strcat(exe_path, ";1");
 						DPRINTF("PSX EXE: %s\n", exe_path);
-								
+
 						sector = find_file_sector((uint8_t *)buf+2048, exe_path);
-					
-						if (sector != 0 && read_psx_sector(dma, buf, sector) == 0) 
-						{						
-							if (strncmp(buf+0x71, "North America", 13) == 0 || strncmp(buf+0x71, "Japan", 5) == 0)
+
+							if (sector != 0 && read_psx_sector(dma, buf, sector) == 0)
+							{
+								/*if (strncmp(buf+0x71, "North America", 13) == 0 || strncmp(buf+0x71, "Japan", 5) == 0)
 							{
 								ret = 0;
 								DPRINTF("NTSC\n");
@@ -1139,19 +1226,26 @@ int process_get_psx_video_mode(void)
 							{
 								ret = 1;
 								DPRINTF("PAL\n");
+								}*/
+								ret = (strncmp(buf+0x71, "Europe", 6) == 0);
 							}
 						}
-								
 					}
 				}
 			}
 		}
-		
+
 		dealloc(exe_path, 0x27);
 		dealloc(buf, 0x27);
 		page_free(NULL, dma, 0x2F);
-	}	
-	
+	}
+
+	#ifdef DEBUG
+	if(ret == SUCCEEDED) DPRINTF("NTSC\n");
+	if(ret == 1) DPRINTF("PAL\n");
+	#endif
+
+	forced_video_mode = (ret + 1);
 	return ret;
 }
 
@@ -1165,7 +1259,7 @@ void dispatch_thread_entry(uint64_t arg)
 		int64_t cmd_result = 0;
 
 		ret = event_queue_receive(command_queue, &event, 0);
-		if (ret != 0)
+		if (ret != SUCCEEDED)
 			break;
 
 		switch (event.data1)
@@ -1204,15 +1298,15 @@ void dispatch_thread_entry(uint64_t arg)
 			case CMD_FAKE_STORAGE_EVENT:
 				cmd_result = process_fake_storage_event_cmd((FakeStorageEventCmd *)event.data2);
 			break;
-			
+
 			case CMD_GET_PSX_VIDEO_MODE:
 				cmd_result = process_get_psx_video_mode();
 			break;
-			
+
 			case CMD_ENABLE_PATCHES:
 				cmd_result=enable_patches();
 			break;
-			
+
 			case CMD_DISABLE_PATCHES:
 				cmd_result=disable_patches();
 			break;
@@ -1230,7 +1324,7 @@ void dispatch_thread_entry(uint64_t arg)
 static int read_real_disc_sector (void *buf, uint64_t lba, uint32_t size, int retries)
 {
 	ReadDiscCmd cmd;
-	int ret = -1;
+	int ret = FAILED;
 
 	cmd.buf = buf;
 	cmd.start_sector = lba;
@@ -1240,7 +1334,7 @@ static int read_real_disc_sector (void *buf, uint64_t lba, uint32_t size, int re
 	//DPRINTF("Read sector %lx\n", lba);
 	#endif
 
-	for (int i = 0; i < retries && ret != 0; i++)
+	for (int i = 0; i < retries && ret != SUCCEEDED; i++)
 	{
 		if (0/*!loop*/)
 		{
@@ -1258,11 +1352,11 @@ static int read_real_disc_sector (void *buf, uint64_t lba, uint32_t size, int re
 			ret = process_read_disc_cmd(&cmd);
 		}
 
-		if (ret == 0)
+		if (ret == SUCCEEDED)
 		{
 			// Even when we cannot really read the disc, we are reported success, do a lame check here:
 			if (*(uint32_t *)buf == 0x5B5B5B5B)
-				ret = -1;
+				ret = FAILED;
 		}
 	}
 
@@ -1273,7 +1367,7 @@ int is_psx(int check_ps2)
 {
 	uint8_t *buf;
 	int result;
-	int ret = 0;
+	int ret = SUCCEEDED;
 
 	if (page_allocate_auto(NULL, 2048, 0x2F, (void **)&buf) == 0)
 	{
@@ -1282,7 +1376,7 @@ int is_psx(int check_ps2)
 		if (result == 0)
 		{
 			// Check if it is a burned PS3 disk (deank)
-			if(check_ps2==3)
+			if(check_ps2 == 3)
 			{
 				ret = (memcmp(buf+1, "CD001", 5) == 0 && memcmp(buf+0x28, "PS3VOLUME", 9) == 0);
 				if(!ret)
@@ -1341,7 +1435,7 @@ void process_disc_insert(uint32_t disctype)
 	real_disctype = disctype;
 	effective_disctype = real_disctype;
 	fake_disctype = 0;
-	emu_ps3_rec = 0;	
+	emu_ps3_rec = 0;
 	#ifdef DEBUG
 	DPRINTF("real disc type = %x\n", real_disctype);
 	#endif
@@ -1416,7 +1510,7 @@ void process_disc_insert(uint32_t disctype)
 					fake_disctype = effective_disctype = DEVICE_TYPE_PS2_DVD;
 				}
 			}
-			
+
 			if(real_disctype && real_disctype != DEVICE_TYPE_PS3_BD && fake_disctype == 0 && is_psx(3))
 			{
 				fake_disctype = effective_disctype = DEVICE_TYPE_PS3_BD;
@@ -1465,7 +1559,7 @@ LV2_PATCHED_FUNCTION(int, device_event, (event_port_t event_port, uint64_t event
 
 			if (effective_disctype == DEVICE_TYPE_PSX_CD)
 			{
-				video_mode = -1;
+				video_mode = UNDEFINED;
 			}
 
 			real_disctype = 0;
@@ -1494,13 +1588,13 @@ int do_read_iso(void *buf, uint64_t offset, uint64_t size)
 	event_port_send(command_port, CMD_READ_ISO, (uint64_t)&cmd, 0);
 	ret = event_queue_receive(result_queue, &event, 0);
 
-	if (ret == 0)
+	if (ret == SUCCEEDED)
 	{
 		ret = (int)(int64_t)event.data1;
 	}
 
 	#ifdef DEBUG
-	if (ret != 0)
+	if (ret != SUCCEEDED)
 	{
 		DPRINTF("Read failed: %x\n", ret);
 	}
@@ -1563,7 +1657,7 @@ LV2_HOOKED_FUNCTION_COND_POSTCALL_3(int, emu_read_bdvd2, (uint64_t *object, void
 		if  (do_read_iso(buf, object[0x98/8], size) == 0)
 			ret = size;
 		else
-			ret = -1;
+			ret = FAILED;
 	}
 
 	mutex_unlock(mutex);
@@ -1609,7 +1703,7 @@ static int get_handle_device(int handle, uint64_t *device)
 	ptr = (uint64_t *)(ptr[0] + 0x40);
 
 	int ret = storage_internal_get_device_object(ptr, handle, (void **)&object);
-	if (ret == 0)
+	if (ret == SUCCEEDED)
 	{
 		*device = object[0xA0/8];
 	}
@@ -1635,12 +1729,12 @@ LV2_HOOKED_FUNCTION_COND_POSTCALL_7(int, emu_storage_read, (device_handle_t devi
 			{
 				if (do_read_iso(buf, start_sector*2048, sector_count*2048) == 0)
 				{
-					ret = 0;
+					ret = SUCCEEDED;
 					*nread = sector_count;
 				}
 				else
 				{
-					ret = -1;
+					ret = FAILED;
 				}
 			}
 
@@ -1698,7 +1792,7 @@ LV2_HOOKED_FUNCTION_COND_POSTCALL_7(int, emu_sys_storage_async_read, (sys_device
 				}
 
 				mutex_unlock(storage_mutex);
-				ret = 0;
+				ret = SUCCEEDED;
 			}
 
 			mutex_unlock(mutex);
@@ -1807,7 +1901,7 @@ static INLINE ScsiTrackDescriptor *find_track_by_lba(uint32_t lba)
 		uint32_t track_start = tracks[i].track_start_addr;
 		uint32_t track_end;
 
-		if (i == (n-1))
+		if (i == (n - 1))
 		{
 			track_end = num_sectors;
 		}
@@ -1824,7 +1918,7 @@ static INLINE ScsiTrackDescriptor *find_track_by_lba(uint32_t lba)
 
 	return NULL;
 }
-
+/*
 static uint16_t q_crc_lut[256] = {
     0x0000, 0x1021, 0x2042, 0x3063, 0x4084, 0x50A5, 0x60C6, 0x70E7, 0x8108,
     0x9129, 0xA14A, 0xB16B, 0xC18C, 0xD1AD, 0xE1CE, 0xF1EF, 0x1231, 0x0210,
@@ -1867,7 +1961,7 @@ static INLINE uint16_t calculate_subq_crc(uint8_t *data) {
 
     return ~crc;
 }
-
+*/
 int process_cd_iso_scsi_cmd(uint8_t *indata, uint64_t inlen, uint8_t *outdata, uint64_t outlen, int is2048)
 {
 	if (inlen < 1)
@@ -1931,7 +2025,7 @@ int process_cd_iso_scsi_cmd(uint8_t *indata, uint64_t inlen, uint8_t *outdata, u
 
 				if (cmd->track_session_num > 1)
 				{
-					resp->toc_length = resp->toc_length - ((cmd->track_session_num-1) * sizeof(ScsiTrackDescriptor));
+					resp->toc_length = resp->toc_length - ((cmd->track_session_num - 1) * sizeof(ScsiTrackDescriptor));
 				}
 
 				if (cmd->track_session_num == 0)
@@ -1940,7 +2034,7 @@ int process_cd_iso_scsi_cmd(uint8_t *indata, uint64_t inlen, uint8_t *outdata, u
 				}
 				else
 				{
-					i = cmd->track_session_num-1;
+					i = cmd->track_session_num - 1;
 				}
 
 				if (is2048)
@@ -2048,7 +2142,7 @@ int process_cd_iso_scsi_cmd(uint8_t *indata, uint64_t inlen, uint8_t *outdata, u
 
 			if (discfile_proxy)
 			{
-				track = &discfile_proxy->tracks[cmd->lba_tsn-1];
+				track = &discfile_proxy->tracks[cmd->lba_tsn - 1];
 				if (cmd->lba_tsn == numtracks)
 				{
 					track_size = discfile_proxy->size/cd_sector_size - track->track_start_addr;
@@ -2060,7 +2154,7 @@ int process_cd_iso_scsi_cmd(uint8_t *indata, uint64_t inlen, uint8_t *outdata, u
 			}
 			else
 			{
-				track = &discfile_cd->tracks[cmd->lba_tsn-1];
+				track = &discfile_cd->tracks[cmd->lba_tsn - 1];
 				if (cmd->lba_tsn == numtracks)
 				{
 					track_size = discfile_cd->num_sectors - track->track_start_addr;
@@ -2203,7 +2297,7 @@ int process_cd_iso_scsi_cmd(uint8_t *indata, uint64_t inlen, uint8_t *outdata, u
 			if (outsize > outlen)
 			{
 				ret = page_allocate_auto(process, outsize, 0x2F, (void **)&buf);
-				if (ret != 0)
+				if (ret != SUCCEEDED)
 					return -1;
 			}
 			else
@@ -2220,10 +2314,10 @@ int process_cd_iso_scsi_cmd(uint8_t *indata, uint64_t inlen, uint8_t *outdata, u
 
 				event_port_send(command_port, CMD_READ_CD_ISO_2352, (uint64_t)&read_cmd, 0);
 				ret = event_queue_receive(result_queue, &event, 0);
-				if (ret == 0)
+				if (ret == SUCCEEDED)
 					ret = (int)(int64_t)event.data1;
 
-				if (ret != 0)
+				if (ret != SUCCEEDED)
 					return -1;
 			}
 			else
@@ -2241,10 +2335,10 @@ int process_cd_iso_scsi_cmd(uint8_t *indata, uint64_t inlen, uint8_t *outdata, u
 
 						event_port_send(command_port, CMD_READ_CD_ISO_2352, (uint64_t)&read_cmd, 0);
 						ret = event_queue_receive(result_queue, &event, 0);
-						if (ret == 0)
+						if (ret == SUCCEEDED)
 							ret = (int)(int64_t)event.data1;
 
-						if (ret != 0)
+						if (ret != SUCCEEDED)
 							return -1;
 
 						p += cd_sector_size;
@@ -2253,16 +2347,41 @@ int process_cd_iso_scsi_cmd(uint8_t *indata, uint64_t inlen, uint8_t *outdata, u
 					SubChannelQ *subq = (SubChannelQ *)p;
 					memset(subq, 0, sizeof(SubChannelQ));
 
+					// custom subchannel
+					ret = UNDEFINED;
+					u32 lba2 = lba + 150;
+					if(subqfd != UNDEFINED)
+					{
+						u8 n = LC_SECTORS, max = LC_SECTORS;
+						if(lba2 <= lsd[15] && lba2 >= lsd[00]) n = 0, max = 16; else // min 3
+						if(lba2 <= lsd[31] && lba2 >= lsd[16]) n = 16; // min 9
+						for(; n < max; n++)
+						{
+							if(lsd[n] >  lba2) break;
+							if(lsd[n] == lba2)
+							{
+								size_t r;
+								cellFsLseek(subqfd, lsd_header + (n * lsd_struct), SEEK_SET, &r);
+								ret = cellFsRead(subqfd, (void *)subq, 10, &r);
+								if(subq->control_adr <= 0 || r != 10) ret = UNDEFINED;
+								break;
+							}
+						}
+					}
+
+					if(ret)
+					{
 					ScsiTrackDescriptor *track = find_track_by_lba(lba);
-					subq->control_adr = ((track->adr_control << 4)&0xF0) | (track->adr_control >> 4);
+						subq->control_adr = ((track->adr_control << 4) & 0xF0) | (track->adr_control >> 4);
 					subq->track_number = track->track_number;
 					subq->index_number = 1;
 
 					if (user_data)
 						lba_to_msf_bcd(lba, &subq->min, &subq->sec, &subq->frame);
 
-					lba_to_msf_bcd(lba+150, &subq->amin, &subq->asec, &subq->aframe);
-					subq->crc = calculate_subq_crc((uint8_t *)subq);
+						lba_to_msf_bcd(lba2, &subq->amin, &subq->asec, &subq->aframe);
+						//subq->crc = calculate_subq_crc((u8 *)subq);
+					}
 
 					p += sizeof(SubChannelQ);
 					lba++;
@@ -2296,41 +2415,41 @@ int process_cd_iso_scsi_cmd(uint8_t *indata, uint64_t inlen, uint8_t *outdata, u
 
 static INLINE int get_psx_video_mode(void)
 {
-	int ret = -1;
+	int ret = UNDEFINED;
 	event_t event;
-	
+
 	event_port_send(command_port, CMD_GET_PSX_VIDEO_MODE, 0, 0);
 	if (event_queue_receive(result_queue, &event, 0) == 0)
-	{	
-		ret = (int)(int64_t)event.data1;				
+	{
+		ret = (int)(int64_t)event.data1;
 	}
-	
+
 	return ret;
 }
 
 static INLINE void do_video_mode_patch(void)
-{				
+{
 	process_t p = get_current_process_critical();
-	
+
 	if (p == vsh_process)
 	{
 		uint32_t patch = 0;
-		
+
 		if (effective_disctype == DEVICE_TYPE_PSX_CD)
 		{
 			if (video_mode != 2)
 			{
-				int ret = get_psx_video_mode();
+				int ret = forced_video_mode ? (forced_video_mode - 1) : get_psx_video_mode();
 				if (ret >= 0)
 					video_mode = ret;
 			}
-		}		
+		}
 		else
 		{
 			if (video_mode >= 0)
-				video_mode = -1;
+				video_mode = UNDEFINED;
 		}
-		
+
 		if (video_mode >= 0)
 		{
 			if (video_mode < 2)
@@ -2339,18 +2458,20 @@ static INLINE void do_video_mode_patch(void)
 				video_mode = 2;
 			}
 		}
-		else if (video_mode == -1)
+		else if (video_mode == UNDEFINED)
 		{
 			patch = LWZ(R0, 0x74, SP);
 			video_mode = -2;
 		}
-		
+
 		if (patch != 0)
 		{
 			DPRINTF("Doing patch %08X\n", patch);
-		//	copy_to_user(&patch, (void *)(vmode_patch_offset+0x10000), 4);	
+		//	copy_to_user(&patch, (void *)(vmode_patch_offset+0x10000), 4);
 			#if defined (FIRMWARE_4_84) ||  defined (FIRMWARE_4_85) || defined(FIRMWARE_4_86) || defined(FIRMWARE_4_87) || defined(FIRMWARE_4_88) || defined(FIRMWARE_4_89)
-			process_write_memory(vsh_process, (void *)0x4531DC, &patch, 4, 1);	
+			process_write_memory(vsh_process, (void *)0x4531DC, &patch, 4, 1);
+			#elif defined(FIRMWARE_4_90)
+			process_write_memory(vsh_process, (void *)0x4531D8, &patch, 4, 1);	
 			#endif
 		}
 	}
@@ -2358,7 +2479,7 @@ static INLINE void do_video_mode_patch(void)
 
 int process_cmd(unsigned int command, void *indata, uint64_t inlen, void *outdata, uint64_t outlen)
 {
-	int ret = 0;
+	int ret = SUCCEEDED;
 
 	switch (command)
 	{
@@ -2500,12 +2621,12 @@ LV2_HOOKED_FUNCTION_COND_POSTCALL_7(int, emu_sys_storage_async_send_device_comma
 
 			if (tri > 0)
 			{
-				ret = 0;
+				ret = SUCCEEDED;
 				event_port_send(async_port, param, 0, 0);
 			}
 			else if (tri < 0)
 			{
-				ret = 0;
+				ret = SUCCEEDED;
 				event_port_send(async_port, param, -1, 0);
 			}
 
@@ -2522,7 +2643,7 @@ LV2_HOOKED_FUNCTION_COND_POSTCALL_7(int, emu_sys_storage_async_send_device_comma
 static INLINE unsigned int get_disc_type(/*int hooked*/)
 {
 	device_handle_t handle;
-	unsigned int ret = 0;
+	unsigned int ret = SUCCEEDED;
 
 	if (storage_open(BDVD_DRIVE, 0, &handle, 0) == 0)
 	{
@@ -2597,7 +2718,7 @@ LV2_HOOKED_FUNCTION_COND_POSTCALL_2(int, emu_disc_auth, (uint64_t func, uint64_t
 					mutex_lock(mutex, 0);
 
 					int ret = call_hooked_function_2(emu_disc_auth, func, param); // Recursive!
-					if (ret == 0)
+					if (ret == SUCCEEDED)
 					{
 						fake_reinsert(get_disc_type());
 					}
@@ -2713,7 +2834,7 @@ static INLINE void load_ps2emu_stage2(int emu_type)
 		DPRINTF("Failed to open ps2 stage2: %s\n", name);
 	}
 	#endif
-	
+
 	page_free(NULL, buf, 0x2F);
 }
 
@@ -3055,9 +3176,9 @@ LV2_HOOKED_FUNCTION(int, shutdown_copy_params_patched, (uint8_t *argp_user, uint
 				uint64_t nwritten;
 				uint8_t *buf;
 
-				page_allocate_auto(NULL, 0x1000, 0x2F, (void **)&buf);
+				page_allocate_auto(NULL, _4KB_, 0x2F, (void **)&buf);
 
-				memset(buf, 0, 0x1000);
+				memset(buf, 0, _4KB_);
 				// bit 0-> is cd
 				// bit 1 -> total emulation
 				buf[0] = (disc_emulation == EMU_PS2_CD) | ((real_disctype == 0)<<1);
@@ -3070,13 +3191,13 @@ LV2_HOOKED_FUNCTION(int, shutdown_copy_params_patched, (uint8_t *argp_user, uint
 					memcpy(buf+0x801, discfile_cd->tracks, discfile_cd->numtracks*sizeof(ScsiTrackDescriptor));
 				}
 
-				buf[0x702]=0x6d;
-				buf[0x703]=0x6f;
-				buf[0x704]=0x75;
-				buf[0x705]=0x6e;
-				buf[0x706]=0x74;
+				buf[0x702] = 'm'; // 0x6d;
+				buf[0x703] = 'o'; // 0x6f;
+				buf[0x704] = 'u'; // 0x75;
+				buf[0x705] = 'n'; // 0x6e;
+				buf[0x706] = 't'; // 0x74;
 
-				cellFsWrite(fd, buf, 0x1000, &nwritten);
+				cellFsWrite(fd, buf, _4KB_, &nwritten);
 				cellFsClose(fd);
 
 				page_free(NULL, buf, 0x2F);
@@ -3100,10 +3221,10 @@ LV2_HOOKED_FUNCTION(int, shutdown_copy_params_patched, (uint8_t *argp_user, uint
 
 static INLINE void do_umount_discfile(void)
 {
-	if (discfd != -1)
+	if (discfd != UNDEFINED)
 	{
 		cellFsClose(discfd);
-		discfd = -1;
+		discfd = UNDEFINED;
 	}
 
 	if (discfile)
@@ -3147,13 +3268,17 @@ static INLINE void do_umount_discfile(void)
 		}
 	}
 
+	forced_video_mode = 0;
 	disc_emulation = EMU_OFF;
 	total_emulation = 0;
-	emu_ps3_rec=0;
+	emu_ps3_rec = 0;
+	base_offset = 0;
 }
 
 static INLINE int check_files_and_allocate(unsigned int filescount, char *files[])
 {
+	base_offset = 0;
+
 	if (filescount == 0 || filescount > 32)
 		return EINVAL;
 
@@ -3162,10 +3287,12 @@ static INLINE int check_files_and_allocate(unsigned int filescount, char *files[
 	for (int i = 0; i < filescount; i++)
 	{
 		int len = strlen(files[i]);
-		if (len >= MAX_PATH)
+		if ((len >= MAX_PATH) || (len < 4))
 			return EINVAL;
 
-		allocsize += len+1;
+		if(strcmp(files[i] + (len - 4), ".PNG") == 0) base_offset = _64KB_; // EXT
+
+		allocsize += (len + 1);
 	}
 
 	discfile = alloc(allocsize, 0x27);
@@ -3175,16 +3302,16 @@ static INLINE int check_files_and_allocate(unsigned int filescount, char *files[
 	discfile->count = filescount;
 	discfile->activefile = 0;
 	discfile->totalsize = 0;
-	discfile->files = (char **)(discfile+1);
-	discfile->sizes = (uint64_t *)(discfile->files+filescount);
-	char *p = (char *)(discfile->sizes+filescount);
+	discfile->files = (char **)(discfile + 1);
+	discfile->sizes = (uint64_t *)(discfile->files + filescount);
+	char *p = (char *)(discfile->sizes + filescount);
 
 	for (int i = 0; i < filescount; i++)
 	{
 		CellFsStat stat;
 
 		int ret = cellFsStat(files[i], &stat);
-		if (ret != 0)
+		if (ret != SUCCEEDED)
 		{
 			dealloc(discfile, 0x27);
 			discfile = NULL;
@@ -3195,18 +3322,18 @@ static INLINE int check_files_and_allocate(unsigned int filescount, char *files[
 		DPRINTF("%s, filesize: %lx\n", files[i], stat.st_size);
 		#endif
 
-		if (stat.st_size < 4096)
+		if (stat.st_size < 4096 + base_offset)
 		{
 			dealloc(discfile, 0x27);
 			discfile = NULL;
 			return EINVAL;
 		}
 
-		discfile->totalsize += stat.st_size;
-		discfile->sizes[i] = stat.st_size;
+		discfile->sizes[i] = (stat.st_size - base_offset);
+		discfile->totalsize += discfile->sizes[i];
 		discfile->files[i] = p;
 		strcpy(p, files[i]);
-		p += strlen(p)+1;
+		p += (strlen(p) + 1);
 	}
 
 	return 0;
@@ -3218,7 +3345,7 @@ int mount_common(unsigned int filescount, char *files[])
 		return EBUSY;
 
 	int ret = check_files_and_allocate(filescount, files);
-	if (ret != 0)
+	if (ret != SUCCEEDED)
 		return ret;
 
 	discfile->cached_sector = NULL;
@@ -3233,7 +3360,7 @@ int mount_ps3_discfile(unsigned int filescount, char *files[])
 	mutex_lock(mutex, 0);
 
 	ret = mount_common(filescount, files);
-	if (ret == 0)
+	if (ret == SUCCEEDED)
 	{
 		disc_emulation = EMU_PS3;
 		total_emulation = (!disc_being_mounted && real_disctype == 0);
@@ -3249,7 +3376,7 @@ int mount_dvd_discfile(unsigned int filescount, char *files[])
 	mutex_lock(mutex, 0);
 
 	ret = mount_common(filescount, files);
-	if (ret == 0)
+	if (ret == SUCCEEDED)
 	{
 		disc_emulation = EMU_DVD;
 		total_emulation = (!disc_being_mounted && real_disctype == 0);
@@ -3265,7 +3392,7 @@ int mount_bd_discfile(unsigned int filescount, char *files[])
 	mutex_lock(mutex, 0);
 
 	ret = mount_common(filescount, files);
-	if (ret == 0)
+	if (ret == SUCCEEDED)
 	{
 		disc_emulation = EMU_BD;
 		total_emulation = (!disc_being_mounted && real_disctype == 0);
@@ -3287,8 +3414,11 @@ int mount_ps_cd(char *file, unsigned int trackscount, ScsiTrackDescriptor *track
 
 
 	// -- AV: cd sector size
-	cd_sector_size = (trackscount & 0xffff00)>>4; // <-- Use: trackscount = num_of_tracks | (cd_sector_size<<4);
-	if(cd_sector_size != 2352 && cd_sector_size != 2048 && cd_sector_size != 2336 && cd_sector_size != 2448) cd_sector_size = 2352;
+/*
+cd_sector_size = (trackscount & 0xffff00)>>4; // <-- Use: trackscount = num_of_tracks | (cd_sector_size<<4);
+if(cd_sector_size != 2352 && cd_sector_size != 2048 && cd_sector_size != 2336 && cd_sector_size != 2448) cd_sector_size = 2352;
+*/
+	get_cd_sector_size(trackscount);
 	trackscount &= 0xff;
 	// --
 
@@ -3301,24 +3431,62 @@ int mount_ps_cd(char *file, unsigned int trackscount, ScsiTrackDescriptor *track
 		CellFsStat stat;
 
 		ret = cellFsStat(file, &stat); if(stat.st_size < 0x9930) ret = EINVAL;
-		if (ret == 0)
+		if (ret == SUCCEEDED)
 		{
+			// -- AV: cd sector size
+			char *ext = file + (len - 4);
+
+			if(strcmp(ext, ".PNG") == 0) base_offset = _64KB_; // EXT
+
 			// -- AV: cd sector size
 			if(cd_sector_size == 2352)
 			{
+				///////// Open LSD (LibCrypt Subchannel Data) for protected PAL games /////// AV:2022-06-02
+				char file_ext[5];
+				strcpy(file_ext, ext);
+
+				strcpy(ext, ".lsd");
+				ret = cellFsStat(file, &stat);
+				if(ret)
+				{
+					strcpy(ext, ".sbi");
+					ret = cellFsStat(file, &stat);
+				}
+				if(ret == CELL_FS_SUCCEEDED)
+				{
+					read_libcrypt_sectors(file);
+				}
+				strcpy(ext, file_ext);
+
+				// force video by title id in file name
+				if(strstr(file, "NTSC"))
+					forced_video_mode = 1;
+				if(strstr(file, "PAL"))
+					forced_video_mode = 2;
+
 				// detect sector size
 				ret = cellFsOpen(file, CELL_FS_O_RDONLY, &discfd, 0, NULL, 0);
-				if(ret == 0)
+				if(ret == SUCCEEDED)
 				{
+/*
 					char buffer[0x10]; buffer[0xD] = 0; uint64_t v;
 					cellFsLseek(discfd, 0x9320, SEEK_SET, &v); cellFsRead(discfd, buffer, 0xC, &v); if(memcmp(buffer, "PLAYSTATION ", 0xC)==0) cd_sector_size = 2352; else {
 					cellFsLseek(discfd, 0x8020, SEEK_SET, &v); cellFsRead(discfd, buffer, 0xC, &v); if(memcmp(buffer, "PLAYSTATION ", 0xC)==0) cd_sector_size = 2048; else {
 					cellFsLseek(discfd, 0x9920, SEEK_SET, &v); cellFsRead(discfd, buffer, 0xC, &v); if(memcmp(buffer, "PLAYSTATION ", 0xC)==0) cd_sector_size = 2448; else {
 					cellFsLseek(discfd, 0x9220, SEEK_SET, &v); cellFsRead(discfd, buffer, 0xC, &v); if(memcmp(buffer, "PLAYSTATION ", 0xC)==0) cd_sector_size = 2336; }}}
-
+*/
+					char buffer[20]; u64 v;
+					uint16_t sec_size[7] = {2352, 2048, 2336, 2448, 2328, 2340, 2368};
+					for(uint8_t n = 0; n < 7; n++)
+					{
+						cellFsLseek(discfd, base_offset + (sec_size[n]<<4) + 0x18, SEEK_SET, &v);
+						cellFsRead(discfd, buffer, 20, &v);
+						if(  (memcmp(buffer + 8, "PLAYSTATION ", 0xC) == 0) ||
+							((memcmp(buffer + 1, "CD001", 5) == 0) && buffer[0] == 0x01) ) {cd_sector_size = sec_size[n]; break;}
+					}
 			        cellFsClose(discfd);
 				}
-				discfd = -1;
+				discfd = UNDEFINED;
 			}
 			// --
 
@@ -3350,7 +3518,7 @@ int mount_psx_discfile(char *file, unsigned int trackscount, ScsiTrackDescriptor
 	mutex_lock(mutex, 0);
 
 	ret = mount_ps_cd(file, trackscount, tracks);
-	if (ret == 0)
+	if (ret == SUCCEEDED)
 	{
 		disc_emulation = EMU_PSX;
 		total_emulation = (!disc_being_mounted && real_disctype == 0);
@@ -3362,12 +3530,14 @@ int mount_psx_discfile(char *file, unsigned int trackscount, ScsiTrackDescriptor
 
 int mount_ps2_discfile(unsigned int filescount, char *files[], unsigned int trackscount, ScsiTrackDescriptor *tracks)
 {
-	int is_cd = 0;
-	int is_2352 = 0;
-	int ret = 0;
-
 	if (filescount != 1)
 		return EINVAL; // We don't support more than 1 file atm
+
+	int is_cd = 0;
+	int is_2352 = 0;
+	int ret = SUCCEEDED;
+
+	//if(strcmp(files[0] + (strlen(files[0]) - 4), ".PNG") == 0) base_offset = _64KB_; // EXT
 
 	if (trackscount > 1)
 	{
@@ -3381,15 +3551,16 @@ int mount_ps2_discfile(unsigned int filescount, char *files[], unsigned int trac
 		uint64_t pos, nread;
 		uint8_t buf[0xB0];
 
-		ret = cellFsOpen(files[0], CELL_FS_O_RDONLY, &fd, 0, NULL, 0);
-		if (ret != 0)
+                //ret = cellFsOpen(files[0], CELL_FS_O_RDONLY, &fd, 0, NULL, 0);
+		ret = cellFsOpen(files[0], CELL_FS_O_RDONLY, &fd, base_offset, NULL, 0);
+		if (ret != SUCCEEDED)
 			return ret;
 
 		cellFsLseek(fd, 0x8000, SEEK_SET, &pos);
 		ret = cellFsRead(fd, buf, sizeof(buf), &nread);
 		cellFsClose(fd);
 
-		if (ret != 0)
+		if (ret != SUCCEEDED)
 		{
 			return ret;
 		}
@@ -3421,7 +3592,7 @@ int mount_ps2_discfile(unsigned int filescount, char *files[], unsigned int trac
 	else
 		ret = mount_common(filescount, files);
 
-	if (ret == 0)
+	if (ret == SUCCEEDED)
 	{
 		disc_emulation = (is_cd) ? EMU_PS2_CD : EMU_PS2_DVD;
 		total_emulation = (!disc_being_mounted && real_disctype == 0);
@@ -3433,7 +3604,7 @@ int mount_ps2_discfile(unsigned int filescount, char *files[], unsigned int trac
 
 int umount_discfile(void)
 {
-	int ret = 0;
+	int ret = SUCCEEDED;
 
 	mutex_lock(mutex, 0);
 
@@ -3443,7 +3614,7 @@ int umount_discfile(void)
 	}
 	else
 	{
-		ret = -1;
+		ret = FAILED;
 	}
 
 	mutex_unlock(mutex);
@@ -3473,7 +3644,7 @@ int sys_storage_ext_read_ps3_disc(void *buf, uint64_t start_sector, uint32_t cou
 	handle = NULL;
 
 	ret = open_fs_object(NULL, "/dev_bdvd", &object, &unk1, &handle, NULL);
-	if (ret != 0)
+	if (ret != SUCCEEDED)
 		return ret;
 
 	if (!object)
@@ -3498,11 +3669,11 @@ int sys_storage_ext_fake_storage_event(uint64_t event, uint64_t param, uint64_t 
 	cmd.device = device;
 
 	int ret = event_port_send(command_port, CMD_FAKE_STORAGE_EVENT, (uint64_t)&cmd, 0);
-	if (ret == 0)
+	if (ret == SUCCEEDED)
 	{
 		event_t event;
 		ret = event_queue_receive(result_queue, &event, 0);
-		if (ret == 0)
+		if (ret == SUCCEEDED)
 		{
 			ret = (int)event.data1;
 		}
@@ -3533,7 +3704,7 @@ int sys_storage_ext_get_emu_state(sys_emu_state_t *state)
 	mutex_lock(mutex, 0);
 
 	ret = copy_to_user(&disc_emulation, &state->disc_emulation, sizeof(disc_emulation));
-	if (ret == 0)
+	if (ret == SUCCEEDED)
 	{
 		// No size check needed as that was done in mount
 		if (disc_emulation != EMU_OFF)
@@ -3671,8 +3842,11 @@ int sys_storage_ext_mount_discfile_proxy(sys_event_port_t result_port, sys_event
 		return EINVAL;
 
 	// -- AV: cd sector size
-	cd_sector_size = (trackscount & 0xffff00)>>4; //  <- Use: trackscount = num_of_tracks | (cd_sector_size<<8);
+/*
+cd_sector_size = (trackscount & 0xffff00)>>4; //  <- Use: trackscount = num_of_tracks | (cd_sector_size<<8);
 	if(cd_sector_size != 2352 && cd_sector_size != 2048 && cd_sector_size != 2336 && cd_sector_size != 2448) cd_sector_size = 2352;
+*/
+	get_cd_sector_size(trackscount);
 	trackscount &= 0xff;
         //DPRINTF("CD Sector size: %i\n", cd_sector_size);
         //DPRINTF("Track count: %i\n", trackscount);
@@ -3695,19 +3869,19 @@ int sys_storage_ext_mount_discfile_proxy(sys_event_port_t result_port, sys_event
 	}
 
 	ret = open_shared_kernel_object(table, result_port, (void **)&proxy_result_port, &p, SYS_EVENT_PORT_OBJECT, 1);
-	if (ret == 0)
+	if (ret == SUCCEEDED)
 	{
 		ret = open_shared_kernel_object(table, command_queue, (void **)&proxy_command_queue, &q, SYS_EVENT_QUEUE_OBJECT, 1);
-		if (ret == 0)
+		if (ret == SUCCEEDED)
 		{
 			event_port_create(&proxy_command_port, EVENT_PORT_REMOTE);
 			event_queue_create(&proxy_result_queue, SYNC_PRIORITY, 1, 1);
 
 			ret = event_port_connect(proxy_command_port, proxy_command_queue);
-			if (ret == 0)
+			if (ret == SUCCEEDED)
 			{
 				ret = event_port_connect(proxy_result_port, proxy_result_queue);
-				if (ret != 0)
+				if (ret != SUCCEEDED)
 				{
 					#ifdef DEBUG
 					DPRINTF("Failed in connecting proxy result port/queue: %x\n", ret);
@@ -3722,7 +3896,7 @@ int sys_storage_ext_mount_discfile_proxy(sys_event_port_t result_port, sys_event
 			}
 			#endif
 
-			if (ret != 0)
+			if (ret != SUCCEEDED)
 			{
 				event_port_destroy(proxy_command_port);
 				event_queue_destroy(proxy_result_queue);
@@ -3740,7 +3914,7 @@ int sys_storage_ext_mount_discfile_proxy(sys_event_port_t result_port, sys_event
 	}
 	#endif
 
-	if (ret == 0)
+	if (ret == SUCCEEDED)
 	{
 		if (emu_type == EMU_PSX)
 		{
@@ -3790,21 +3964,36 @@ void storage_ext_init(void)
 	event_port_connect(command_port, command_queue);
 	event_port_connect(result_port, result_queue);
 	ppu_thread_create(&dispatch_thread, dispatch_thread_entry, 0, -0x1D8, 0x4000, 0, THREAD_NAME);
-	#if defined (FIRMWARE_4_84) ||  defined (FIRMWARE_4_85) || defined(FIRMWARE_4_86) || defined(FIRMWARE_4_87) || defined(FIRMWARE_4_88) || defined(FIRMWARE_4_89)
+
 	uint64_t patch64=0x386000004e800020;
 	uint32_t patch32=0x38600000;
-	process_write_memory(vsh_process, (void *)0x253250, &patch64, 8, 1);
-	process_write_memory(vsh_process, (void *)0x252020, &patch64, 8, 1);//only on hen cause theres a check on signature of rif that R and S cant be completly 0. this patches that.
-	process_write_memory(vsh_process, (void *)0x255910, &patch32, 4, 1);
-	process_write_memory(vsh_process, (void *)0x255af0, &patch32, 4, 1);
-	patch32=0x60000000;
-	process_write_memory(vsh_process, (void *)0x255f68, &patch32, 4, 1);
-	patch32=0x38600000;
-	process_write_memory(vsh_process, (void *)0x2563d0, &patch32, 4, 1);
-	process_write_memory(vsh_process, (void *)0x256970, &patch32, 4, 1);
-	process_write_memory(vsh_process, (void *)0x5f4c6c, &patch64, 8, 1);
-	patch64=0x386000014e800020;
-	process_write_memory(vsh_process, (void *)0x5fc634, &patch64, 8, 1);
+
+	#if defined (FIRMWARE_4_84) ||  defined (FIRMWARE_4_85) || defined(FIRMWARE_4_86) || defined(FIRMWARE_4_87) || defined(FIRMWARE_4_88) || defined(FIRMWARE_4_89)		
+		process_write_memory(vsh_process, (void *)0x253250, &patch64, 8, 1);
+		process_write_memory(vsh_process, (void *)0x252020, &patch64, 8, 1);//only on hen cause theres a check on signature of rif that R and S cant be completly 0. this patches that.
+		process_write_memory(vsh_process, (void *)0x255910, &patch32, 4, 1);
+		process_write_memory(vsh_process, (void *)0x255af0, &patch32, 4, 1);
+		patch32=0x60000000;
+		process_write_memory(vsh_process, (void *)0x255f68, &patch32, 4, 1);
+		patch32=0x38600000;
+		process_write_memory(vsh_process, (void *)0x2563d0, &patch32, 4, 1);
+		process_write_memory(vsh_process, (void *)0x256970, &patch32, 4, 1);
+		process_write_memory(vsh_process, (void *)0x5f4c6c, &patch64, 8, 1);
+		patch64=0x386000014e800020;
+		process_write_memory(vsh_process, (void *)0x5fc634, &patch64, 8, 1);
+	#elif defined(FIRMWARE_4_90)
+		process_write_memory(vsh_process, (void *)0x25324C, &patch64, 8, 1);
+		process_write_memory(vsh_process, (void *)0x25201C, &patch64, 8, 1);//only on hen cause theres a check on signature of rif that R and S cant be completly 0. this patches that.
+		process_write_memory(vsh_process, (void *)0x25590C, &patch32, 4, 1);
+		process_write_memory(vsh_process, (void *)0x255aec, &patch32, 4, 1);
+		patch32=0x60000000;
+		process_write_memory(vsh_process, (void *)0x255f64, &patch32, 4, 1);
+		patch32=0x38600000;
+		process_write_memory(vsh_process, (void *)0x2563CC, &patch32, 4, 1);
+		process_write_memory(vsh_process, (void *)0x25696C, &patch32, 4, 1);
+		process_write_memory(vsh_process, (void *)0x5f4c68, &patch64, 8, 1);
+		patch64=0x386000014e800020;
+		process_write_memory(vsh_process, (void *)0x5fc62c, &patch64, 8, 1);
 	#endif
 	//init_mount_hdd0();
 }
@@ -3835,6 +4024,9 @@ void unhook_all_storage_ext(void)
 #if defined (FIRMWARE_4_82) || defined (FIRMWARE_4_84) || defined(FIRMWARE_4_85) || defined(FIRMWARE_4_86) || defined(FIRMWARE_4_87) || defined(FIRMWARE_4_88) || defined(FIRMWARE_4_89)
 	*(uint32_t *)MKA(device_event_port_send_call)=0x4BD91004;
 	*(uint32_t *)MKA(shutdown_copy_params_call)=0x48004FBD;
+#elif defined(FIRMWARE_4_90)
+	*(uint32_t *)MKA(device_event_port_send_call)=0x4BD9100C;
+	*(uint32_t *)MKA(shutdown_copy_params_call)=0x48004FB9;
 #elif defined(FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX)
 	*(uint32_t *)MKA(device_event_port_send_call)=0x4BD7CAC4;
 	*(uint32_t *)MKA(shutdown_copy_params_call)=0x48005585;

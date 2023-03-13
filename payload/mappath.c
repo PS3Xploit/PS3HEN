@@ -11,118 +11,675 @@
 #include "syscall8.h"
 #include "ps3mapi_core.h"
 #include <lv2/security.h>
+#include <lv2/synchronization.h>
+#include <stdbool.h>
+#include <stdio.h>
 
-#define MAX_TABLE_ENTRIES 18
-
-typedef struct _MapEntry
-{
+typedef struct MapEntry {
 	char *oldpath;
 	char *newpath;
-	int  newpath_len;
-	int  oldpath_len;
-	uint32_t flags;	
-} MapEntry;
+	size_t newpath_len;
+	size_t oldpath_len;
+	uint32_t flags;
+	struct MapEntry *next;
+} MapEntry_t;
 
-MapEntry map_table[MAX_TABLE_ENTRIES];
-
-// TODO: map_path and open_path_hook should be mutexed...
+// typedef struct CellFsMountInformation {
+	// char p_name[0x20];
+	// char p_type[0x20];
+	// char p_systype[0x20];
+	// char padding[0x33];
+	// unsigned char p_writable;
+// } CellFsMountInformation_t;
 
 uint8_t photo_gui = 1;
+MapEntry_t *head = NULL;
+MapEntry_t *found = NULL;
+mutex_t map_mtx = 0;
+#ifdef DEBUG
+mutex_t pgui_mtx = 0;
+#endif 
+int init_mtx(mutex_t* mtx, uint32_t attr_protocol, uint32_t attr_recursive);
+int destroy_mtx(mutex_t* mtx);
+int lock_mtx(mutex_t* mtx);
+//int trylock_mtx(mutex_t* mtx);
+int unlock_mtx(mutex_t* mtx);
+int addMapping(const char *opath, const char *npath, uint32_t flags);
+bool isMapTableEmpty();
+bool patchAllMappingStartingWith(const char *opath, char* dst);
+bool deleteAllMappings(uint32_t flags);
+int deleteMapping(const char *opath);
+MapEntry_t* findMapping(const char *opath);
+MapEntry_t* getMapping(const char *opath);
+uint32_t mpcount = 0;
+uint64_t  mapTableByteSize=0;
+MapEntry_t* mcount[0x20]; // to keep track of mappings already applied to the path so they cannot be reapllied even when they fit, a dept of 32 is probably overkill, 16 might actually be sufficient for this, 32 max???
+size_t count = 0; // to keep track of mcount length
+//display the list
 
-void map_first_slot(char *old, char *newp)
-{
-	map_table[0].oldpath=old;
-	map_table[0].newpath = alloc(MAX_PATH, 0x27);
-	strncpy(map_table[0].newpath, newp, MAX_PATH-1);
-	map_table[0].newpath_len=strlen(newp);
-	map_table[0].oldpath_len = strlen(old);
-	map_table[0].flags = 0;
-	return;
+void printMapTableList();
+void printMapTableList(){
+	#ifdef  DEBUG
+		DPRINTF("printMappingList: Mappings Count 0x%X : \n", getMapTableLength());
+		uint32_t idx=0;
+		for(MapEntry_t* ptr = head; ptr != NULL; ptr = ptr->next,idx++) {
+			DPRINTF("mapping index %u: %s len: 0x%X byte(s) to %s len: 0x%X byte(s) with flags: %X\n", idx, ptr->oldpath, (unsigned int)ptr->oldpath_len, ptr->newpath, (unsigned int)ptr->newpath_len, ptr->flags);
+		}
+	#endif 
+}
+void printMappingList() {
+	#ifdef  DEBUG
+		lock_mtx(&map_mtx);
+		printMapTableList();
+		unlock_mtx(&map_mtx);
+	#endif
+}
+bool isMapTableEmpty() {
+   return head == NULL;
+}
+uint32_t getMapTableLength() {
+	uint32_t length = 0;
+	for(MapEntry_t *curr = head; curr != NULL; curr = curr->next,length++) {}
+	return length;
+}
+uint64_t getMapTableByteSize() {
+	return mapTableByteSize;
+}
+int addMapping(const char *opath, const char *npath, uint32_t flags) {
+	bool mtable_full = false;
+	size_t nlen = npath ? strlen(npath):0;
+	size_t olen =0;
+	if(nlen>3 && (npath[0] == '/') && (npath[1] == '.') && (npath[2] == '/') && !(flags&FLAG_PROTECT)){
+		#ifdef  DEBUG
+			DPRINTF("addMapping: /./ token found : %s\n",npath);
+		#endif
+		flags|=FLAG_PROTECT;
+		npath+=2;
+	}
+	if(opath){
+		olen=strlen(opath);
+		if(olen > 6){
+			const char* store = opath+olen;
+			while(opath[0]!='/' || opath[1]=='/' || opath[1]=='.'){
+				opath++;
+				if(opath >= store){
+					opath=NULL;
+					break;
+				}
+			}
+		}
+	}
+	if(opath)
+	{	
+		if((strncmp(opath,"/dev_",5)==0 || strncmp(opath,"/app_",5)==0 || strncmp(opath,"/host_",6)==0)){
+			MapEntry_t *curr = getMapping(opath);
+			if(curr!=NULL){
+				if (nlen>6 && nlen<MAX_PATH)
+				{
+					strncpy(curr->newpath, npath, nlen+1);
+					curr->newpath[nlen] = 0;
+					curr->newpath_len = nlen;
+					curr->flags = (curr->flags&FLAG_COPY) | (flags&(~FLAG_COPY));
+					#ifdef  DEBUG
+						//DPRINTF("addMapping: existing mapping path found, new_path updated : %s\n",opath);
+					#endif
+					return 0;
+				}
+				else{
+					#ifdef  DEBUG
+						DPRINTF("addMapping: deleting found mapping : %s\n",opath);
+					#endif
+					return deleteMapping(opath);
+				}
+			}
+			else if(npath){
+			   size_t sz = flags & FLAG_COPY ? olen+1 : 0;
+			   sz+=sizeof(MapEntry_t)+MAX_PATH;
+			   if(mapTableByteSize+sz <= MAX_TABLE_SIZE){
+					if(nlen>=MAX_PATH){
+						#ifdef  DEBUG
+							DPRINTF("addMapping: Mapping NOT added, new_path could not be created: too long %s\n",opath);
+						#endif
+						return EINVAL;
+					}
+					//create a link
+					MapEntry_t *link = (MapEntry_t*) alloc(sizeof(MapEntry_t),0x27);
+					mapTableByteSize+=sizeof(MapEntry_t);
+					if(!link){
+						#ifdef  DEBUG
+							DPRINTF("addMapping: Mapping NOT added, MapEntry_t could not be created: %s\n",opath);
+						#endif
+						return ENOMEM;
+					}
+					link->flags = flags;
+					link->oldpath_len = olen;
+					if (flags & FLAG_COPY){
+						link->oldpath = (char*)alloc(olen+1, 0x27);
+						mapTableByteSize+=olen+1;
+						if(!link->oldpath){
+							dealloc(link, 0x27);
+							mapTableByteSize-=sizeof(MapEntry_t);
+							#ifdef  DEBUG
+								DPRINTF("addMapping: Mapping NOT added, old_path could not be created: %s\n",opath);
+							#endif
+							return ENOMEM;
+						}
+						strncpy(link->oldpath, opath, olen+1);
+						link->oldpath[olen] = 0;
+					}
+					else{
+						link->oldpath = (char*)opath;
+					}
+					link->newpath_len = nlen;
+					link->newpath_len = link->newpath_len < MAX_PATH ? link->newpath_len : MAX_PATH-1;
+					link->newpath = (char*)alloc(MAX_PATH, 0x27);
+					mapTableByteSize+=MAX_PATH;
+					if(!link->newpath){
+						if(flags & FLAG_COPY){
+							dealloc(link->oldpath, 0x27);
+							mapTableByteSize-=olen;
+						}
+						dealloc(link, 0x27);
+						mapTableByteSize-=sizeof(MapEntry_t);
+						#ifdef  DEBUG
+							DPRINTF("addMapping:  Mapping NOT added, new_path could not be created: %s\n",opath);
+						#endif
+						return ENOMEM;
+					}
+					strncpy(link->newpath, npath, link->newpath_len+1);
+					link->newpath[link->newpath_len] = 0;
+					for(curr = head; curr != NULL; curr = curr->next) {
+						if(curr->next== NULL)
+							break;
+					}
+					if(curr){
+						curr->next = link;
+						link->next = NULL;
+					}
+					else{
+					   link->next = head;
+					   head = link;
+					}
+					mpcount++;
+					#ifdef  DEBUG
+						DPRINTF("addMapping: Mapping Added: %s - Mapping Count: %u - Table Mapping Size: 0x%lx bytes\n",opath,mpcount,mapTableByteSize);
+					#endif
+					return 0;
+			   }
+			   else{
+				   mtable_full = true;
+			   }
+			}
+			
+		}
+		
+	}
+	if(!npath){
+		return 0;
+	}
+	if(mtable_full){
+		#ifdef  DEBUG
+			// DPRINTF("addMapping: Mapping NOT added: Mapping Table already full\n");
+		#endif
+		return EAGAIN;
+	}
+	#ifdef  DEBUG
+		 DPRINTF("addMapping: Mapping NOT added: bad argument\n");
+	#endif
+	return EINVAL;
 }
 
-int map_path(char *oldpath, char *newpath, uint32_t flags)
-{
-	int i, firstfree = -1;
+//find a link with given key
+MapEntry_t* getMapping(const char *opath) {
+	MapEntry_t *ret = NULL;
+	MapEntry_t *curr = NULL;
+	if(head && opath) {
+		size_t len = strlen(opath);
+		if(len>6) {// length of /dev_cf == minimum mount point length
+            //start from the first link, slot order matters
+            for(curr = head; curr != NULL; curr = curr->next) {
+                if(curr->oldpath_len == len && strncmp(curr->oldpath, opath, curr->oldpath_len)==0){
+                    //if data found, return the current Link
+                    ret=curr;
+                    break;
+                }
+            }
+		}
+	}
+	return ret;
+}
+
+MapEntry_t* findMapping(const char *opath) {
+	MapEntry_t *ret = NULL;
+	MapEntry_t *curr = NULL;
+	//char tmp_mapping[MAX_PATH]="";
 	
-	if (!oldpath || strlen(oldpath) == 0)
-		return -1;
-	
+	if(head && opath) {
+		size_t len = strlen(opath);
+		if(len>6) { // length of /dev_cf == minimum mount point length
+			//start from the first link, slot order matters
+			for(curr = head; curr != NULL; curr = curr->next) {
+				if(curr->flags&FLAG_MAX_PRIORITY && curr->oldpath_len <= len && strncmp(curr->oldpath, opath, curr->oldpath_len)==0){
+					//if data found, return the current Link
+					//if(curr->flags&FLAG_FOLDER && strncmp(curr->newpath, opath, curr->newpath_len)==0)
+					if(strncmp(curr->newpath, opath, curr->newpath_len)==0)
+						//ignore mapping where opath argument == curr->newpath
+                        continue;
+                    bool mcount_found = false;
+                    for(size_t i=0;i<count;i++){
+                       if(mcount[i]==curr){
+                            mcount_found = true;
+							// mapping found in mcount
+                            break;
+                        }
+                    }
+                    if(mcount_found){
+						// mapping already applied, continue looping
+                        continue;
+					}
+					ret=curr;
+					//add  mapping to mcount array
+					mcount[count]=ret;
+					count++;
+					break;
+				}
+			}
+			if(!ret){ // if no item with
+				//start from the first link, slot order matters
+				for(curr = head; curr != NULL; curr = curr->next) {
+					if(curr->oldpath_len <= len && strncmp(curr->oldpath, opath, curr->oldpath_len)==0){
+						//if(curr->flags&FLAG_FOLDER && strncmp(curr->newpath, opath, curr->newpath_len)==0)
+						if(strncmp(curr->newpath, opath, curr->newpath_len)==0)
+							//ignore mapping where opath argument == curr->newpath
+                            continue;
+						//if data found, use the current Link
+                        bool mcount_found = false;
+                        for(size_t j=0;j<count;j++){
+                            if(mcount[j]==curr){
+                                mcount_found = true;
+								// mapping found in mcount
+								break;
+                            }
+                        }
+                        if(mcount_found){
+							// mapping already applied, continue looping
+							continue;
+						}
+						ret=curr;
+						//add  mapping to mcount array
+						mcount[count]=ret;
+						count++;
+						break;
+					}
+				}
+			}
+		}
+		if(ret){
+			char* tmp_mapping = alloc(MAX_PATH,0x27);
+			if(tmp_mapping){
+				tmp_mapping[0]=0;
+				if(ret->newpath_len)
+					strncpy(tmp_mapping, ret->newpath,ret->newpath_len);
+				tmp_mapping[ret->newpath_len]=0;
+				len = strlen(opath+ret->oldpath_len);
+				if(ret->newpath_len + len < MAX_PATH){
+					if(len){
+						strncpy(tmp_mapping+ret->newpath_len, opath+ret->oldpath_len, len);
+					}
+					tmp_mapping[ret->newpath_len+len]=0;
+				}
+				if(found!=ret){
+					found = ret;
+					ret = findMapping(tmp_mapping);
+				}
+				else{
+					if(len){
+						strncpy(ret->newpath+ret->newpath_len, opath+ret->oldpath_len,len);
+					}
+					ret->newpath[ret->newpath_len+len]=0;
+					found=NULL;
+					// set count to 0 to reset mcount
+					count=0;
+				}
+				dealloc(tmp_mapping,0x27);
+			}
+			else{
+				ret = NULL;
+			}
+		}
+		else if(found){
+			ret=found;
+			len = strlen(opath+ret->newpath_len);
+			if(len)
+                strncpy(ret->newpath+ret->newpath_len, opath+ret->newpath_len, len);
+			ret->newpath[ret->newpath_len+len]=0;
+			found=NULL;
+			// set count to 0 to reset mcount
+			count=0;
+		}
+	}
+	return ret;
+}
+//find a link with given key
+bool patchAllMappingStartingWith(const char *opath, char* dst) {
 	#ifdef  DEBUG
-		//DPRINTF("Map path: %s -> %s\n", oldpath, newpath);
+		if(opath && dst)
+			DPRINTF("patchAllMappingStartingWith=: %s -> %s\n", opath, dst);
+		else
+			DPRINTF("patchAllMappingStartingWith=: null argument\n");
+	#endif 
+   //if list is empty
+   if(head == NULL || opath == NULL) {
+      return false;
+   }
+   //start from the first link
+    MapEntry_t* curr = head;
+	size_t len = strlen(opath),j = 1;
+   //navigate through list
+   while(curr && len>8) {
+		if(curr->oldpath_len==len && strncmp(opath,curr->oldpath,curr->oldpath_len)==0){
+			for (j=1;j < curr->newpath_len; j++){
+				dst[j] = curr->newpath[j];
+				if (dst[j] == 0)
+					break;
+				if (dst[j] == '/'){
+					dst[j] = 0;
+					break;
+				}
+			}
+		}
+		 curr = curr->next;
+   }
+   return true;
+}
+//find a link with given key
+bool deleteAllMappings(uint32_t flags) {
+	#ifdef  DEBUG
+		DPRINTF("deleteAllMappings=: flag %x\n",flags);
+	#endif 
+	//if list is empty
+	if(head == NULL) {
+	  return true;
+	}
+   //start from the first link
+	MapEntry_t* curr = head;
+	MapEntry_t* next = NULL;
+	MapEntry_t* prev = NULL;
+	#ifdef  DEBUG
+		printMapTableList();
 	#endif
-	
-	if (newpath && strcmp(oldpath, newpath) == 0)
-		newpath = NULL;
-	
-	if (strcmp(oldpath, "/dev_bdvd") == 0)	
-		condition_apphome = (newpath != NULL);	
-	
-	for (i = 1; i < MAX_TABLE_ENTRIES; i++)
+   //navigate through list
+	while(curr) {
+		//store curr->next
+		next = curr->next;
+		if((!flags || curr->flags & flags) && !(curr->flags & FLAG_PROTECT)){
+			#ifdef  DEBUG
+				DPRINTF("deleteAllMappings=: deleting %s\n",curr->oldpath);
+			#endif 
+			if(strcmp(curr->oldpath, "/dev_bdvd") == 0){
+				condition_apphome = false;
+				#ifdef  DEBUG
+					DPRINTF("deleteAllMappings: removed %s condition_apphome set to false\n",curr->oldpath);
+				#endif
+			}
+			if(curr == head) {
+				//change first to point to next link
+				head = next;
+			} 
+			else if(prev){
+				//bypass the curr link
+				prev->next = next;
+			}
+			if(curr->flags & FLAG_COPY)
+				dealloc(curr->oldpath, 0x27);
+			dealloc(curr->newpath, 0x27);
+			dealloc(curr, 0x27);
+			if(mpcount)mpcount--;
+		}
+		else{
+			prev=curr;
+		}
+		//if it is last node
+		if(next == NULL) {
+			#ifdef  DEBUG
+				printMapTableList();
+			#endif
+			return true;
+		}
+		else {
+			//go to next link
+			curr = next;
+		}
+    }
+	#ifdef  DEBUG
+		printMapTableList();
+	#endif
+	return false;
+}
+//delete a link with given key
+int deleteMapping(const char *opath) {
+		#ifdef  DEBUG
+		if(opath)
+			DPRINTF("deleteMapping=: %s\n",opath);
+		else
+			DPRINTF("deleteMapping=: null argument\n");
+	#endif 
+	//if list is empty
+	if(head && opath && (strncmp(opath,"/dev_",5)==0 || strncmp(opath,"/app_",5)==0 || strncmp(opath,"/host_",6)==0))
 	{
-		if (map_table[i].oldpath)
-		{
-			if (strcmp(oldpath, map_table[i].oldpath) == 0)
+		
+		#ifdef  DEBUG
+			printMapTableList();
+		#endif
+		//start from the first link
+		MapEntry_t* curr = head;
+		MapEntry_t* previous = NULL;
+		size_t len = strlen(opath);
+		//navigate through list
+		while(curr->oldpath_len != len || strncmp(curr->oldpath, opath, len)!=0) {
+			//if it is last node
+			if(curr->next == NULL) {
+				return ESRCH;
+			} 
+			else {
+				//store reference to curr link
+				previous = curr;
+				//move to next link
+				curr = curr->next;
+			}
+		}
+		if(!(curr->flags & FLAG_PROTECT)){
+			//found a match, update the link
+			if(curr == head) {
+			  //change first to point to next link
+			  head = head->next;
+			} else {
+			  //bypass the curr link
+			  previous->next = curr->next;
+			}
+			if (curr->flags & FLAG_COPY)
+			   dealloc(curr->oldpath, 0x27);
+			dealloc(curr->newpath, 0x27);
+			dealloc(curr, 0x27);
+			if(mpcount)
+				mpcount--;
+			#ifdef  DEBUG
+				printMapTableList();
+			#endif 
+			
+			return 0;
+		}
+		else
+			return EPERM;
+	}
+	return EINVAL;
+}
+
+int init_mtx(mutex_t* mtx, uint32_t attr_protocol, uint32_t attr_recursive){
+	int ret=mtx ? 0 : EINVAL;
+	if(mtx && !*mtx){
+		ret = mutex_create(mtx, attr_protocol, attr_recursive);
+		#ifdef  DEBUG
+			if(ret)
 			{
-				if (newpath && strlen(newpath))
+				DPRINTF("init_mtx=: mutex creation error %x\n",ret);
+			}
+			else
+			{
+				DPRINTF("init_mtx=: mutex 0x%8lx created\n", (uint64_t)*mtx);
+			}
+		#endif 
+	}
+	#ifdef  DEBUG
+		DPRINTF("init_mtx=: return %x \n", ret);
+	#endif 
+	return ret;
+}
+int destroy_mtx(mutex_t* mtx){
+	int ret=mtx ? 0 : EINVAL;
+	if(mtx && *mtx){
+		ret=mutex_destroy(*mtx);
+		if(ret){
+		#ifdef  DEBUG
+			//DPRINTF("destroy_mtx=: mutex 0x%8lx destroy error %x\n", (uint64_t)*mtx, ret);
+		#endif 
+			if(ret==ESRCH){ //ESRCH error
+				#ifdef  DEBUG
+					//DPRINTF("destroy_mtx=: mutex 0x%8lx reset to 0\n", (uint64_t)*mtx);
+				#endif 
+				*mtx=0;
+			}
+		}
+		else{
+		#ifdef  DEBUG
+			//DPRINTF("destroy_mtx=: mutex 0x%8lx destroyed\n", (uint64_t)*mtx);
+		#endif 
+			*mtx=0;
+		}
+	}
+	#ifdef  DEBUG
+		//DPRINTF("destroy_mtx=: return %x \n", ret);
+	#endif 
+	return ret;
+}
+int lock_mtx(mutex_t* mtx){
+	int ret = EINVAL;
+	if(mtx){
+		ret = 0;
+		if(!*mtx){
+			//ret = mtx==&pgui_mtx ? init_mtx(mtx,SYNC_PRIORITY, SYNC_RECURSIVE) : init_mtx(mtx,SYNC_PRIORITY, SYNC_NOT_RECURSIVE);
+			ret = init_mtx(mtx,SYNC_PRIORITY, SYNC_NOT_RECURSIVE);
+		}
+		if(!ret){
+			ret = mutex_lock(*mtx, 0);
+			#ifdef  DEBUG
+				if(ret)
 				{
-					strncpy(map_table[i].newpath, newpath, MAX_PATH-1);	
-					map_table[i].newpath[MAX_PATH-1] = 0;
-					map_table[i].newpath_len = strlen(newpath);
-					map_table[i].flags = (map_table[i].flags&FLAG_COPY) | (flags&(~FLAG_COPY));
+					//DPRINTF("lock_mtx=: mutex 0x%8lx lock error %x\n", (uint64_t)*mtx, ret);
 				}
 				else
 				{
-					if (map_table[i].flags & FLAG_COPY)
-						dealloc(map_table[i].oldpath, 0x27);
-					
-					dealloc(map_table[i].newpath, 0x27);	
-					map_table[i].oldpath = NULL;
-					map_table[i].newpath = NULL;
-					map_table[i].oldpath_len = 0;
-					map_table[i].newpath_len = 0;					
-					map_table[i].flags = 0;
+					//DPRINTF("lock_mtx=: mutex 0x%8lx locked\n", (uint64_t)*mtx);
 				}
-				
-				
-				break;
+			#endif
+		}
+	}
+	#ifdef  DEBUG
+		//DPRINTF("lock_mtx=: return %x \n", ret);
+	#endif 
+	return ret;
+}
+// int trylock_mtx(mutex_t* mtx){
+	// int ret = EINVAL;
+	// if(mtx){
+		// ret = 0;
+		// if(!*mtx){
+			// //ret = mtx==&pgui_mtx ? init_mtx(mtx,SYNC_PRIORITY, SYNC_RECURSIVE) : init_mtx(mtx,SYNC_PRIORITY, SYNC_NOT_RECURSIVE);
+			// ret = init_mtx(mtx,SYNC_PRIORITY, SYNC_NOT_RECURSIVE);
+		// }
+		// if(!ret){
+			// ret = mutex_trylock(*mtx);
+			// #ifdef  DEBUG
+				// if(ret)
+					// DPRINTF("trylock_mtx=: mutex 0x%8lx lock error %x\n", (uint64_t)*mtx, ret);
+				// else
+					// DPRINTF("trylock_mtx=: mutex 0x%8lx locked\n", (uint64_t)*mtx);
+			// #endif
+		// }
+	// }
+	// #ifdef  DEBUG
+		// DPRINTF("trylock_mtx=: return %x \n", ret);
+	// #endif 
+	// return ret;
+// }
+int unlock_mtx(mutex_t* mtx){
+	int ret= mtx ? !(*mtx) ? ESRCH : 0 : EINVAL;
+	if(!ret){
+		ret = mutex_unlock(*mtx);
+		#ifdef  DEBUG
+			if(ret)
+			{
+				//DPRINTF("unlock_mtx=: mutex 0x%8lx unlock error %x\n", (uint64_t)*mtx, ret);
 			}
-		}
-		else if (firstfree < 0)		
-			firstfree = i;		
+			else
+			{
+				//DPRINTF("unlock_mtx=: mutex 0x%8lx unlocked\n", (uint64_t)map_mtx);
+			}
+		#endif
 	}
-	
-	if (i == MAX_TABLE_ENTRIES)
-	{
-		if (firstfree < 0)
-			return EKRESOURCE;
-		
-		if (!newpath || strlen(newpath) == 0)
-			return 0;
-		
-		map_table[firstfree].flags = flags;
-		int len = strlen(oldpath);
-		map_table[firstfree].oldpath_len=len;
-		
-		if (flags & FLAG_COPY)
-		{
-			map_table[firstfree].oldpath = alloc(len+1, 0x27);
-			strncpy(map_table[firstfree].oldpath, oldpath, len);
-			map_table[firstfree].oldpath[len] = 0;
-		}
-		else		
-			map_table[firstfree].oldpath = oldpath;	
-		
-
-		map_table[firstfree].newpath = alloc(MAX_PATH, 0x27);
-		strncpy(map_table[firstfree].newpath, newpath, MAX_PATH-1);	
-		map_table[firstfree].newpath[MAX_PATH-1] = 0;
-		map_table[firstfree].newpath_len = strlen(newpath);
-	}
-	
-	return 0;	
+	#ifdef  DEBUG
+		//DPRINTF("unlock_mtx=: return %x \n", ret);
+	#endif 
+	return ret;
 }
 
-int map_path_user(char *oldpath, char *newpath, uint32_t flags)
+// int unmap_path(char *oldpath)
+// {
+	// int ret = EINVAL;
+	// if (oldpath){
+		// lock_mtx(&map_mtx);
+		// ret = deleteMapping(oldpath);
+		// if(ret==0){
+			// if (strcmp(oldpath, "/dev_bdvd") == 0)
+				// condition_apphome = false;	
+			// #ifdef  DEBUG
+				// DPRINTF("Unmapped path: %s\n", oldpath);
+			// #endif
+		// }
+		// unlock_mtx(&map_mtx);
+	// }
+	// return ret;	
+// }
+
+int map_path(char *oldpath, char *newpath, uint32_t flags)
+{
+	int ret = EINVAL;
+	if (oldpath){
+		if (newpath && strcmp(oldpath, newpath) == 0)
+			newpath = NULL;
+		if (strcmp(oldpath, "/dev_bdvd") == 0){
+			condition_apphome = (newpath != NULL);
+			#ifdef  DEBUG
+				DPRINTF("map_path: condition_apphome set to %s\n",condition_apphome ? "true":"false" );
+			#endif
+		}
+		lock_mtx(&map_mtx);
+		ret=addMapping(oldpath, newpath, flags);
+		unlock_mtx(&map_mtx);
+		#ifdef  DEBUG
+		
+			if(ret==0){
+				DPRINTF("map_path: mapped path: %s -> %s flags %x\n", oldpath, newpath, flags);
+			}
+			else{
+				DPRINTF("map_path: add mapping error %X for path: %s -> %s flags %x\n",ret, oldpath, newpath, flags);
+			}
+		#endif
+	}
+	return ret;
+}
+
+int map_path_user2(char *oldpath, char *newpath, uint32_t flags)
 {
 	char *oldp, *newp;
 	
@@ -158,30 +715,47 @@ int map_path_user(char *oldpath, char *newpath, uint32_t flags)
 	return ret;
 }
 
-int get_map_path(unsigned int num, char *path, char *new_path)
+int map_path_user(char *oldpath, char *newpath, uint32_t flags)
 {
-	if(num > MAX_TABLE_ENTRIES) return MAX_TABLE_ENTRIES;
-
-	if(map_table[num].oldpath_len == 0 || map_table[num].newpath_len == 0 || !map_table[num].newpath || !map_table[num].oldpath || !path) return -1;
-
-	copy_to_user(&path, get_secure_user_ptr(map_table[num].oldpath), map_table[num].oldpath_len);
-
-	if(!new_path) return 0;
-	copy_to_user(&new_path, get_secure_user_ptr(map_table[num].newpath), map_table[num].newpath_len);
-
-	return 0;
+	return !map_path_user2(oldpath, newpath, flags) ? 0 : -1;
 }
 
-LV2_SYSCALL2(int, sys_map_path, (char *oldpath, char *newpath))
+int get_map_path(uint32_t num, char *path, char *new_path)
+{
+	int ret = EINVAL;
+	if(path && new_path){
+		lock_mtx(&map_mtx);
+		MapEntry_t* curr = NULL;
+		uint32_t i=0;
+		for(curr=head;curr != NULL && i!=num;curr=curr->next,i++) {}
+		if(curr && i==num && curr->oldpath_len && curr->newpath_len && curr->newpath && curr->oldpath) {
+			copy_to_user(&path, get_secure_user_ptr(curr->oldpath),curr->oldpath_len);
+			copy_to_user(&new_path, get_secure_user_ptr(curr->newpath), curr->newpath_len);
+			ret=0;
+			#ifdef  DEBUG
+				//DPRINTF("get_map_path: slot: 0x%x oldpath: %s -> newpath: %s\n", num, path, new_path);
+			#endif
+		}
+		else{
+			ret=ESRCH;
+			#ifdef  DEBUG
+				//DPRINTF("get_map_path slot %u not found\n", num);
+			#endif
+		}
+		unlock_mtx(&map_mtx);
+	}
+	return !ret ? 0 : -1;	
+}
+LV2_SYSCALL2(int, sys_map_path, (char *oldpath, char *newpath, uint32_t flags))
 {
 	extend_kstack(0);
-	return map_path_user(oldpath, newpath, 0);	
+	return map_path_user(oldpath, newpath, flags);	
 }
 
-int sys_map_paths(char *paths[], char *new_paths[], unsigned int num)
+int sys_map_paths(char *paths[], char *new_paths[], uint32_t num)
 {
-	uint32_t *u_paths = (uint32_t *)get_secure_user_ptr(paths);
-	uint32_t *u_new_paths = (uint32_t *)get_secure_user_ptr(new_paths);
+	uint32_t *u_paths = (uint32_t*)get_secure_user_ptr(paths);
+	uint32_t *u_new_paths = (uint32_t*)get_secure_user_ptr(new_paths);
 	int unmap = 0;	
 	int ret = 0;
 	
@@ -189,10 +763,10 @@ int sys_map_paths(char *paths[], char *new_paths[], unsigned int num)
 		unmap = 1;	
 	else
 	{
-		if (!u_new_paths)
+		if(!u_new_paths)
 			return EINVAL;
 		
-		for (unsigned int i = 0; i < num; i++)
+		for(unsigned int i = 0; i < num; i++)
 		{
 			ret = map_path_user((char *)(uint64_t)u_paths[i], (char *)(uint64_t)u_new_paths[i], FLAG_TABLE);
 			if (ret != 0)
@@ -205,21 +779,11 @@ int sys_map_paths(char *paths[], char *new_paths[], unsigned int num)
 	
 	if (unmap)
 	{
-		for (int i = 1; i < MAX_TABLE_ENTRIES; i++)
-		{
-			if (map_table[i].flags & FLAG_TABLE)
-			{
-				if (map_table[i].flags & FLAG_COPY)	
-					dealloc(map_table[i].oldpath, 0x27);
-				
-				dealloc(map_table[i].newpath, 0x27);
-				map_table[i].oldpath = NULL;
-				map_table[i].newpath = NULL;	
-				map_table[i].flags = 0;
-			}
-		}
+		lock_mtx(&map_mtx);
+		deleteAllMappings(FLAG_TABLE);
+		unlock_mtx(&map_mtx);
+		
 	}
-	
 	return ret;
 }
 //////////////////////////////////////////////////////////////////////////////////////
@@ -251,30 +815,31 @@ static char *__whitelist;
 char line[0x10];
 
 static int init_list(char *list, char *path, int maxentries)
+{
+	int loaded, f;
+	// uncomment this to avoid hook recursivity & remappings if appropriate
+	//lock_mtx(&pgui_mtx); 
+	if (cellFsOpen(path, CELL_FS_O_RDONLY, &f, 0, NULL, 0) != 0)
+		return 0; // failed to open
+	
+	loaded = 0;
+
+	while (loaded < maxentries)
 	{
-		int loaded, f;
-
-		if (cellFsOpen(path, CELL_FS_O_RDONLY, &f, 0, NULL, 0) != 0)
-			return 0; // failed to open
-		
-		loaded = 0;
-
-		while (loaded < maxentries)
-		{
-			int eof;
-			if (read_text_line(f, line, sizeof(line), &eof) > 0)
-			if (strlen(line) >=9) // avoid copying empty lines
-			{	
-				strncpy(list + (9*loaded), line, 9); // copy only the first 9 chars - if it has lees than 9, it will fail future checks. should correct in file.
-				loaded++;
-			}
-
-			if (eof)
-				break;
+		int eof;
+		if (read_text_line(f, line, sizeof(line), &eof) > 0)
+		if (strlen(line) >=9) // avoid copying empty lines
+		{	
+			strncpy(list + (9*loaded), line, 9); // copy only the first 9 chars - if it has less than 9, it will fail future checks. should correct in file.
+			loaded++;
 		}
-		cellFsClose(f);
-		return loaded;
+
+		if (eof)
+			break;
 	}
+	cellFsClose(f);
+	return loaded;
+}
 
 
 //
@@ -296,8 +861,8 @@ static int listed(int blacklist, char *gameid)
 		int i, elements;
 		if (!__initialized_lists)
 		{
-			__blacklist=alloc(9*MAX_LIST_ENTRIES,0x27);
-			__whitelist=alloc(9*MAX_LIST_ENTRIES,0x27);
+			__blacklist=(char*)alloc(9*MAX_LIST_ENTRIES,0x27);
+			__whitelist=(char*)alloc(9*MAX_LIST_ENTRIES,0x27);
 			__blacklist_entries = init_list(__blacklist, BLACKLIST_FILENAME, MAX_LIST_ENTRIES);
 			__whitelist_entries = init_list(__whitelist, WHITELIST_FILENAME, MAX_LIST_ENTRIES);
 			__initialized_lists = 1;
@@ -333,7 +898,7 @@ static uint8_t libft2d_access = 0;
 // After the core tests it will test first if the gameid is in whitelist.cfg (superseeds previous tests)
 // In the it will test if the gameid is in blacklist.cfg (superseeds all previous tests)
 // ** WARNING ** This syscall disablement test assumes that the syscall table entry 6 (peek) was replaced by the original value (equals syscall 0 entry) as done by PSNPatch
-// ** WARNING ** If only a parcial disablement was made, this assumption WILL FAIL !!!
+// ** WARNING ** If only a partial disablement was made, this assumption WILL FAIL !!!
 //
 // Iniziato da KW & AV blocca l'accesso a homebrews quando le syscalls sono disabilitati
 // Dopo i test di base, verificherà innanzitutto se il gameid è in whitelist.cfg (test superiori precedenti)
@@ -344,7 +909,6 @@ static uint8_t libft2d_access = 0;
 void aescbc128_decrypt(unsigned char *key, unsigned char *iv, unsigned char *in, unsigned char *out, int len)
 {
 	aescbccfb_dec(out,in,len,key,128,iv);
-
 	// Reset the IV.
 	memset(iv, 0, 0x10);
 }
@@ -403,11 +967,8 @@ void get_rif_key(unsigned char* rap, unsigned char* rif)
 			}
 		}
 	}
-
 	memcpy(rif, key, 0x10);
 }
-
-
 
 int read_act_dat_and_make_rif(uint8_t *idps,uint8_t *rap, uint8_t *act_dat, char *content_id, char *out)
 {	
@@ -443,11 +1004,8 @@ int read_act_dat_and_make_rif(uint8_t *idps,uint8_t *rap, uint8_t *act_dat, char
 	memset(iv,0,0x10);
 
 	uint64_t timestamp=0x000001619BF6DDCA; 
-
 	uint32_t version_number=1;
-
 	uint32_t license_type=0x00010002;
-
 	uint64_t expiration_time=0;
 	
 	memcpy(rif, &version_number,4);
@@ -460,6 +1018,8 @@ int read_act_dat_and_make_rif(uint8_t *idps,uint8_t *rap, uint8_t *act_dat, char
 
 	int fd;
 	uint64_t size;
+	// uncomment this to avoid hook recursivity & remappings if appropriate
+	// lock_mtx(&pgui_mtx); 
 	if(cellFsOpen(out, CELL_FS_O_WRONLY|CELL_FS_O_CREAT|CELL_FS_O_TRUNC, &fd, 0666, NULL, 0)==0)
 	{
 		cellFsWrite(fd, rif, 0x98, &size);
@@ -469,9 +1029,37 @@ int read_act_dat_and_make_rif(uint8_t *idps,uint8_t *rap, uint8_t *act_dat, char
 		return 0;
 }
 
-LV2_HOOKED_FUNCTION_POSTCALL_2(void, open_path_hook, (char *path0, int mode))
+LV2_HOOKED_FUNCTION_POSTCALL_2(int, open_path_hook, (char *path0, char *path1))
 {
-	int syscalls_disabled = ((*(uint64_t *)MKA(syscall_table_symbol + 8 * 6)) == (*(uint64_t *)MKA(syscall_table_symbol)));
+	//extend_kstack(0);
+	if(path0){
+		CellFsStat stat;
+		#ifdef DEBUG
+			int lretin = lock_mtx(&pgui_mtx);
+			if(lretin!=0){
+				if(lretin==EDEADLK){
+					//DPRINTF("open_path_hook=: recursive: %s\n",path0);
+					unlock_mtx(&pgui_mtx);// unlock mutex and exit hook
+					return 0;
+				}
+				else{
+					//if(path1)
+					//	DPRINTF("open_path_hook=: path0: %s - path1 len: 0x%X offset: 0x%8lx\n",path0, (unsigned int)strlen(path1), (uint64_t)path1);
+					//else
+					DPRINTF("open_path_hook=: %s\n",path0);
+				}
+			}
+			else{
+				if(cellFsStat(path0,&stat)){
+					DPRINTF("open_path_hook=: [NG] %s\n",path0);
+				}
+				else{
+					DPRINTF("open_path_hook=: [OK] %s\n",path0);
+				}
+			}
+		#endif
+		
+		int syscalls_disabled = ((*(uint64_t *)MKA(syscall_table_symbol + 8 * 6)) == (*(uint64_t *)MKA(syscall_table_symbol)));
 
 		if (syscalls_disabled && path0 && !strncmp(path0, "/dev_hdd0/game/", 15) && strstr(path0 + 15, "/EBOOT.BIN"))
 		{
@@ -500,8 +1088,8 @@ LV2_HOOKED_FUNCTION_POSTCALL_2(void, open_path_hook, (char *path0, int mode))
 			!strncmp(gameid, "BLES13408", 9) || // FCEU NES Emulator
 			!strncmp(gameid, "BLES01337", 9) || // Awesome File Manager
 			!strncmp(gameid, "BLND00001", 9) || // dev_blind
-			!strncmp(gameid, "NPEA90124", 9) //|| // SEN Enabler
-			//!strcmp (path0, "/dev_bdvd/PS3_UPDATE/PS3UPDAT.PUP") //bluray disk updates
+			!strncmp(gameid, "NPEA90124", 9) || // SEN Enabler
+			!strncmp(gameid, "NP0", 3)          // NP0APOLLO / NP00PKGI3
 			) allow = 0;
 
 			// test whitelist.cfg and blacklist.cfg
@@ -514,176 +1102,234 @@ LV2_HOOKED_FUNCTION_POSTCALL_2(void, open_path_hook, (char *path0, int mode))
 			if (!allow)
 			{
 				set_patched_func_param(1, (uint64_t)crap_pants);
-				return;
+				return 0;
 			}
 		}
 
-	if((strstr(path0,".rif")) && (!strncmp(path0,"/dev_hdd0/home/",14)))
-	{
-		CellFsStat stat;
-		char content_id[0x24];
-		strncpy(content_id, strrchr(path0,'/')+1, 0x24);
-		char *buf;
-		page_allocate_auto(NULL, 0x60, 0x2F, (void *)&buf);
-		memset(buf,0,0x60);
-		
-		sprintf(buf,"/dev_usb000/exdata/%.36s.rap",content_id);
-		int path_chk=cellFsStat(buf,&stat);
-		if(path_chk!=0)
+		if((strstr(path0,".rif")) && (!strncmp(path0,"/dev_hdd0/home/",14)))
 		{
-			sprintf(buf,"/dev_usb001/exdata/%.36s.rap",content_id);
-			path_chk=cellFsStat(buf,&stat);
-		}
-		if(path_chk!=0)
-		{
-			sprintf(buf,"/dev_hdd0/exdata/%.36s.rap",content_id);
-			path_chk=cellFsStat(buf,&stat);
-		}
-		uint8_t is_ps2_classic = !strncmp(content_id, "2P0001-PS2U10000_00-0000111122223333", 0x24);
-		uint8_t is_psp_launcher = !strncmp(content_id, "UP0001-PSPC66820_00-0000111122223333", 0x24);
-		if(path_chk==0 || is_ps2_classic || is_psp_launcher)
-		{
-			uint8_t rap[0x10] = {0xF5, 0xDE, 0xCA, 0xBB, 0x09, 0x88, 0x4F, 0xF4, 0x02, 0xD4, 0x12, 0x3C, 0x25, 0x01, 0x71, 0xD9};
-			uint8_t idps[0x10];
-			char *act_path;
-			page_allocate_auto(NULL, 0x60, 0x2F, (void *)&act_path);
-			memset(act_path,0,0x60);
+			char content_id[0x24];
+			strncpy(content_id, strrchr(path0,'/')+1, 0x24);
+			char *buf;
+			page_allocate_auto(NULL, 0x60, 0x2F, (void *)&buf);
+			memset(buf,0,0x60);
 			
-			char act_dat_name[0x10]={"/act.dat"};
-			strncpy(act_path, path0, strrchr(path0,'/')-path0);
-			strcpy(act_path+strlen(act_path),act_dat_name);
-			char output[0x60];
-			sprintf(output, "/%s",path0);
-			DPRINTF("act_path:%s content_id:%s output:%s rap_path:%s\n",act_path,content_id,output,buf);
+			// // Template code to detect usb/sd cards mount points
+			// // cannot use the syscalls directly though as they expect user space pointers, not kernel memory offsets
+			// // we need to reverse engineer the 2 syscalls...
+			// f_desc_t f;	
+			// f.addr=(void*)MKA(get_syscall_address(0x349));
+			// f.toc=(void*)MKA(TOC);
+			// int (*sys_fs_get_mount_info_size)(uint64_t* out_length) =(void*)&f;
+			// f_desc_t f2;	
+			// f2.addr=(void*)MKA(get_syscall_address(0x34A));
+			// f2.toc=(void*)MKA(TOC);
+			// int (*sys_fs_get_mount_info)(CellFsMountInformation_t* info, uint64_t buffer_length, uint64_t* written_length) =(void*)&f2;
+			// uint64_t minfo_size = 0;
+			// uint64_t mcount = 0;
+			// int path_chk = 1;
+			// int misret = sys_fs_get_mount_info_size(&minfo_size);
+			// if(misret==0){
+				// CellFsMountInformation_t *minfo = alloc(minfo_size*sizeof(CellFsMountInformation_t),0x27);
+				// CellFsMountInformation_t *iterator;
+				// int miret = sys_fs_get_mount_info(minfo,minfo_size,&mcount);
+				// if(miret==0){
+					// for(int i=1;i<mcount;i++){
+						// iterator=minfo+i;
+						// if(strcmp(iterator->p_type,"CELL_FS_FAT")==0 && strcmp(iterator->p_systype,"CELL_FS_IOS:USB_MASS_STORAGE000")==0 && iterator->p_writable==0){
+							// sprintf(buf,"%s/exdata/%.36s.rap",iterator->p_name,content_id);
+							// path_chk=cellFsStat(buf,&stat);
+							// if(path_chk==0){
+								// break;
+							// }
+						// }
+						
+					// }
+				// }
+				// iterator=NULL;
+				// dealloc(minfo,0x27);
+			// }
 			
-			uint8_t *act_dat;
-			page_allocate_auto(NULL, 0x1038, 0x2F, (void *)&act_dat);
-			int fd;
-			uint64_t nread;
-
-			if(!is_ps2_classic || !is_psp_launcher)
+			// Support for rap and RAP extension (By aldostools)
+			int path_chk;
+			const char *ext = "rap";
+			for(uint8_t retry = 0; retry < 2; retry++)
 			{
-				if(cellFsOpen(buf, CELL_FS_O_RDONLY, &fd, 0, NULL, 0)==0)
+				
+				// hard coded usb path 000 & 001 should be replaced with usb mount points detection!!!
+				sprintf(buf,"/dev_usb000/exdata/%.36s.%s",content_id, ext);
+				// uncomment this to avoid hook recursivity & remappings if appropriate
+				//lock_mtx(&pgui_mtx); 
+				path_chk=cellFsStat(buf,&stat);
+				if(path_chk!=0)
 				{
-					cellFsRead(fd, rap, 0x10, &nread);
+					sprintf(buf,"/dev_usb001/exdata/%.36s.%s",content_id, ext);
+					// uncomment this to avoid hook recursivity & remappings if appropriate
+					//lock_mtx(&pgui_mtx); 
+					path_chk=cellFsStat(buf,&stat);
+				}
+				if(path_chk!=0)
+				{
+					sprintf(buf,"/dev_hdd0/exdata/%.36s.%s",content_id, ext);
+					// uncomment this to avoid hook recursivity & remappings if appropriate
+					//lock_mtx(&pgui_mtx); 
+					path_chk=cellFsStat(buf,&stat);
+				}
+				if(path_chk!=0)
+					ext = "RAP"; 
+				else 
+					break;		
+			}
+			
+			uint8_t is_ps2_classic = !strncmp(content_id, "2P0001-PS2U10000_00-0000111122223333", 0x24);
+			uint8_t is_psp_launcher = !strncmp(content_id, "UP0001-PSPC66820_00-0000111122223333", 0x24);
+			if(path_chk==0 || is_ps2_classic || is_psp_launcher)
+			{
+				uint8_t rap[0x10] = {0xF5, 0xDE, 0xCA, 0xBB, 0x09, 0x88, 0x4F, 0xF4, 0x02, 0xD4, 0x12, 0x3C, 0x25, 0x01, 0x71, 0xD9};
+				uint8_t idps[0x10];
+				char *act_path;
+				page_allocate_auto(NULL, 0x60, 0x2F, (void *)&act_path);
+				memset(act_path,0,0x60);
+				
+				char act_dat_name[0x10]={"/act.dat"};
+				strncpy(act_path, path0, strrchr(path0,'/')-path0);
+				strcpy(act_path+strlen(act_path),act_dat_name);
+				char output[0x60];
+				sprintf(output, "/%s",path0);
+				
+				#ifdef DEBUG
+					//DPRINTF("act_path:%s content_id:%s output:%s rap_path:%s\n",act_path,content_id,output,buf);
+				#endif
+				
+				uint8_t *act_dat;
+				page_allocate_auto(NULL, 0x1038, 0x2F, (void *)&act_dat);
+				int fd;
+				uint64_t nread;
+
+				if(!is_ps2_classic || !is_psp_launcher)
+				{
+					// uncomment this to avoid hook recursivity & remappings if appropriate
+					//lock_mtx(&pgui_mtx); 
+					if(cellFsOpen(buf, CELL_FS_O_RDONLY, &fd, 0, NULL, 0)==0)
+					{
+						cellFsRead(fd, rap, 0x10, &nread);
+						cellFsClose(fd);
+					}
+				}
+				// uncomment this to avoid hook recursivity & remappings if appropriate
+				//lock_mtx(&pgui_mtx); 
+				if(cellFsOpen(act_path, CELL_FS_O_RDONLY, &fd, 0, NULL, 0)==0)
+				{
+					cellFsRead(fd, act_dat, 0x1038, &nread);
 					cellFsClose(fd);
 				}
-			}
-			
-			if(cellFsOpen(act_path, CELL_FS_O_RDONLY, &fd, 0, NULL, 0)==0)
-			{
-				cellFsRead(fd, act_dat, 0x1038, &nread);
-				cellFsClose(fd);
-			}
-			
-			page_free(NULL, (void *)act_path, 0x2F);
-			page_free(NULL, (void *)buf, 0x2F);
-			
-			memcpy(idps,(void*)PS3MAPI_IDPS_2,0x10);
-			if(nread==0x1038)
-			{
-				read_act_dat_and_make_rif(idps,rap,act_dat,content_id,output);
-			}
-			page_free(NULL, (void *)act_dat, 0x2F);
-		}
-		else
-		{
-			page_free(NULL, (void *)buf, 0x2F);
-		}
-	}
-			
-	
-	if (path0[0]=='/')
-	{
-        char *path=path0;
-        if(path[1]=='/') path++; //if(path[1]=='/') path++;
-        /*if (path && ((strcmp(path, "/dev_bdvd/PS3_UPDATE/PS3UPDAT.PUP") == 0)))  // Blocks FW update from Game discs!     
-        {    
-            char not_update[40];
-            sprintf(not_update, "/dev_bdvd/PS3_NOT_UPDATE/PS3UPDAT.PUP");
-            set_patched_func_param(1, (uint64_t)not_update);
-			#ifdef  DEBUG
-				DPRINTF("Update from disc blocked!\n");
-			#endif 
-        }
-		else*/ // Disabled due to the issue with multiMAN can't copy update files from discs.
-		//if(path[7]=='v' || path[7]=='m')
-		{
-			//DPRINTF("?: [%s]\n", path);
-	
-			//if(path[1]=='/') DPRINTF("!!! This will usually error out!\n");//path++;
-			//if(path[0]=='/')
 				
-			////////////////////////////////////////////////////////////////////////////////////
-			// Photo_GUI integration with webMAN MOD - DeViL303 & AV                          //
-			////////////////////////////////////////////////////////////////////////////////////
-			if(!libft2d_access)
-			{
-				libft2d_access = photo_gui && !strcmp(path, "/dev_flash/sys/internal/libft2d.sprx");
+				page_free(NULL, (void *)act_path, 0x2F);
+				page_free(NULL, (void *)buf, 0x2F);
+				
+				memcpy(idps,(void*)PS3MAPI_IDPS_2,0x10);
+				if(nread==0x1038)
+				{
+					read_act_dat_and_make_rif(idps,rap,act_dat,content_id,output);
+				}
+				page_free(NULL, (void *)act_dat, 0x2F);
 			}
 			else
 			{
-				libft2d_access = 0;
-
-				if(!strncmp(path, "/dev_hdd0/photo/", 16))
-				{
-					char *photo = path + 16; size_t len = strlen(photo);
-					if (len < 8) ;
-					else if(!strcmp(photo + len -4, ".PNG") || !strcmp(photo + len -4, ".JPG") || !strcmp(photo + len -8, "_COV.JPG") || !strncasecmp(photo + len -8, ".iso.jpg", 8) || !strncasecmp(photo + len -8, ".iso.png", 8))
-					{
-						#ifdef  DEBUG
-						DPRINTF("CREATING /dev_hdd0/tmp/wm_request\n");
-						#endif
-						int fd;
-						if(cellFsOpen("/dev_hdd0/tmp/wm_request", CELL_FS_O_CREAT | CELL_FS_O_WRONLY | CELL_FS_O_TRUNC, &fd, 0666, NULL, 0) == 0)
-						{
-							cellFsWrite(fd, path, (len + 16), NULL);
-							cellFsClose(fd);
-						}
-					}
-				}
+				page_free(NULL, (void *)buf, 0x2F);
 			}
-			////////////////////////////////////////////////////////////////////////////////////
-
-			
-			for (int i = MAX_TABLE_ENTRIES-1; i >= 0; i--)
-			{
-				if (map_table[i].oldpath)
-				{
-					int len = strlen(map_table[i].oldpath);
-			
-					if (path && strncmp(path, map_table[i].oldpath, len) == 0)
-					{
-						strcpy(map_table[i].newpath+map_table[i].newpath_len, path+len);
-						set_patched_func_param(1, (uint64_t)map_table[i].newpath);
-						
-						#ifdef  DEBUG
-							//DPRINTF("=: [%s]\n", map_table[i].newpath);
-						#endif 
-						break;
-					}
+		}
+		#ifdef  DEBUG
+			//DPRINTF("open_path_hook=: processing path [%s]\n", path0);
+		#endif
+		
+		char *path=path0;
+		if(path){
+			size_t plen = strlen(path);
+			while(path[0]!='/' || path[1]=='/' || path[1]=='.'){
+				path++;
+				if(path >= path0+plen){
+					path=NULL;
+					break;
 				}
 			}
 		}
-		
-		DPRINTF("open_path %s\n", path); 
+		if(path && (strncmp(path,"/dev_",5)==0 || strncmp(path,"/app_",5)==0 || strncmp(path,"/host_",6)==0)){			
+			/*if (path && ((strcmp(path, "/dev_bdvd/PS3_UPDATE/PS3UPDAT.PUP") == 0)))  // Blocks FW update from Game discs!     
+			{    
+				char not_update[40];
+				sprintf(not_update, "/dev_bdvd/PS3_NOT_UPDATE/PS3UPDAT.PUP");
+				set_patched_func_param(1, (uint64_t)not_update);
+				#ifdef  DEBUG
+					DPRINTF("Update from disc blocked!\n");
+				#endif 
+			}
+			else*/ // Disabled due to the issue with multiMAN can't copy update files from discs.
+			
+			{
+
+				////////////////////////////////////////////////////////////////////////////////////
+				// Photo_GUI integration with webMAN MOD - DeViL303 & AV                          //
+				////////////////////////////////////////////////////////////////////////////////////
+				
+				if(!libft2d_access){
+					libft2d_access = photo_gui && !strcmp(path, "/dev_flash/sys/internal/libft2d.sprx");
+				}
+				else if(strcmp(path, "/dev_hdd0/tmp/wm_request")){
+					libft2d_access = 0;
+					if(!strncmp(path, "/dev_hdd0/photo/", 16)){
+						char *photo = path + 16; 
+						size_t len = strlen(photo);
+						if (len < 8) ;
+						else if(!strcmp(photo + len -4, ".PNG") || !strcmp(photo + len -4, ".JPG") || !strcmp(photo + len -8, "_COV.JPG") || !strncasecmp(photo + len -8, ".iso.jpg", 8) || !strncasecmp(photo + len -8, ".iso.png", 8))
+						{
+							#ifdef  DEBUG
+								DPRINTF("open_path_hook:= CREATING /dev_hdd0/tmp/wm_request\n");
+							#endif
+							int fd;
+							//lock_mtx(&pgui_mtx)
+							if(cellFsOpen("/dev_hdd0/tmp/wm_request", CELL_FS_O_CREAT | CELL_FS_O_WRONLY | CELL_FS_O_TRUNC, &fd, 0666, NULL, 0) == 0)
+							{
+								cellFsWrite(fd, path, (len + 16), NULL);
+								cellFsClose(fd);
+							}
+						}
+					}
+				}
+				////////////////////////////////////////////////////////////////////////////////////
+
+				lock_mtx(&map_mtx);
+				MapEntry_t* curr = findMapping(path);
+				if(curr){
+					set_patched_func_param(1, (uint64_t)curr->newpath);
+					#ifdef  DEBUG
+						DPRINTF("open_path_hook:= found matching entry for %s in Map Table oldpath: [%s] \nMap Table newpath: [%s] \nMap Table newpath_len: [0x%x]\n",path,curr->oldpath,curr->newpath,(unsigned int)curr->newpath_len);
+					#endif 
+				}
+				else{
+					#ifdef  DEBUG
+						//DPRINTF("open_path_hook=: no mapping found for path [%s]\n", path);
+					#endif
+				}
+				unlock_mtx(&map_mtx);
+			}
+		}
 	}
+	return 0;
 }
 
 int sys_aio_copy_root(char *src, char *dst)
 {
-	int len;
-	
-	src = get_secure_user_ptr(src);
-	dst = get_secure_user_ptr(dst);
+	src = (char*)get_secure_user_ptr(src);
+	dst = (char*)get_secure_user_ptr(dst);
 	
 	// Begin original function implementation	
 	if (!src)
 		return EFAULT;
 	
-	len = strlen(src);
+	size_t len = strlen(src);
 	
-	if (len >= 0x420 || len <= 1 || src[0] != '/')
+	if (len >= MAX_PATH || len <= 1 || src[0] != '/')
 		return EINVAL;
 	
 	strcpy(dst, src); 
@@ -699,40 +1345,16 @@ int sys_aio_copy_root(char *src, char *dst)
 			break;
 		}
 	}
-	
-	
 	if (strlen(dst) >= 0x20)
 		return EINVAL;	
 	
 	// Here begins custom part of the implementation
 	if (strcmp(dst, "/dev_bdvd") == 0 && condition_apphome) // if dev_bdvd and jb game mounted 
 	{
+		lock_mtx(&map_mtx);
 		// find /dev_bdvd
-		for (int i = 1; i < MAX_TABLE_ENTRIES; i++)
-		{
-			if (map_table[i].oldpath && strcmp(map_table[i].oldpath, "/dev_bdvd") == 0)
-			{
-				for (int j = 1; j < map_table[i].newpath_len; j++)
-				{
-					dst[j] = map_table[i].newpath[j];
-					
-					if (dst[j] == 0)
-						break;
-					
-					if (dst[j] == '/')
-					{
-						dst[j] = 0;
-						break;
-					}
-				}
-				
-				#ifdef  DEBUG
-					DPRINTF("AIO: root replaced by %s\n", dst);		
-				#endif 	
-				
-				break;
-			}
-		}
+		patchAllMappingStartingWith("/dev_bdvd", dst);
+		unlock_mtx(&map_mtx);
 	}			
 		
 	return 0;
@@ -748,9 +1370,9 @@ void unhook_all_map_path(void)
 void map_path_patches(int syscall)
 {
 	hook_function_with_postcall(open_path_symbol, open_path_hook, 2);
-	
-	if (syscall)
-		create_syscall2(SYS_MAP_PATH, sys_map_path);	
+	if (syscall){
+		create_syscall2(SYS_MAP_PATH, sys_map_path);
+	}
 }
 
 

@@ -143,9 +143,9 @@ SprxPatch basic_plugins_patches[] =
 
 SprxPatch explore_plugin_patches[] =
 {
-	{ app_home_offset, 0x2f646576, &condition_apphome   }, 
-	{ app_home_offset+4, 0x5f626476, &condition_apphome }, 
-	{ app_home_offset+8, 0x642f5053, &condition_apphome }, 
+	{ app_home_offset, 0x2f646576, &condition_apphome   },
+	{ app_home_offset+4, 0x5f626476, &condition_apphome },
+	{ app_home_offset+8, 0x642f5053, &condition_apphome },
 	//{ ps2_nonbw_offset, LI(0, 1), &condition_ps2softemu },
 /*	//// Devil303's What's New ///
 	{whatsnew_offset, 0x68747470, &condition_true	},
@@ -154,8 +154,8 @@ SprxPatch explore_plugin_patches[] =
 	{whatsnew_offset+0x0C, 0x6D626D6F, &condition_true},
 	{whatsnew_offset+0x10, 0x64732E63, &condition_true	},
 	{whatsnew_offset+0x14, 0x6F2F7768, &condition_true	},
-	{whatsnew_offset+0x18, 0x6174735F, &condition_true	},	
-	{whatsnew_offset+0x1C, 0x6E65772E, &condition_true},	
+	{whatsnew_offset+0x18, 0x6174735F, &condition_true	},
+	{whatsnew_offset+0x1C, 0x6E65772E, &condition_true},
 	{whatsnew_offset+0x20, 0x786D6C00, &condition_true},
 	{whatsnew_offset+0x24, 0, &condition_true},*/
 	{ 0 }
@@ -190,8 +190,8 @@ SprxPatch game_ext_plugin_patches[] =
 {
 	{ sfo_check_offset, NOP, &condition_true },
 	//{ ps2_nonbw_offset3, LI(R0, 1), &condition_ps2softemu },
-	{ ps_region_error_offset, NOP, &condition_true }, // Needed sometimes... 
-	{ remote_play_offset, 0x419e0028, &condition_true },  
+	{ ps_region_error_offset, NOP, &condition_true }, // Needed sometimes...
+	{ remote_play_offset, 0x419e0028, &condition_true },
 	//{ ps_video_error_offset, LI(R3, 0), &condition_game_ext_psx },
 	//{ ps_video_error_offset+4, BLR, &condition_game_ext_psx }, // experimental, disabled due to its issue with remote play
 	{ 0 }
@@ -224,19 +224,19 @@ SprxPatch download_plugin_patches[] =
 	{elf_patch1_download,0x409C017C , &condition_true},
 	{elf_patch2_download,0x48000010 , &condition_true},
 	// Devil303's extended download plugin patches
-	{elf_patch3_download,0x78000000 , &condition_true},	
+	{elf_patch3_download,0x78000000 , &condition_true},
 	{elf_patch3_download+0x9A,0x78000000 , &condition_true},		// allow XML files to be downloaded
-	{elf_patch4_download,0x78787800 , &condition_true},	
-	/*{elf_patch5_download,0 , &condition_true},	
-	{elf_patch5_download+8,0 , &condition_true},	
-	{elf_patch5_download+0x0C,0 , &condition_true},	
-	{elf_patch5_download+0x10,0 , &condition_true},*/		
-	{elf_patch6_download,0x6F637465 , &condition_true},	
-	{elf_patch6_download+4,0x742D7374 , &condition_true},		
-	{elf_patch6_download+8,0x7265616D , &condition_true},	
-	{elf_patch6_download+0x48,0x6F637465 , &condition_true},	
-	{elf_patch6_download+0x4C,0x742D7374 , &condition_true},		
-	{elf_patch6_download+0x50,0x7265616D , &condition_true},				
+	{elf_patch4_download,0x78787800 , &condition_true},
+	/*{elf_patch5_download,0 , &condition_true},
+	{elf_patch5_download+8,0 , &condition_true},
+	{elf_patch5_download+0x0C,0 , &condition_true},
+	{elf_patch5_download+0x10,0 , &condition_true},*/
+	{elf_patch6_download,0x6F637465 , &condition_true},
+	{elf_patch6_download+4,0x742D7374 , &condition_true},
+	{elf_patch6_download+8,0x7265616D , &condition_true},
+	{elf_patch6_download+0x48,0x6F637465 , &condition_true},
+	{elf_patch6_download+0x4C,0x742D7374 , &condition_true},
+	{elf_patch6_download+0x50,0x7265616D , &condition_true},
 	{0}
 };
 
@@ -265,14 +265,14 @@ SprxPatch psp_emulator_patches[] =
 	{ psp_set_psp_mode_offset, LI(R4, 0), &condition_psp_iso },
 	{ 0 }
 };
-	
+
 SprxPatch libaudio_patches[] =
 {
 	{bt_usb_audio_offset,0x38000001 , &condition_true},
 	{bt_usb_audio_offset+4,0xF81E0010 , &condition_true},
 	{bt_usb_audio_offset+8,0xE8030000 , &condition_true},
 	{bt_usb_audio_offset+0x0C,0x2FA00000 , &condition_true},
-	{bt_usb_audio_offset+0x10,0x419E0028  , &condition_true},	
+	{bt_usb_audio_offset+0x10,0x419E0028  , &condition_true},
 	{0}
 };
 
@@ -311,7 +311,7 @@ SprxPatch emulator_api_patches[] =
 	{ psp_read+0x6C, ADDI(SP, SP, 0x70), &condition_psp_iso },
 	{ psp_read+0x70, BLR, &condition_psp_iso },
 	{ psp_read_header, MAKE_CALL_VALUE(psp_read_header, psp_read+0x3C), &condition_psp_iso },
- 
+
 	// Drm patches
 	{ psp_drm_patch5, MAKE_JUMP_VALUE(psp_drm_patch5, psp_drm_patch6), &condition_psp_iso },
 	{ psp_drm_patch7, LI(R6, 0), &condition_psp_iso },
@@ -373,7 +373,7 @@ SprxPatch pemucorelib_patches[] =
 	// Prometheus
 	{ psp_prometheus_patch, '.OLD', &condition_psp_prometheus },
 
-	/*#if defined(FIRMWARE_4_84) 
+	/*#if defined(FIRMWARE_4_84)
 		// Extra save data patch required since some 3.60+ firmware
 		{ psp_extra_savedata_patch, LI(R31, 1), &condition_psp_iso },
 	#endif */
@@ -423,14 +423,14 @@ PatchTableEntry patch_table[] =
 	{ PEMUCORELIB_HASH, pemucorelib_patches },
 	{ LIBSYSUTIL_SAVEDATA_PSP_HASH, libsysutil_savedata_psp_patches },
 	{ LIBFS_EXTERNAL_HASH, libfs_external_patches },
-	//{ LIBAUDIO_HASH, libaudio_patches }, (bugged, it  causes an issue with Sony BT headset (Pulse) https://github.com/PS3Xploit/PS3HEN/issues/20
+	{ LIBAUDIO_HASH, libaudio_patches }, // Now toggled via HFW Tools (bugged, it causes an issue with Sony BT headset Pulse) https://github.com/PS3Xploit/PS3HEN/issues/20
 	{ NAS_PLUGIN_HASH, nas_plugin_patches },
 	{ BDP_BDMV_HASH, bdp_bdmv_patches },
 	{ BDP_BDVD_HASH, bdp_bdvd_patches },
 	{ DOWNLOAD_PLUGIN_HASH, download_plugin_patches },
 	{ AUTODOWNLOAD_PLUGIN_HASH, autodownload_plugin_patches },
 	{ PREMO_PLUGIN_HASH, premo_plugin_patches },
-	{ PREMO_GAME_PLUGIN_HASH, premo_game_plugin_patches },		
+	{ PREMO_GAME_PLUGIN_HASH, premo_game_plugin_patches },
 };
 
 #define N_PATCH_TABLE_ENTRIES	(sizeof(patch_table) / sizeof(PatchTableEntry))
@@ -444,7 +444,7 @@ static char *hash_to_name(uint64_t hash)
 		case VSH_HASH:
 			return "vsh.self";
 		break;
-		
+
 		case EXPLORE_PLUGIN_HASH:
 			return "explore_plugin.sprx";
 		break;
@@ -452,71 +452,71 @@ static char *hash_to_name(uint64_t hash)
 		case EXPLORE_CATEGORY_GAME_HASH:
 			return "explore_category_game.sprx";
 		break;*/
-		
+
 		case BDP_DISC_CHECK_PLUGIN_HASH:
 			return "bdp_disccheck_plugin.sprx";
 		break;
-		
+
 		case PS1_EMU_HASH:
 			return "ps1_emu.self";
 		break;
-		
+
 		case PS1_NETEMU_HASH:
 			return "ps1_netemu.self";
 		break;
-		
+
 		case GAME_EXT_PLUGIN_HASH:
 			return "game_ext_plugin.sprx";
 		break;
-				
+
 		case PSP_EMULATOR_HASH:
 			return "psp_emulator.self";
 		break;
-		
+
 		case EMULATOR_API_HASH:
 			return "emulator_api.sprx";
 		break;
-		
+
 		case PEMUCORELIB_HASH:
 			return "PEmuCoreLib.sprx";
 		break;
-		
+
 		case LIBFS_EXTERNAL_HASH:
 			return "libfs.sprx";
 		break;
-		
+
 		case LIBSYSUTIL_SAVEDATA_PSP_HASH:
 			return "libsysutil_savedata_psp.sprx";
 		break;
-		
+
 		case LIBAUDIO_HASH:
 			return "libaudio.sprx";
-		break;		
-		
+		break;
+
 		/*case BASIC_PLUGINS_HASH:
 			return "basic_plugins.sprx";
 		break;*/
-		
+
 		case NAS_PLUGIN_HASH:
 			return "nas_plugin.sprx";
 		break;
-		
+
 		case AUTODOWNLOAD_PLUGIN_HASH:
 			return "autodownload_plugin.sprx";
 		break;
-		
+
 		case DOWNLOAD_PLUGIN_HASH:
 			return "download_plugin.sprx";
 		break;
-		
+
 		case BDP_BDMV_HASH:
 			return "bdp_BDMV.self";
 		break;
-		
+
 		case BDP_BDVD_HASH:
 			return "bdp_BDVD.self";
 		break;
-	
+
 		case PREMO_PLUGIN_HASH:
 			return "premo_plugin.sprx";
 		break;
@@ -524,10 +524,10 @@ static char *hash_to_name(uint64_t hash)
 		case PREMO_GAME_PLUGIN_HASH:
 			return "premo_game_plugin.sprx";
 		break;
-		
+
 		default:
 			return "UNKNOWN";
-		break;		
+		break;
 	}
 }
 
@@ -560,7 +560,7 @@ void do_pokes()
 {
 	if(!poke_count)
 		return;
-	
+
 	for(int i=0;i<poke_count;i++)
 	{
 		*(uint64_t *)(pokes[i].addr)=pokes[i].poke_val;
@@ -571,14 +571,14 @@ void remove_pokes()
 {
 	if(!poke_count)
 		return;
-	
+
 	for(int i=0;i<poke_count;i++)
 	{
 		*(uint64_t *)(pokes[i].addr)=pokes[i].orig_val;
 	}
 }*/
 
-#if defined(FIRMWARE_4_82) || defined(FIRMWARE_4_84) || defined(FIRMWARE_4_85) || defined(FIRMWARE_4_86) || defined(FIRMWARE_4_87) || defined(FIRMWARE_4_88) || defined(FIRMWARE_4_89)
+#if defined(FIRMWARE_4_82) || defined(FIRMWARE_4_84) || defined(FIRMWARE_4_85) || defined(FIRMWARE_4_86) || defined(FIRMWARE_4_87) || defined(FIRMWARE_4_88) || defined(FIRMWARE_4_89) || defined(FIRMWARE_4_90)
 /*LV2_PATCHED_FUNCTION(int, vtable_ioctl,(uint64_t socket, uint64_t unk_11,uint64_t flags, void *kmem, uint64_t unk_0,uint64_t unk, uint64_t function_ptr, uint64_t unk2))
 {
 //	f_desc_t f;
@@ -589,14 +589,14 @@ void remove_pokes()
 //	{
 		return 0;
 //	}
-	
+
 //	return err_func(socket,unk_11,flags,kmem,unk_0,unk,function_ptr,unk2);
 }*/
 #endif
 
 uint64_t state;
 uint64_t current_ticks;
-uint64_t target_ticks; 
+uint64_t target_ticks;
 uint8_t is_ptr;
 event_t event;
 uint64_t res;
@@ -608,15 +608,15 @@ volatile int sleep_done;
 LV2_CONTEXT_SC_HANDLER(uint64_t, syscall_handler, (uint64_t r3, uint64_t r4, uint64_t r5, uint64_t r6, uint64_t r7, uint64_t r8, uint64_t r9, uint64_t r10))
 {
 	suspend_intr();
-	
+
 	if (1)
 	{
 		while(sleep_done==0)
 		{}
-	}		
-	
+	}
+
 	resume_intr();
-	
+
 	return 1;
 }
 
@@ -630,7 +630,7 @@ void do_hook_all_syscalls(void)
 {
 	set_syscall_handler(syscall_handler);
 }
-	
+
 LV2_HOOKED_FUNCTION_PRECALL_2(int, post_lv1_call_99_wrapper, (uint64_t *spu_obj, uint64_t *spu_args))
 {
 	sleep_done=1;
@@ -651,7 +651,7 @@ LV2_HOOKED_FUNCTION_PRECALL_2(int, post_lv1_call_99_wrapper, (uint64_t *spu_obj,
 	is_ptr=(((uint64_t)saved_sce_hdr&0xff00000000000000)>>56); //new
 
 	//DPRINTF("IS_PTR:%x\n",is_ptr);
-	
+
 	if(is_ptr==0x80) //new
 	{
 		if((*(uint64_t *)(saved_sce_hdr+0x48)>=0x200) || (*(uint64_t *)(saved_sce_hdr+0x48)==0x130))
@@ -661,10 +661,14 @@ LV2_HOOKED_FUNCTION_PRECALL_2(int, post_lv1_call_99_wrapper, (uint64_t *spu_obj,
 			event_port_send(command_port, CMD_DISABLE_PATCHES, (uint64_t)&res,0);
 			event_queue_receive(result_queue, &event, 0);
 			event_queue_drain(result_queue);
-			DPRINTF("SELF loading!\n");
+			#ifdef DEBUG
+				DPRINTF("SELF loading!\n");
+			#endif
 			suspend_intr();
 			uint64_t state = spin_lock_irqsave();
-			DPRINTF("interrupt suspended! 6:20am\n");;
+			#ifdef DEBUG
+				//DPRINTF("interrupt suspended!\n");
+			#endif
 			current_ticks=get_ticks();
 			target_ticks=current_ticks+0x3000000; // Testing
 			while(get_ticks()<target_ticks)
@@ -674,7 +678,9 @@ LV2_HOOKED_FUNCTION_PRECALL_2(int, post_lv1_call_99_wrapper, (uint64_t *spu_obj,
 //			uint64_t (*sleep_thread_user)(uint64_t usecs)=(void*)&func_sleep;
 //			sleep_thread_user(500000);
 			sleep_done=1;
-			DPRINTF("sleep finished!\n");
+			#ifdef DEBUG
+				//DPRINTF("sleep finished!\n");
+			#endif
 			spin_unlock_irqrestore(state);
 			resume_intr();
 			event_port_send(command_port, CMD_ENABLE_PATCHES, (uint64_t)&res,0);
@@ -708,20 +714,20 @@ LV2_PATCHED_FUNCTION(int, modules_patching, (uint64_t *arg1, uint32_t *arg2))
 	self = (SELF *)sce_hdr;
 
 	uint32_t *p = (uint32_t *)arg1[0x18/8];
-	
+
 	#ifdef	DEBUG
 		//DPRINTF("Flags = %x	   %x\n", self->flags, (p[0x30/4] >> 16));
 	#endif
 
 	// +4.30 -> 0x13 (exact firmware since it happens is unknown)
 	// 3.55 -> 0x29
-#if defined(FIRMWARE_4_82) || defined(FIRMWARE_4_84) || defined(FIRMWARE_4_85) || defined(FIRMWARE_4_86) || defined(FIRMWARE_4_87) || defined(FIRMWARE_4_88) || defined(FIRMWARE_4_89) || defined(FIRMWARE_4_82DEX) || defined(FIRMWARE_4_84DEX)
+#if defined(FIRMWARE_4_82) || defined(FIRMWARE_4_84) || defined(FIRMWARE_4_85) || defined(FIRMWARE_4_86) || defined(FIRMWARE_4_87) || defined(FIRMWARE_4_88) || defined(FIRMWARE_4_89) || defined(FIRMWARE_4_90) || defined(FIRMWARE_4_82DEX) || defined(FIRMWARE_4_84DEX)
 	if ((p[0x30/4] >> 16) == 0x13)
 #endif
-	{	
+	{
 		#ifdef	DEBUG
-			DPRINTF("We are in decrypted module or in cobra encrypted\n");
-		#endif		
+			//DPRINTF("We are in decrypted module or in cobra encrypted\n");
+		#endif
 
 		int last_chunk = 0;
 		KeySet *keySet = NULL;
@@ -746,19 +752,19 @@ LV2_PATCHED_FUNCTION(int, modules_patching, (uint64_t *arg1, uint32_t *arg2))
 		int dongle_decrypt = 0;
 
 		if (magic == SPRX_EXT_MAGIC)
-		{	
-			if (keyIndex >= N_SPRX_KEYS_1)			
-				DPRINTF("This key is not implemented yet: %lx:%x\n", magic, keyIndex);			
-			else			
-				keySet = &sprx_keys_set1[keyIndex];			
-			
+		{
+			if (keyIndex >= N_SPRX_KEYS_1)
+				DPRINTF("This key is not implemented yet: %lx:%x\n", magic, keyIndex);
+			else
+				keySet = &sprx_keys_set1[keyIndex];
+
 		}
 		else if (magic == SPRX_EXT_MAGIC2)
 		{
-			if (keyIndex >= N_SPRX_KEYS_2)			
-				DPRINTF("This key is not implemented yet: %lx:%x\n", magic, keyIndex);			
-			else			
-				keySet = &sprx_keys_set2[keyIndex];			
+			if (keyIndex >= N_SPRX_KEYS_2)
+				DPRINTF("This key is not implemented yet: %lx:%x\n", magic, keyIndex);
+			else
+				keySet = &sprx_keys_set2[keyIndex];
 		}
 
 		if (keySet)
@@ -772,11 +778,11 @@ LV2_PATCHED_FUNCTION(int, modules_patching, (uint64_t *arg1, uint32_t *arg2))
 				if (dongle_decrypt)
 				{
 				}
-				else				
-					memcpy(keys, extHdr->keys_mod, 16);				
+				else
+					memcpy(keys, extHdr->keys_mod, 16);
 
-				for (int i = 0; i < 16; i++)				
-					keys[i] ^= (keySet->keys[15-i] ^ dif_keys[15-i]);				
+				for (int i = 0; i < 16; i++)
+					keys[i] ^= (keySet->keys[15-i] ^ dif_keys[15-i]);
 
 				nonce = keySet->nonce ^ extHdr->nonce_mod;
 			}
@@ -795,13 +801,13 @@ LV2_PATCHED_FUNCTION(int, modules_patching, (uint64_t *arg1, uint32_t *arg2))
 
 		memcpy(saved_buf, (void *)ptr[8/8], ptr32[4/4]);
 
-		if (total == 0)		
-			buf = (uint32_t *)saved_buf;		
-		
+		if (total == 0)
+			buf = (uint32_t *)saved_buf;
+
 		#ifdef	DEBUG
 			if (last_chunk)
 			{
-				DPRINTF("Total section size: %x\n", total+ptr32[4/4]);
+				//DPRINTF("Total section size: %x\n", total+ptr32[4/4]);
 			}
 		#endif
 
@@ -819,35 +825,35 @@ LV2_PATCHED_FUNCTION(int, modules_patching, (uint64_t *arg1, uint32_t *arg2))
 	{
 		uint64_t hash = 0;
 
-#if defined(FIRMWARE_4_84) || defined(FIRMWARE_4_85) || defined(FIRMWARE_4_86) || defined(FIRMWARE_4_87) || defined(FIRMWARE_4_88) || defined(FIRMWARE_4_89)
+#if defined(FIRMWARE_4_84) || defined(FIRMWARE_4_85) || defined(FIRMWARE_4_86) || defined(FIRMWARE_4_87) || defined(FIRMWARE_4_88) || defined(FIRMWARE_4_89) || defined(FIRMWARE_4_90)
 		for (int i = 0; i < 0x100; i++)
 		{
-			hash ^= buf[i];			
+			hash ^= buf[i];
 		}
-			
+
 		hash = (hash << 32) | (total&0xfffff000);
 
 #else
-		for(int i = 0; i < 0x8; i++)  //0x20 bytes only		
-			hash ^= buf[i+0xb0];  //unique location in all files+static hashes between firmware		
+		for(int i = 0; i < 0x8; i++)  //0x20 bytes only
+			hash ^= buf[i+0xb0];  //unique location in all files+static hashes between firmware
 
-		if((total & 0xff0000)==0)		
-			total = (total & 0xfff000); //if size is less than 0x10000 then check for next 4 bits		
-		else		
-			total = (total & 0xff0000); //copy third byte		
-		
+		if((total & 0xff0000)==0)
+			total = (total & 0xfff000); //if size is less than 0x10000 then check for next 4 bits
+		else
+			total = (total & 0xff0000); //copy third byte
+
 		hash = ((hash << 32) & 0xfffff00000000000) | (total);  //20 bits check, prevent diferent hash just because of minor changes
 #endif
 		total = 0;
-		
+
 		#ifdef	DEBUG
 			DPRINTF("hash = %lx\n", hash);
 		#endif
-		
+
 		switch(hash)
 		{
 		    pad_data data;
-			
+
 			case VSH_HASH:
 				vsh_check = hash;
 			break;
@@ -856,7 +862,7 @@ LV2_PATCHED_FUNCTION(int, modules_patching, (uint64_t *arg1, uint32_t *arg2))
 				if (condition_psp_keys)
 					buf[psp_drm_tag_overwrite/4] = LI(R5, psp_code);
 			break;
-			
+
 			case EMULATOR_DRM_DATA_HASH:
 				if (condition_psp_keys)
 				{
@@ -864,7 +870,7 @@ LV2_PATCHED_FUNCTION(int, modules_patching, (uint64_t *arg1, uint32_t *arg2))
 					memcpy(buf+((psp_drm_key_overwrite+8)/4), psp_keys, 16);
 				}
 			break;
-			
+
 			/*
 			case BASIC_PLUGINS_HASH:
 				if (condition_psp_change_emu)
@@ -882,43 +888,61 @@ LV2_PATCHED_FUNCTION(int, modules_patching, (uint64_t *arg1, uint32_t *arg2))
 
 						if((data.button[PAD_BTN_OFFSET_DIGITAL] & (PAD_CTRL_CROSS|PAD_CTRL_R1)) == (PAD_CTRL_CROSS|PAD_CTRL_R1)){
 
-							DPRINTF("Button Shortcut detected! Applying pemucorelib Extra Savedata Patch...\n");
+							//DPRINTF("Button Shortcut detected! Applying pemucorelib Extra Savedata Patch...\n");
 
 							DPRINTF("Now patching %s %lx\n", hash_to_name(hash), hash);
 
 							uint32_t data = LI(R31, 1);
-							buf[psp_extra_savedata_patch/4] = data;			
+							buf[psp_extra_savedata_patch/4] = data;
 
 							DPRINTF("Offset: 0x%08X | Data: 0x%08X\n", psp_extra_savedata_patch, data);
 						}
 					}
 				}
 			break;
-			
+
 			default:
 				//Do nothing
 			break;
 		}
 
+		CellFsStat stat;
 		for (int i = 0; i < N_PATCH_TABLE_ENTRIES; i++)
 		{
 			if (patch_table[i].hash == hash)
-			{		
+			{
 				#ifdef	DEBUG
-				DPRINTF("Now patching  %s %lx\n", hash_to_name(hash), hash);
+					DPRINTF("Now patching  %s %lx\n", hash_to_name(hash), hash);
 				#endif
 
 				int j = 0;
+				
+				// Check libaudio patch toggle (thanks in1975)
+				// Default is OFF
+				if((i==11) && (cellFsStat("/dev_hdd0/hen/toggles/patch_libaudio.on",&stat)!=0))
+                {
+                    i++;
+                    j++;
+                }
+				
 				SprxPatch *patch = &patch_table[i].patch_table[j];
 
 				while (patch->offset != 0)
 				{
 					if (*patch->condition)
 					{
-						buf[patch->offset/4] = patch->data;
+						uint32_t data = patch->data;
+						if(forced_video_mode == 2) // Patch region of PSX bios for PAL games to 0x85, for NTSC use the default 0x82
+						{
+							if(patch->offset == ps1_emu_get_region_offset)
+								data = LI(R29, 0x85);
+							if(patch->offset == ps1_netemu_get_region_offset)
+								data = LI(R3, 0x85);
+						}
+						buf[patch->offset/4] = data;
+
 						#ifdef	DEBUG
-							DPRINTF("Offset: 0x%08X | Data: 0x%08X\n", (uint32_t)patch->offset, (uint32_t)patch->data);
-							//DPRINTF("Offset: %lx\n", &buf[patch->offset/4]);
+							//DPRINTF("Offset: 0x%08X | Data: 0x%08X\n", (uint32_t)patch->offset, (uint32_t)data);
 						#endif
 					}
 
@@ -929,19 +953,19 @@ LV2_PATCHED_FUNCTION(int, modules_patching, (uint64_t *arg1, uint32_t *arg2))
 				break;
 			}
 		}
-		
+
 	}
 
 	return 0;
 }
 
-#if defined (FIRMWARE_4_82) ||  defined (FIRMWARE_4_84) || defined(FIRMWARE_4_85) || defined(FIRMWARE_4_86) || defined(FIRMWARE_4_87) || defined(FIRMWARE_4_88) || defined(FIRMWARE_4_89)
+#if defined (FIRMWARE_4_82) ||  defined (FIRMWARE_4_84) || defined(FIRMWARE_4_85) || defined(FIRMWARE_4_86) || defined(FIRMWARE_4_87) || defined(FIRMWARE_4_88) || defined(FIRMWARE_4_89) || defined(FIRMWARE_4_90)
 LV2_HOOKED_FUNCTION_COND_POSTCALL_2(int, pre_modules_verification, (uint32_t *ret, uint32_t error))
 {
 /*
 	// Patch original from psjailbreak. Needs some tweaks to fix some games
 	#ifdef	DEBUG
-	DPRINTF("err = %x\n", error);
+		DPRINTF("err = %x\n", error);
 	#endif
 	if (error == 0x13)
 	{
@@ -968,28 +992,28 @@ uint8_t cleared_stage0 = 0;
 LV2_HOOKED_FUNCTION_POSTCALL_7(void, pre_map_process_memory, (void *object, uint64_t process_addr, uint64_t size, uint64_t flags, void *unk, void *elf, uint64_t *out))
 {
 	#ifdef	DEBUG
-	DPRINTF("Map %lx %lx %s\n", process_addr, size, get_current_process() ? get_process_name(get_current_process())+8 : "KERNEL");
+		//DPRINTF("Map %lx %lx %s\n", process_addr, size, get_current_process() ? get_process_name(get_current_process())+8 : "KERNEL");
 	#endif
-	
+
 	// Not the call address, but the call to the caller (process load code for .self)
 	if (get_call_address(1) == (void *)MKA(process_map_caller_call))
-	{	
+	{
 		if ((process_addr == 0x10000) && (size == vsh_text_size) && (flags == 0x2008004) && (cleared_stage0 == 0))
 		{
 			#ifdef	DEBUG
-				DPRINTF("Making Retail VSH text writable, Size: 0x%lx\n", size);   
+				//DPRINTF("Making Retail VSH text writable, Size: 0x%lx\n", size);
 			#endif
 
 			// Change flags, RX -> RWX, make vsh text writable
 			set_patched_func_param(4, 0x2004004);
 
-			// We can clear stage0.  
-			
-			cleared_stage0 = 1; 
+			// We can clear stage0.
+
+			cleared_stage0 = 1;
 		}
-		else if (flags == 0x2008004) 
+		else if (flags == 0x2008004)
 			set_patched_func_param(4, 0x2004004); // Change flags, RX -> RWX
-	}	
+	}
 }
 
 // Kernel version of prx_load_vsh_plugin
@@ -1002,8 +1026,8 @@ int prx_load_vsh_plugin(unsigned int slot, char *path, void *arg, uint32_t arg_s
 	if (slot >= MAX_VSH_PLUGINS || (arg != NULL && arg_size > KB(64)))
 		return EINVAL;
 
-	if (vsh_plugins[slot] != 0)	
-		return EKRESOURCE;	
+	if (vsh_plugins[slot] != 0)
+		return EKRESOURCE;
 
 	CellFsStat stat;
 	if (cellFsStat(path, &stat) != 0 || stat.st_size < 0x230) return EINVAL; // prevent a semi-brick (black screen on start up) if the sprx is 0 bytes (due a bad ftp transfer).
@@ -1025,7 +1049,7 @@ int prx_load_vsh_plugin(unsigned int slot, char *path, void *arg, uint32_t arg_s
 	uint64_t size=header_len+data_len;
 	if(stat.st_size<size)
 		return EINVAL;
-	
+
 	loading_vsh_plugin = 1;
 	prx = prx_load_module(vsh_process, 0, 0, path);
 	loading_vsh_plugin  = 0;
@@ -1039,8 +1063,8 @@ int prx_load_vsh_plugin(unsigned int slot, char *path, void *arg, uint32_t arg_s
 		page_export_to_proc(vsh_process, kbuf, 0x40000, &vbuf);
 		memcpy(kbuf, arg, arg_size);
 	}
-	else	
-		vbuf = NULL;	
+	else
+		vbuf = NULL;
 
 	ret = prx_start_module_with_thread(prx, vsh_process, 0, (uint64_t)vbuf);
 
@@ -1050,14 +1074,14 @@ int prx_load_vsh_plugin(unsigned int slot, char *path, void *arg, uint32_t arg_s
 		page_free(vsh_process, kbuf, 0x2F);
 	}
 
-	if (ret == 0)	
-		vsh_plugins[slot] = prx;	
+	if (ret == 0)
+		vsh_plugins[slot] = prx;
 	else
 	{
 		prx_stop_module_with_thread(prx, vsh_process, 0, 0);
 		prx_unload_module(prx, vsh_process);
 	}
-	
+
 	#ifndef  DEBUG
 		DPRINTF("Vsh plugin load: %x\n", ret);
 	#endif
@@ -1078,7 +1102,7 @@ int prx_unload_vsh_plugin(unsigned int slot)
 {
 	int ret;
 	sys_prx_id_t prx;
-	
+
 	#ifndef  DEBUG
 		DPRINTF("Trying to unload vsh plugin %x\n", slot);
 	#endif
@@ -1087,7 +1111,7 @@ int prx_unload_vsh_plugin(unsigned int slot)
 		return EINVAL;
 
 	prx = vsh_plugins[slot];
-		
+
 	#ifndef  DEBUG
 		DPRINTF("Current plugin: %08X\n", prx);
 	#endif
@@ -1096,11 +1120,11 @@ int prx_unload_vsh_plugin(unsigned int slot)
 		return ENOENT;
 
 	ret = prx_stop_module_with_thread(prx, vsh_process, 0, 0);
-	if (ret == 0)	
-		ret = prx_unload_module(prx, vsh_process);	
+	if (ret == 0)
+		ret = prx_unload_module(prx, vsh_process);
 	#ifndef  DEBUG
-		else	
-			DPRINTF("Stop failed: %x!\n", ret);	
+		else
+			DPRINTF("Stop failed: %x!\n", ret);
 	#endif
 
 	if (ret == 0)
@@ -1111,8 +1135,8 @@ int prx_unload_vsh_plugin(unsigned int slot)
 		#endif
 	}
 	#ifndef  DEBUG
-		else	
-			DPRINTF("Unload failed : %x!\n", ret);	
+		else
+			DPRINTF("Unload failed : %x!\n", ret);
 	#endif
 
 	return ret;
@@ -1174,8 +1198,8 @@ int read_text_line(int fd, char *line, unsigned int size, int *eof)
 			line[j] = 0;
 			i = j;
 		}
-		else		
-			break;		
+		else
+			break;
 	}
 
 	return i;
@@ -1196,11 +1220,11 @@ uint64_t load_plugin_kernel(char *path)
 				void *skprx=NULL;
 
 				skprx=alloc(stat.st_size,0x27);
-				
+
 				if(skprx)
 				{
 					if(cellFsRead(file, skprx, stat.st_size, &read)==0)
-					{	
+					{
 						f_desc_t f;
 						f.addr=skprx;
 						f.toc=(void *)MKA(TOC);
@@ -1232,13 +1256,13 @@ process_t vsh_process;
 int get_vsh_proc()
 {
 	uint32_t tmp_pid_list[16];
-	uint64_t *proc_list = *(uint64_t **)MKA(TOC+process_rtoc_entry_1);	
+	uint64_t *proc_list = *(uint64_t **)MKA(TOC+process_rtoc_entry_1);
 	proc_list = *(uint64_t **)proc_list;
 	proc_list = *(uint64_t **)proc_list;
 	for (int i = 0; i < 16; i++)
 	{
-		process_t process = (process_t)proc_list[1];	
-		proc_list += 2;	
+		process_t process = (process_t)proc_list[1];
+		proc_list += 2;
 		if ((((uint64_t)process) & 0xFFFFFFFF00000000ULL) != MKA(0)) {tmp_pid_list[i] = 0; continue;}
 		char *proc_name = get_process_name(process);
 		if ( 0 < strlen(proc_name))
@@ -1258,7 +1282,7 @@ void load_boot_plugins_kernel(void)
 	int fd;
 	int current_slot_kernel = 0;
 	int num_loaded_kernel = 0;
-	
+
 	if (!vsh_process)
 		return;	  //lets wait till vsh so we dont brick the console perma!
 
@@ -1272,26 +1296,26 @@ void load_boot_plugins_kernel(void)
 			}
 		}
 	}
-	
+
 	if(fd)
 	{
 		while (num_loaded_kernel < MAX_BOOT_PLUGINS_KERNEL)
 		{
 			char path[128];
-			int eof;			
-			
+			int eof;
+
 			if (read_text_line(fd, path, sizeof(path), &eof) > 0)
 			{
 				uint64_t ret = load_plugin_kernel(path);
-					
+
 				if (ret >= 0)
 				{
 					DPRINTF("Load boot plugin %s -> %x\n", path, current_slot_kernel);
 					current_slot_kernel++;
 					num_loaded_kernel++;
-				}			
+			         }
 			}
-			
+
 			if (eof)
 				break;
 		}
@@ -1306,7 +1330,7 @@ void load_boot_plugins(void)
 	int fd;
 	int current_slot = BOOT_PLUGINS_FIRST_SLOT;
 	int num_loaded = 0;
-	
+
 	if (!vsh_process)
 	{
 		get_vsh_proc();
@@ -1325,9 +1349,9 @@ void load_boot_plugins(void)
 
 	// EVILNAT START
 	// KW / Special thanks to KW for providing an awesome source
-	// Improving initial KW's code	
+	// Improving initial KW's code
 	// Firstly will load plugin from '/dev_hdd0' instead '/dev_flash'
-	// If it does not exist in '/dev_hdd0' will load it from '/dev_flash' 
+	// If it does not exist in '/dev_hdd0' will load it from '/dev_flash'
 	if (cellFsOpen(BOOT_PLUGINS_FILE1, CELL_FS_O_RDONLY, &fd, 0, NULL, 0) != 0)
 	{
 		if (cellFsOpen(BOOT_PLUGINS_FILE2, CELL_FS_O_RDONLY, &fd, 0, NULL, 0) != 0)
@@ -1338,26 +1362,26 @@ void load_boot_plugins(void)
 			}
 		}
 	}
-	
+
 	if(fd)
 	{
 		while (num_loaded < MAX_BOOT_PLUGINS)
 		{
 			char path[128];
-			int eof;			
-			
+			int eof;
+
 			if (read_text_line(fd, path, sizeof(path), &eof) > 0)
 			{
 				int ret = prx_load_vsh_plugin(current_slot, path, NULL, 0);
-					
+
 				if (ret >= 0)
 				{
 					DPRINTF("Load boot plugin %s -> %x\n", path, current_slot);
 					current_slot++;
 					num_loaded++;
-				}			
 			}
-			
+			}
+
 			if (eof)
 			{
 				break;
@@ -1386,8 +1410,9 @@ LV2_HOOKED_FUNCTION_POSTCALL_8(void, create_process_common_hooked_pre, (process_
 									 void **sp_88, uint64_t *sp_90, process_t *process, uint64_t *sp_A0,
 									  uint64_t *sp_A8))
 {
-
-	DPRINTF("Pre-process\n");
+	#ifdef DEBUG
+		//DPRINTF("Pre-process\n");
+	#endif
 }
 
 #endif
@@ -1399,7 +1424,7 @@ void modules_patch_init(void)
 	hook_function_with_cond_postcall(modules_verification_symbol, pre_modules_verification, 2);
 	hook_function_with_postcall(map_process_memory_symbol, pre_map_process_memory, 7);
 	do_patch32(MKA(decrypt_func_symbol+0x40),0x60000000);
-#if defined(FIRMWARE_4_82) || defined(FIRMWARE_4_84) || defined(FIRMWARE_4_85) || defined(FIRMWARE_4_86) || defined(FIRMWARE_4_87) || defined(FIRMWARE_4_88) || defined(FIRMWARE_4_89)
+#if defined(FIRMWARE_4_82) || defined(FIRMWARE_4_84) || defined(FIRMWARE_4_85) || defined(FIRMWARE_4_86) || defined(FIRMWARE_4_87) || defined(FIRMWARE_4_88) || defined(FIRMWARE_4_89) || defined(FIRMWARE_4_90)
 //	patch_call(0x123f38, ioctl_patched);
 #endif
 }
@@ -1407,9 +1432,9 @@ void modules_patch_init(void)
 void unhook_all_modules(void)
 {
 	suspend_intr();
-#if defined(FIRMWARE_4_82) || defined(FIRMWARE_4_84) || defined(FIRMWARE_4_85) || defined(FIRMWARE_4_86) || defined(FIRMWARE_4_87) || defined(FIRMWARE_4_88) || defined(FIRMWARE_4_89)
+#if defined(FIRMWARE_4_82) || defined(FIRMWARE_4_84) || defined(FIRMWARE_4_85) || defined(FIRMWARE_4_86) || defined(FIRMWARE_4_87) || defined(FIRMWARE_4_88) || defined(FIRMWARE_4_89) || defined(FIRMWARE_4_90)
 	*(uint32_t *)MKA(patch_func2_offset)=0x4BFDABC1;
-#elif defined(FIRMWARE_4_82DEX) || defined(FIRMWARE_4_84DEX)	
+#elif defined(FIRMWARE_4_82DEX) || defined(FIRMWARE_4_84DEX)
 	*(uint32_t *)MKA(patch_func2_offset)=0x4BFDAB11;
 #endif
 	clear_icache((void *)MKA(patch_func2_offset),4);
@@ -1417,7 +1442,7 @@ void unhook_all_modules(void)
 	unhook_function_with_precall(lv1_call_99_wrapper_symbol, post_lv1_call_99_wrapper, 2);
 	unhook_function_with_cond_postcall(modules_verification_symbol, pre_modules_verification, 2);
 	unhook_function_with_postcall(map_process_memory_symbol, pre_map_process_memory, 7);
-#if defined(FIRMWARE_4_82) || defined(FIRMWARE_4_84) || defined(FIRMWARE_4_85) || defined(FIRMWARE_4_86) || defined(FIRMWARE_4_87) || defined(FIRMWARE_4_88) || defined(FIRMWARE_4_89)
+#if defined(FIRMWARE_4_82) || defined(FIRMWARE_4_84) || defined(FIRMWARE_4_85) || defined(FIRMWARE_4_86) || defined(FIRMWARE_4_87) || defined(FIRMWARE_4_88) || defined(FIRMWARE_4_89) || defined(FIRMWARE_4_90)
 //	do_patch32(MKA(0x123f38), 0xE97C0018);
 #endif
 	resume_intr();
@@ -1428,17 +1453,17 @@ int ps3mapi_unload_vsh_plugin(char *name)
     if (vsh_process <= 0) return ESRCH;
 	for (unsigned int slot = 0; slot < MAX_VSH_PLUGINS; slot++)
 	{
-		if (vsh_plugins[slot] == 0) 
+		if (vsh_plugins[slot] == 0)
 			continue;
 
 		char *filename = alloc(256, 0x35);
 
-		if (!filename) 
+		if (!filename)
 			return ENOMEM;
 
 		sys_prx_segment_info_t *segments = alloc(sizeof(sys_prx_segment_info_t), 0x35);
-		
-		if (!segments) {dealloc(filename, 0x35); 
+
+		if (!segments) {dealloc(filename, 0x35);
 			return ENOMEM;}
 
 		sys_prx_module_info_t modinfo;
@@ -1446,15 +1471,15 @@ int ps3mapi_unload_vsh_plugin(char *name)
 		modinfo.filename_size = 256;
 		modinfo.segments_num = 1;
 		int ret = prx_get_module_info(vsh_process, vsh_plugins[slot], &modinfo, filename, segments);
-		
+
 		if (ret == SUCCEEDED)
 		{
-			if (strcmp(modinfo.name, get_secure_user_ptr(name)) == 0) 
+			if (strcmp(modinfo.name, get_secure_user_ptr(name)) == 0)
 				{
 					dealloc(filename, 0x35);
 					dealloc(segments, 0x35);
 					return prx_unload_vsh_plugin(slot);
-				}				
+				}
 		}
 
 		dealloc(filename, 0x35);
@@ -1465,18 +1490,18 @@ int ps3mapi_unload_vsh_plugin(char *name)
 
 int ps3mapi_get_vsh_plugin_info(unsigned int slot, char *name, char *filename)
 {
-	if (vsh_process <= 0) 
+	if (vsh_process <= 0)
 		return ESRCH;
 
-	if (vsh_plugins[slot] == 0) 
+	if (vsh_plugins[slot] == 0)
 		return ENOENT;
 
 	char *tmp_filename = alloc(256, 0x35);
-	if (!tmp_filename) 
+	if (!tmp_filename)
 		return ENOMEM;
 
 	sys_prx_segment_info_t *segments = alloc(sizeof(sys_prx_segment_info_t), 0x35);
-	if (!segments) {dealloc(tmp_filename, 0x35); 
+	if (!segments) {dealloc(tmp_filename, 0x35);
 		return ENOMEM;}
 
 	char tmp_filename2[256];
@@ -1486,15 +1511,15 @@ int ps3mapi_get_vsh_plugin_info(unsigned int slot, char *name, char *filename)
 	modinfo.filename_size = 256;
 	modinfo.segments_num = 1;
 	int ret = prx_get_module_info(vsh_process, vsh_plugins[slot], &modinfo, tmp_filename, segments);
-	
+
 	if (ret == SUCCEEDED)
 	{
 			sprintf(tmp_name, "%s", modinfo.name);
-			ret = copy_to_user(&tmp_name, get_secure_user_ptr(name), strlen(tmp_name));	
+			ret = copy_to_user(&tmp_name, get_secure_user_ptr(name), strlen(tmp_name));
 			sprintf(tmp_filename2, "%s", tmp_filename);
 			ret = copy_to_user(&tmp_filename2, get_secure_user_ptr(filename), strlen(tmp_filename2));
 	}
-	
+
 	dealloc(tmp_filename, 0x35);
 	dealloc(segments, 0x35);
 	return ret;
