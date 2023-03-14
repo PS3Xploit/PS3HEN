@@ -1352,22 +1352,13 @@ void load_boot_plugins(void)
 	// Improving initial KW's code
 	// Firstly will load plugin from '/dev_hdd0' instead '/dev_flash'
 	// If it does not exist in '/dev_hdd0' will load it from '/dev_flash'
-	
-	// HEN will only check boot plugins text if installed
-	// Fixes issue with outdated plugins being loaded during install
-	if(cellFsStat("/dev_flash/vsh/resource/explore/icon/hen_enable.png",&stat)==0)
+	if (cellFsOpen(BOOT_PLUGINS_FILE1, CELL_FS_O_RDONLY, &fd, 0, NULL, 0) != 0)
 	{
-		#ifdef DEBUG
-			DPRINTF("PAYLOAD->HEN Is Installed\n");
-		#endif
-		if (cellFsOpen(BOOT_PLUGINS_FILE1, CELL_FS_O_RDONLY, &fd, 0, NULL, 0) != 0)
+		if (cellFsOpen(BOOT_PLUGINS_FILE2, CELL_FS_O_RDONLY, &fd, 0, NULL, 0) != 0)
 		{
-			if (cellFsOpen(BOOT_PLUGINS_FILE2, CELL_FS_O_RDONLY, &fd, 0, NULL, 0) != 0)
+			if (cellFsOpen(BOOT_PLUGINS_FILE3, CELL_FS_O_RDONLY, &fd, 0, NULL, 0) != 0)
 			{
-				if (cellFsOpen(BOOT_PLUGINS_FILE3, CELL_FS_O_RDONLY, &fd, 0, NULL, 0) != 0)
-				{
-					return;
-				}
+				return;
 			}
 		}
 	}
