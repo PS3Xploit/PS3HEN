@@ -6,6 +6,11 @@
 #include <fcntl.h>
 #include <inttypes.h>
 
+#if !defined(WIN32)
+#include <unistd.h>
+#define _chsize    ftruncate
+#endif
+
 static uint64_t swap64(uint64_t data)
 {
 	uint64_t ret = (data << 56) & 0xff00000000000000ULL;
