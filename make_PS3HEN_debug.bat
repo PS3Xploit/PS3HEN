@@ -6,7 +6,7 @@ set PS3DEV=%PS3SDK%/ps3dev2
 set PATH=%WIN_PS3SDK%/mingw/msys/1.0/bin;%WIN_PS3SDK%/mingw/bin;%PS3DEV%/ppu/bin;
 set CYGWIN=C:\PSDK3v2\MinGW\msys\1.0\bin
 
-mv *DEX_484 *CEX_484 *CEX_485 *CEX_486 *CEX_487 *CEX_488 *CEX_489 *CEX_490 PS3HEN_GEN
+mv *DEX_484 *CEX_484_DEBUG *CEX_485_DEBUG *CEX_486_DEBUG *CEX_487_DEBUG *CEX_488_DEBUG *CEX_489_DEBUG *CEX_490_DEBUG PS3HEN_GEN
 cd henplugin
 %CYGWIN%\bash -i -c 'make debug; rm -r objs; rm henplugin.prx; rm henplugin.sym; mv henplugin.sprx ../PS3HEN_GEN;'
 cd ../stage0_file
@@ -21,14 +21,14 @@ cd ..
 mv *484D *484C *485C *486C *487C *488C *489C *490C PS3HEN_GEN
 cd PS3HEN_GEN
 gcc main.c -o HEN_GEN
-HEN_GEN PS3HEN.BIN_DEX_484 stage2.bin_debug_484D stage0.bin_484D HENplugin.sprx
-HEN_GEN PS3HEN.BIN_CEX_484 stage2.bin_debug_484C stage0.bin_484C HENplugin.sprx
-HEN_GEN PS3HEN.BIN_CEX_485 stage2.bin_debug_485C stage0.bin_485C HENplugin.sprx
-HEN_GEN PS3HEN.BIN_CEX_486 stage2.bin_debug_486C stage0.bin_486C HENplugin.sprx
-HEN_GEN PS3HEN.BIN_CEX_487 stage2.bin_debug_487C stage0.bin_487C HENplugin.sprx
-HEN_GEN PS3HEN.BIN_CEX_488 stage2.bin_debug_488C stage0.bin_488C HENplugin.sprx
-HEN_GEN PS3HEN.BIN_CEX_489 stage2.bin_debug_489C stage0.bin_489C HENplugin.sprx
-HEN_GEN PS3HEN.BIN_CEX_490 stage2.bin_debug_490C stage0.bin_490C HENplugin.sprx
+HEN_GEN PS3HEN.BIN_DEX_484_DEBUG stage2.bin_debug_484D stage0.bin_484D HENplugin.sprx
+HEN_GEN PS3HEN.BIN_CEX_484_DEBUG stage2.bin_debug_484C stage0.bin_484C HENplugin.sprx
+HEN_GEN PS3HEN.BIN_CEX_485_DEBUG stage2.bin_debug_485C stage0.bin_485C HENplugin.sprx
+HEN_GEN PS3HEN.BIN_CEX_486_DEBUG stage2.bin_debug_486C stage0.bin_486C HENplugin.sprx
+HEN_GEN PS3HEN.BIN_CEX_487_DEBUG stage2.bin_debug_487C stage0.bin_487C HENplugin.sprx
+HEN_GEN PS3HEN.BIN_CEX_488_DEBUG stage2.bin_debug_488C stage0.bin_488C HENplugin.sprx
+HEN_GEN PS3HEN.BIN_CEX_489_DEBUG stage2.bin_debug_489C stage0.bin_489C HENplugin.sprx
+HEN_GEN PS3HEN.BIN_CEX_490_DEBUG stage2.bin_debug_490C stage0.bin_490C HENplugin.sprx
 rm stage* *.sprx *.exe
 mv PS3HEN* ../
 pause
