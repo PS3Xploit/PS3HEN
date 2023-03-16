@@ -30,6 +30,10 @@ var idps='idps.hex';
 var act='act.dat';
 var start_x='xxxx';
 
+// 20230315 HEN installer bytes to signify installer running
+// The HEN payload will check this value so it knows whether or not to remove boot_plugins.txt
+var hen_installer_bytes=0x48454E00;
+
 var usb_sp='/dev_hdd0/theme/PS3HEN.p3t';
 var mount_path='/dev_blind';
 var flash_partition='xxxxCELL_FS_IOS:BUILTIN_FLSH1';
@@ -1085,6 +1089,13 @@ function strncmp(str1, str2, n) {
   str2 = str2.substring(0, n);
   return ( ( str1 == str2 ) ? 0 :
                               (( str1 > str2 ) ? 1 : -1 ));
+}
+
+function set_hen_install_flag()
+{
+	var installed="48454E00"; //HEN
+	var check=checkMemory(0x8a000020,0x10,3);
+	check=check.toAscii(true);
 }
 
 function rop_exit_hen(suc, fail)

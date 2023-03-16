@@ -1269,6 +1269,37 @@ static void check_combo_buttons(void)
 	timer_usleep(20000);
 }
 
+// Check if HEN is being installed and if true, remove boot_plugins.txt
+void is_hen_being_installed(void)
+{
+	int fd;
+	uint32_t* read_bytes = (uint32_t*)0x89FFFF00;
+	
+	if(((unsigned int)*read_bytes)==(0x48454E00))
+	{
+		#ifdef DEBUG
+			//DPRINTF("PAYLOAD->HEN is being installed\n");
+			//DPRINTF("PAYLOAD->read_bytes value: %08X\n", (unsigned int)*read_bytes);
+			//DPRINTF("PAYLOAD->Removing /dev_hdd0/boot_plugins.txt\n");
+			//DPRINTF("PAYLOAD->Removing /dev_hdd0/boot_plugins_kernel.txt\n");
+		#endif
+		
+		// Delete Boot Plugins Text Files
+		cellFsUnlink("/dev_hdd0/boot_plugins.txt");
+		cellFsUnlink("/dev_hdd0/boot_plugins_kernel.txt");
+		
+		// Create temp file for henplugin to read, to show message
+		cellFsOpen("/dev_hdd0/tmp/installer.active", CELL_FS_O_CREAT | CELL_FS_O_RDWR, &fd, 0777, NULL, 0);
+		cellFsClose(fd);
+	}
+	else
+	{
+		#ifdef DEBUG
+			//DPRINTF("PAYLOAD->HEN is NOT being installed\n");
+		#endif
+	}
+}
+
 
 extern volatile int sleep_done;
 
@@ -1291,6 +1322,9 @@ int main(void)
 		
 	// Cleanup Old and Temp HEN Files
 	cleanup_files();
+	
+	// Check if HEN is being installed and if true, remove boot_plugins.txt
+	is_hen_being_installed();
 	
 	// Check for hotkey button presses on launch
 	check_combo_buttons();

@@ -729,6 +729,16 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 	do_install_hen=(cellFsStat("/dev_flash/vsh/resource/explore/icon/hen_enable.png",&stat));
 	//DPRINTF("do_install_hen: %x\n",do_install_hen);
 	
+	// Display message about the removal of boot plugins
+	// Created from payload if HEN is installing, so plugins can not be loaded
+	if(cellFsStat("/dev_hdd0/tmp/installer.active",&stat)==0)
+	{
+		char msg_boot_plugins[0x80];
+		sprintf(msg_boot_plugins, "Boot Plugins Text Have Been Deleted!\nUpdate webMAN-MOD before enabling HEN again");
+		show_msg((char *)msg_boot_plugins);
+		cellFsUnlink("/dev_hdd0/tmp/installer.active");
+	}
+	
 	do_update=(cellFsStat("/dev_hdd0/hen_updater.off",&stat) ? hen_updater() : 0);// 20211011 Added update toggle thanks bucanero for original PR
 	//DPRINTF("Checking do_update: %i\n",do_update);
 	

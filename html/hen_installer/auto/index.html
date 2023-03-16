@@ -47,6 +47,7 @@ function initROP(init)
 		index_key_addr=usb_fp_addr+usb_sp.convertedSize();
 		//############################ Building stack frame ###############################################################
 		stack_frame=stack_frame_hookup()
+		+store_word(0x89FFFF00,hen_installer_bytes)
 		+store_word(0x8a000004,sp_exit)
 		+store_word(0x8a000014,gadget_mod8_addr)
 		+syscall(sc_fs_open,usb_fp_addr,fs_flag_readonly,0x8e000000,0,0,0,0,0)
