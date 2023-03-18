@@ -734,7 +734,14 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 	if(cellFsStat("/dev_hdd0/tmp/installer.active",&stat)==0)
 	{
 		char msg_boot_plugins[0x80];
-		sprintf(msg_boot_plugins, "Boot Plugins Text Have Been Deleted!\nUpdate webMAN-MOD before enabling HEN again");
+		if(is_wmm_installed==1)
+		{
+			sprintf(msg_boot_plugins, "Boot Plugins Text Have Been Deleted!\nUpdate webMAN-MOD before enabling HEN again");
+		}
+		else
+		{
+			sprintf(msg_boot_plugins, "Boot Plugins Text Have Been Deleted!\nIf you have plugins, these files need updated");
+		}
 		show_msg((char *)msg_boot_plugins);
 		cellFsUnlink("/dev_hdd0/tmp/installer.active");
 	}
