@@ -1030,7 +1030,7 @@ int read_act_dat_and_make_rif(uint8_t *idps,uint8_t *rap, uint8_t *act_dat, char
 }
 
 extern char umd_file;
-static u8 block_psp_launcher = 0;
+static uint8_t block_psp_launcher = 0;
 
 LV2_HOOKED_FUNCTION_POSTCALL_2(int, open_path_hook, (char *path0, char *path1))
 {
