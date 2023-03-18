@@ -86,6 +86,7 @@ static int done = 0;
 uint16_t hen_version;
 int henplugin_start(uint64_t arg);
 int henplugin_stop(void);
+int is_wmm_installed = 0;
 
 extern int vshmain_87BB0001(int param);
 int (*vshtask_notify)(int, const char *) = NULL;
@@ -735,6 +736,13 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 	// If default HEN Check file is missing, assume HEN is not installed
 	do_install_hen=(cellFsStat("/dev_flash/vsh/resource/explore/icon/hen_enable.png",&stat));
 	//DPRINTF("do_install_hen: %x\n",do_install_hen);
+	
+	// Check for webMAN-MOD
+	if((cellFsStat("/dev_hdd0/plugins/webftp_server.sprx",&stat)==0) || (cellFsStat("/dev_hdd0/plugins/webftp_server_lite.sprx",&stat)==0))
+	{
+		is_wmm_installed=1;
+		DPRINTF("HENPLUGIN->WMM Detected\n");
+	}
 	
 	// Display message about the removal of boot plugins
 	// Created from payload if HEN is installing, so plugins can not be loaded
