@@ -32,7 +32,7 @@ static char *sce_psp_modules[NUM_SCE_PSP_MODULES] =
 	"sceATRAC3plus_Library",
 };
 
-static char *umd_file;
+char *umd_file;
 static mutex_t mutex;
 static int user_mutex;
 static int umd_fd=-1;
