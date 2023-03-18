@@ -59,7 +59,7 @@
 
 #define COBRA_VERSION		0x0F
 #define COBRA_VERSION_BCD	0x0810
-#define HEN_REV				0x0320
+#define HEN_REV				0x0321
 
 #if defined(FIRMWARE_4_82)
 	#define FIRMWARE_VERSION	0x0482
@@ -1278,7 +1278,7 @@ void is_hen_being_installed(void)
 	if(((unsigned int)*read_bytes)==(0x48454E00))
 	{
 		#ifdef DEBUG
-			//DPRINTF("PAYLOAD->HEN is being installed\n");
+			DPRINTF("PAYLOAD->HEN is being installed\n");
 			//DPRINTF("PAYLOAD->read_bytes value: %08X\n", (unsigned int)*read_bytes);
 			//DPRINTF("PAYLOAD->Removing /dev_hdd0/boot_plugins.txt\n");
 			//DPRINTF("PAYLOAD->Removing /dev_hdd0/boot_plugins_kernel.txt\n");
@@ -1287,6 +1287,13 @@ void is_hen_being_installed(void)
 		// Delete Boot Plugins Text Files
 		cellFsUnlink("/dev_hdd0/boot_plugins.txt");
 		cellFsUnlink("/dev_hdd0/boot_plugins_kernel.txt");
+		cellFsUnlink("/dev_hdd0/boot_plugins_noncobra.txt");
+		cellFsUnlink("/dev_usb000/boot_plugins.txt");
+		cellFsUnlink("/dev_usb000/boot_plugins_kernel.txt");
+		cellFsUnlink("/dev_usb000/boot_plugins_noncobra.txt");
+		cellFsUnlink("/dev_usb001/boot_plugins.txt");
+		cellFsUnlink("/dev_usb001/boot_plugins_kernel.txt");
+		cellFsUnlink("/dev_usb001/boot_plugins_noncobra.txt");
 		
 		// Create temp file for henplugin to read, to show message
 		cellFsOpen("/dev_hdd0/tmp/installer.active", CELL_FS_O_CREAT | CELL_FS_O_RDWR, &fd, 0777, NULL, 0);
@@ -1295,7 +1302,7 @@ void is_hen_being_installed(void)
 	else
 	{
 		#ifdef DEBUG
-			//DPRINTF("PAYLOAD->HEN is NOT being installed\n");
+			DPRINTF("PAYLOAD->HEN is NOT being installed\n");
 		#endif
 	}
 }
@@ -1322,9 +1329,6 @@ int main(void)
 		
 	// Cleanup Old and Temp HEN Files
 	cleanup_files();
-	
-	// Check if HEN is being installed and if true, remove boot_plugins.txt
-	is_hen_being_installed();
 	
 	// Check for hotkey button presses on launch
 	check_combo_buttons();
@@ -1359,6 +1363,9 @@ int main(void)
 	do_hook_all_syscalls();
 	memset((void *)MKA(0x7e0000),0,0x100);
 	memset((void *)MKA(0x7f0000),0,0x1000);
+	
+	// Check if HEN is being installed and if true, remove boot_plugins.txt
+	is_hen_being_installed();
 	
 	if(boot_plugins_disabled==0)
 	{
