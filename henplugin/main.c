@@ -390,6 +390,11 @@ static uint64_t peekq(uint64_t addr)
 	return_to_user_prog(uint64_t);
 }
 
+char pkg_name[256]={"Latest_HEN_Installer_signed.pkg"};
+char pkg_path[256]={"/dev_hdd0/Latest_HEN_Installer_signed.pkg"};
+char pkg_name_wmm[256]={"Latest_HEN_Installer_WMM_signed.pkg"};
+char pkg_path_wmm[256]={"/dev_hdd0/Latest_HEN_Installer_WMM_signed.pkg"};
+
 // FW version values are checked using a partial date from lv2 kernel. 4.89 Sample: 323032322F30322F = 2022/02/
 static void downloadPKG_thread2(void)
 {
@@ -467,9 +472,6 @@ static void downloadPKG_thread2(void)
 		*/
 	thread2_download_finish=1;
 }
-
-char pkg_path[256]={"/dev_hdd0/Latest_HEN_Installer_signed.pkg"};
-char pkg_path_wmm[256]={"/dev_hdd0/Latest_HEN_Installer_WMM_signed.pkg"};
 
 
 static void installPKG_thread(void)
