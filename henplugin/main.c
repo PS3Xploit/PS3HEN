@@ -87,6 +87,7 @@ uint16_t hen_version;
 int henplugin_start(uint64_t arg);
 int henplugin_stop(void);
 int is_wmm_installed = 0;
+int is_hen_installing = 0;
 
 extern int vshmain_87BB0001(int param);
 int (*vshtask_notify)(int, const char *) = NULL;
@@ -94,6 +95,7 @@ int (*vshtask_notify)(int, const char *) = NULL;
 //static int (*vshmain_is_ss_enabled)(void) = NULL;
 static int (*View_Find)(const char *) = NULL;
 static void *(*plugin_GetInterface)(int,int) = NULL;
+//static uint32_t *(*RCO_PlaySound)(uint32_t, const char *, float, int) = NULL;
 /*
 static int (*set_SSHT_)(int) = NULL;
 
@@ -102,6 +104,12 @@ static int opd[2] = {0, 0};
 #define IS_INSTALLING		(View_Find("game_plugin") != 0)
 #define IS_INSTALLING_NAS	(View_Find("nas_plugin") != 0)
 #define IS_DOWNLOADING		(View_Find("download_plugin") != 0)
+//#define IS_PLAYING_SOUND	(View_Find("system_plugin") != 0)
+
+// Example: paf_B93AFE7E( paf_F21655F3("system_plugin"), "snd_trophy", 1, 0)
+//extern void paf_B93AFE7E(uint32_t plugin, const char *sound, float arg1, int arg2);
+//Example: PlayRCOSound( FindLoadedPlugin("system_plugin"), "snd_trophy", 1, 0)
+//#define PlayRCOSound paf_B93AFE7E
 
 // Category IDs: 0 User 1 Setting 2 Photo 3 Music 4 Video 5 TV 6 Game 7 Net 8 PSN 9 Friend
 
@@ -461,6 +469,8 @@ static void downloadPKG_thread2(void)
 }
 
 char pkg_path[256]={"/dev_hdd0/Latest_HEN_Installer_signed.pkg"};
+char pkg_path_wmm[256]={"/dev_hdd0/Latest_HEN_Installer_WMM_signed.pkg"};
+
 
 static void installPKG_thread(void)
 {
@@ -479,6 +489,7 @@ static void unloadSysPluginCallback(void)
 {
 	//Add potential callback process
 	//show_msg((char *)"plugin shutdown via xmb call launched");
+	DPRINTF("plugin shutdown via xmb call launched");
 }
 
 static void unload_web_plugins(void)
@@ -674,6 +685,7 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 	
 	View_Find = getNIDfunc("paf", 0xF21655F3, 0);
 	plugin_GetInterface = getNIDfunc("paf", 0x23AFB290, 0);
+	//RCO_PlaySound = getNIDfunc("paf", 0xB93AFE7E, 0);
 	int view = View_Find("explore_plugin");
 	system_call_1(8, SYSCALL8_OPCODE_HEN_REV); hen_version = (int)p1;
 	char henver[0x30];
@@ -748,10 +760,12 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 	// Created from payload if HEN is installing, so plugins can not be loaded
 	if(cellFsStat("/dev_hdd0/tmp/installer.active",&stat)==0)
 	{
+		is_hen_installing=1;
+		//RCO_PlaySound(IS_PLAYING_SOUND, "snd_trophy", 1, 0);
 		char msg_boot_plugins[0x80];
 		if(is_wmm_installed==1)
 		{
-			sprintf(msg_boot_plugins, "Boot Plugins Text Have Been Deleted!\nUpdate webMAN-MOD before enabling HEN again");
+			sprintf(msg_boot_plugins, "Boot Plugins Text Have Been Deleted!\nUpdate webMAN-MOD from PKG Manager after reboot.");
 		}
 		else
 		{
@@ -780,6 +794,17 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 			is_browser_open=View_Find("webrender_plugin");
 		}
 		unload_web_plugins();
+		
+		// Check for Webman-MOD and use PS3HEN-WMM Package Link
+		if((is_wmm_installed==1) && (is_hen_installing==1))
+		{
+			DPRINTF("HENPLUGIN->Use WMM Update Package\n");
+			memset(pkg_path,0,256);
+			strcpy(pkg_path,pkg_path_wmm);
+		}
+		
+		DPRINTF("HENPLUGIN->pkg_path=%s\n",pkg_path);
+	
 		LoadPluginById(0x29,(void*)downloadPKG_thread2);
 
 		while(thread2_download_finish==0)
