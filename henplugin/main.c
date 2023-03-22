@@ -88,6 +88,7 @@ int henplugin_start(uint64_t arg);
 int henplugin_stop(void);
 int is_wmm_installed = 0;
 int is_hen_installing = 0;
+int use_wmm_pkg = 0;
 
 extern int vshmain_87BB0001(int param);
 int (*vshtask_notify)(int, const char *) = NULL;
@@ -390,9 +391,7 @@ static uint64_t peekq(uint64_t addr)
 	return_to_user_prog(uint64_t);
 }
 
-char pkg_name[256]={"Latest_HEN_Installer_signed.pkg"};
 char pkg_path[256]={"/dev_hdd0/Latest_HEN_Installer_signed.pkg"};
-char pkg_name_wmm[256]={"Latest_HEN_Installer_WMM_signed.pkg"};
 char pkg_path_wmm[256]={"/dev_hdd0/Latest_HEN_Installer_WMM_signed.pkg"};
 
 // FW version values are checked using a partial date from lv2 kernel. 4.89 Sample: 323032322F30322F = 2022/02/
@@ -406,70 +405,150 @@ static void downloadPKG_thread2(void)
 	uint64_t val=peekq(0x80000000002FCB68ULL);
 	if(val==0x323031372F30382FULL)
 		{
-			if(build_type==RELEASE){
-				download_interface->DownloadURL(0, (wchar_t *) L"http://www.ps3xploit.me/hen/release/482/cex/installer/Latest_HEN_Installer_signed.pkg", (wchar_t *) L"/dev_hdd0");}
+			if(build_type==RELEASE)
+			{
+				if(use_wmm_pkg==1)
+				{
+					download_interface->DownloadURL(0, (wchar_t *) L"http://www.ps3xploit.me/hen/release/482/cex/installer/Latest_HEN_Installer_WMM_signed.pkg", (wchar_t *) L"/dev_hdd0");
+				}
+				else
+				{
+					download_interface->DownloadURL(0, (wchar_t *) L"http://www.ps3xploit.me/hen/release/482/cex/installer/Latest_HEN_Installer_signed.pkg", (wchar_t *) L"/dev_hdd0");
+				}
+			}
 			else{
-				download_interface->DownloadURL(0, (wchar_t *) L"http://www.ps3xploit.me/hen/dev/482/cex/installer/Latest_HEN_Installer_signed.pkg", (wchar_t *) L"/dev_hdd0");}
+				download_interface->DownloadURL(0, (wchar_t *) L"http://www.ps3xploit.me/hen/dev/482/cex/installer/Latest_HEN_Installer_DEV_signed.pkg", (wchar_t *) L"/dev_hdd0");}
 		}
 	else if(val==0x323031392F30312FULL)
 		{
-			if(build_type==RELEASE){
-				download_interface->DownloadURL(0, (wchar_t *) L"http://www.ps3xploit.me/hen/release/484/cex/installer/Latest_HEN_Installer_signed.pkg", (wchar_t *) L"/dev_hdd0");}
+			if(build_type==RELEASE)
+			{
+				if(use_wmm_pkg==1)
+				{
+					download_interface->DownloadURL(0, (wchar_t *) L"http://www.ps3xploit.me/hen/release/484/cex/installer/Latest_HEN_Installer_WMM_signed.pkg", (wchar_t *) L"/dev_hdd0");
+				}
+				else
+				{
+					download_interface->DownloadURL(0, (wchar_t *) L"http://www.ps3xploit.me/hen/release/484/cex/installer/Latest_HEN_Installer_signed.pkg", (wchar_t *) L"/dev_hdd0");
+				}
+			}
 			else{
-				download_interface->DownloadURL(0, (wchar_t *) L"http://www.ps3xploit.me/hen/dev/484/cex/installer/Latest_HEN_Installer_signed.pkg", (wchar_t *) L"/dev_hdd0");}
+				download_interface->DownloadURL(0, (wchar_t *) L"http://www.ps3xploit.me/hen/dev/484/cex/installer/Latest_HEN_Installer_DEV_signed.pkg", (wchar_t *) L"/dev_hdd0");}
 		}
 	else if(val==0x323031392F30372FULL)
 		{
-			if(build_type==RELEASE){
-				download_interface->DownloadURL(0, (wchar_t *) L"http://www.ps3xploit.me/hen/release/485/cex/installer/Latest_HEN_Installer_signed.pkg", (wchar_t *) L"/dev_hdd0");}
+			if(build_type==RELEASE)
+			{
+				if(use_wmm_pkg==1)
+				{
+					download_interface->DownloadURL(0, (wchar_t *) L"http://www.ps3xploit.me/hen/release/485/cex/installer/Latest_HEN_Installer_WMM_signed.pkg", (wchar_t *) L"/dev_hdd0");
+				}
+				else
+				{
+					download_interface->DownloadURL(0, (wchar_t *) L"http://www.ps3xploit.me/hen/release/485/cex/installer/Latest_HEN_Installer_signed.pkg", (wchar_t *) L"/dev_hdd0");
+				}
+			}
 			else{
-				download_interface->DownloadURL(0, (wchar_t *) L"http://www.ps3xploit.me/hen/dev/485/cex/installer/Latest_HEN_Installer_signed.pkg", (wchar_t *) L"/dev_hdd0");}
+				download_interface->DownloadURL(0, (wchar_t *) L"http://www.ps3xploit.me/hen/dev/485/cex/installer/Latest_HEN_Installer_DEV_signed.pkg", (wchar_t *) L"/dev_hdd0");}
 		}
 	else if(val==0x323032302F30312FULL)
 		{
-			if(build_type==RELEASE){
-				download_interface->DownloadURL(0, (wchar_t *) L"http://www.ps3xploit.me/hen/release/486/cex/installer/Latest_HEN_Installer_signed.pkg", (wchar_t *) L"/dev_hdd0");}
+			if(build_type==RELEASE)
+			{
+				if(use_wmm_pkg==1)
+				{
+					download_interface->DownloadURL(0, (wchar_t *) L"http://www.ps3xploit.me/hen/release/486/cex/installer/Latest_HEN_Installer_WMM_signed.pkg", (wchar_t *) L"/dev_hdd0");
+				}
+				else
+				{
+					download_interface->DownloadURL(0, (wchar_t *) L"http://www.ps3xploit.me/hen/release/486/cex/installer/Latest_HEN_Installer_signed.pkg", (wchar_t *) L"/dev_hdd0");
+				}
+			}
 			else{
-				download_interface->DownloadURL(0, (wchar_t *) L"http://www.ps3xploit.me/hen/dev/486/cex/installer/Latest_HEN_Installer_signed.pkg", (wchar_t *) L"/dev_hdd0");}
+				download_interface->DownloadURL(0, (wchar_t *) L"http://www.ps3xploit.me/hen/dev/486/cex/installer/Latest_HEN_Installer_DEV_signed.pkg", (wchar_t *) L"/dev_hdd0");}
 		}
 	else if(val==0x323032302F30372FULL)
 		{
-			if(build_type==RELEASE){
-				download_interface->DownloadURL(0, (wchar_t *) L"http://www.ps3xploit.me/hen/release/487/cex/installer/Latest_HEN_Installer_signed.pkg", (wchar_t *) L"/dev_hdd0");}
+			if(build_type==RELEASE)
+			{
+				if(use_wmm_pkg==1)
+				{
+					download_interface->DownloadURL(0, (wchar_t *) L"http://www.ps3xploit.me/hen/release/487/cex/installer/Latest_HEN_Installer_WMM_signed.pkg", (wchar_t *) L"/dev_hdd0");
+				}
+				else
+				{
+					download_interface->DownloadURL(0, (wchar_t *) L"http://www.ps3xploit.me/hen/release/487/cex/installer/Latest_HEN_Installer_signed.pkg", (wchar_t *) L"/dev_hdd0");
+				}
+			}
 			else{
-				download_interface->DownloadURL(0, (wchar_t *) L"http://www.ps3xploit.me/hen/dev/487/cex/installer/Latest_HEN_Installer_signed.pkg", (wchar_t *) L"/dev_hdd0");}
+				download_interface->DownloadURL(0, (wchar_t *) L"http://www.ps3xploit.me/hen/dev/487/cex/installer/Latest_HEN_Installer_DEV_signed.pkg", (wchar_t *) L"/dev_hdd0");}
 		}
 	else if(val==0x323032312F30342FULL)
 		{
-			if(build_type==RELEASE){
-				download_interface->DownloadURL(0, (wchar_t *) L"http://www.ps3xploit.me/hen/release/488/cex/installer/Latest_HEN_Installer_signed.pkg", (wchar_t *) L"/dev_hdd0");}
+			if(build_type==RELEASE)
+			{
+				if(use_wmm_pkg==1)
+				{
+					download_interface->DownloadURL(0, (wchar_t *) L"http://www.ps3xploit.me/hen/release/488/cex/installer/Latest_HEN_Installer_WMM_signed.pkg", (wchar_t *) L"/dev_hdd0");
+				}
+				else
+				{
+					download_interface->DownloadURL(0, (wchar_t *) L"http://www.ps3xploit.me/hen/release/488/cex/installer/Latest_HEN_Installer_signed.pkg", (wchar_t *) L"/dev_hdd0");
+				}
+			}
 			else{
-				download_interface->DownloadURL(0, (wchar_t *) L"http://www.ps3xploit.me/hen/dev/488/cex/installer/Latest_HEN_Installer_signed.pkg", (wchar_t *) L"/dev_hdd0");}
+				download_interface->DownloadURL(0, (wchar_t *) L"http://www.ps3xploit.me/hen/dev/488/cex/installer/Latest_HEN_Installer_DEV_signed.pkg", (wchar_t *) L"/dev_hdd0");}
 		}
 	else if(val==0x323032322F30322FULL)
 		{
-			if(build_type==RELEASE){
-				download_interface->DownloadURL(0, (wchar_t *) L"http://www.ps3xploit.me/hen/release/489/cex/installer/Latest_HEN_Installer_signed.pkg", (wchar_t *) L"/dev_hdd0");}
+			if(build_type==RELEASE)
+			{
+				if(use_wmm_pkg==1)
+				{
+					download_interface->DownloadURL(0, (wchar_t *) L"http://www.ps3xploit.me/hen/release/489/cex/installer/Latest_HEN_Installer_WMM_signed.pkg", (wchar_t *) L"/dev_hdd0");
+				}
+				else
+				{
+					download_interface->DownloadURL(0, (wchar_t *) L"http://www.ps3xploit.me/hen/release/489/cex/installer/Latest_HEN_Installer_signed.pkg", (wchar_t *) L"/dev_hdd0");
+				}
+			}
 			else{
-				download_interface->DownloadURL(0, (wchar_t *) L"http://www.ps3xploit.me/hen/dev/489/cex/installer/Latest_HEN_Installer_signed.pkg", (wchar_t *) L"/dev_hdd0");}
+				download_interface->DownloadURL(0, (wchar_t *) L"http://www.ps3xploit.me/hen/dev/489/cex/installer/Latest_HEN_Installer_DEV_signed.pkg", (wchar_t *) L"/dev_hdd0");}
 		}
 	else if(val==0x3A35340000000000ULL) // for 4.90, kernel offset is off by 0x10 so we are checking this value instead of the timestamp
 		{
-			if(build_type==RELEASE){
-				download_interface->DownloadURL(0, (wchar_t *) L"http://www.ps3xploit.me/hen/release/490/cex/installer/Latest_HEN_Installer_signed.pkg", (wchar_t *) L"/dev_hdd0");}
+			if(build_type==RELEASE)
+			{
+				if(use_wmm_pkg==1)
+				{
+					download_interface->DownloadURL(0, (wchar_t *) L"http://www.ps3xploit.me/hen/release/490/cex/installer/Latest_HEN_Installer_WMM_signed.pkg", (wchar_t *) L"/dev_hdd0");
+				}
+				else
+				{
+					download_interface->DownloadURL(0, (wchar_t *) L"http://www.ps3xploit.me/hen/release/490/cex/installer/Latest_HEN_Installer_signed.pkg", (wchar_t *) L"/dev_hdd0");
+				}
+			}
 			else{
-				download_interface->DownloadURL(0, (wchar_t *) L"http://www.ps3xploit.me/hen/dev/490/cex/installer/Latest_HEN_Installer_signed.pkg", (wchar_t *) L"/dev_hdd0");}
+				download_interface->DownloadURL(0, (wchar_t *) L"http://www.ps3xploit.me/hen/dev/490/cex/installer/Latest_HEN_Installer_DEV_signed.pkg", (wchar_t *) L"/dev_hdd0");}
 		}
 		/*
 		// Fix DEX kernel value
 	else if(val==0x323031392F30312FULL)
 		{
 			if(build_type==RELEASE){
-				download_interface->DownloadURL(0, (wchar_t *) L"http://www.ps3xploit.me/hen/release/484/dex/installer/Latest_HEN_Installer_signed.pkg", (wchar_t *) L"/dev_hdd0");}
+				if(use_wmm_pkg==1)
+				{
+					download_interface->DownloadURL(0, (wchar_t *) L"http://www.ps3xploit.me/hen/release/484/dex/installer/Latest_HEN_Installer_WMM_signed.pkg", (wchar_t *) L"/dev_hdd0");}
+				}
+				else
+				{
+					download_interface->DownloadURL(0, (wchar_t *) L"http://www.ps3xploit.me/hen/release/484/dex/installer/Latest_HEN_Installer_signed.pkg", (wchar_t *) L"/dev_hdd0");}
+				}
 			else{
-				download_interface->DownloadURL(0, (wchar_t *) L"http://www.ps3xploit.me/hen/dev/484/dex/installer/Latest_HEN_Installer_signed.pkg", (wchar_t *) L"/dev_hdd0");}
+				download_interface->DownloadURL(0, (wchar_t *) L"http://www.ps3xploit.me/hen/dev/484/dex/installer/Latest_HEN_Installer_DEV_signed.pkg", (wchar_t *) L"/dev_hdd0");}
 		}
 		*/
+		
 	thread2_download_finish=1;
 }
 
@@ -803,6 +882,7 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 			DPRINTF("HENPLUGIN->Use WMM Update Package\n");
 			memset(pkg_path,0,256);
 			strcpy(pkg_path,pkg_path_wmm);
+			use_wmm_pkg=1;
 		}
 		
 		DPRINTF("HENPLUGIN->pkg_path=%s\n",pkg_path);
