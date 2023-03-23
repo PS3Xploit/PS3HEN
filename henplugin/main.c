@@ -417,7 +417,7 @@ static void downloadPKG_thread2(void)
 				}
 			}
 			else{
-				download_interface->DownloadURL(0, (wchar_t *) L"http://www.ps3xploit.me/hen/dev/482/cex/installer/Latest_HEN_Installer_DEV_signed.pkg", (wchar_t *) L"/dev_hdd0");}
+				download_interface->DownloadURL(0, (wchar_t *) L"http://www.ps3xploit.me/hen/dev/482/cex/installer/Latest_HEN_Installer_signed.pkg", (wchar_t *) L"/dev_hdd0");}
 		}
 	else if(val==0x323031392F30312FULL)
 		{
@@ -433,7 +433,7 @@ static void downloadPKG_thread2(void)
 				}
 			}
 			else{
-				download_interface->DownloadURL(0, (wchar_t *) L"http://www.ps3xploit.me/hen/dev/484/cex/installer/Latest_HEN_Installer_DEV_signed.pkg", (wchar_t *) L"/dev_hdd0");}
+				download_interface->DownloadURL(0, (wchar_t *) L"http://www.ps3xploit.me/hen/dev/484/cex/installer/Latest_HEN_Installer_signed.pkg", (wchar_t *) L"/dev_hdd0");}
 		}
 	else if(val==0x323031392F30372FULL)
 		{
@@ -449,7 +449,7 @@ static void downloadPKG_thread2(void)
 				}
 			}
 			else{
-				download_interface->DownloadURL(0, (wchar_t *) L"http://www.ps3xploit.me/hen/dev/485/cex/installer/Latest_HEN_Installer_DEV_signed.pkg", (wchar_t *) L"/dev_hdd0");}
+				download_interface->DownloadURL(0, (wchar_t *) L"http://www.ps3xploit.me/hen/dev/485/cex/installer/Latest_HEN_Installer_signed.pkg", (wchar_t *) L"/dev_hdd0");}
 		}
 	else if(val==0x323032302F30312FULL)
 		{
@@ -465,7 +465,7 @@ static void downloadPKG_thread2(void)
 				}
 			}
 			else{
-				download_interface->DownloadURL(0, (wchar_t *) L"http://www.ps3xploit.me/hen/dev/486/cex/installer/Latest_HEN_Installer_DEV_signed.pkg", (wchar_t *) L"/dev_hdd0");}
+				download_interface->DownloadURL(0, (wchar_t *) L"http://www.ps3xploit.me/hen/dev/486/cex/installer/Latest_HEN_Installer_signed.pkg", (wchar_t *) L"/dev_hdd0");}
 		}
 	else if(val==0x323032302F30372FULL)
 		{
@@ -481,7 +481,7 @@ static void downloadPKG_thread2(void)
 				}
 			}
 			else{
-				download_interface->DownloadURL(0, (wchar_t *) L"http://www.ps3xploit.me/hen/dev/487/cex/installer/Latest_HEN_Installer_DEV_signed.pkg", (wchar_t *) L"/dev_hdd0");}
+				download_interface->DownloadURL(0, (wchar_t *) L"http://www.ps3xploit.me/hen/dev/487/cex/installer/Latest_HEN_Installer_signed.pkg", (wchar_t *) L"/dev_hdd0");}
 		}
 	else if(val==0x323032312F30342FULL)
 		{
@@ -497,7 +497,7 @@ static void downloadPKG_thread2(void)
 				}
 			}
 			else{
-				download_interface->DownloadURL(0, (wchar_t *) L"http://www.ps3xploit.me/hen/dev/488/cex/installer/Latest_HEN_Installer_DEV_signed.pkg", (wchar_t *) L"/dev_hdd0");}
+				download_interface->DownloadURL(0, (wchar_t *) L"http://www.ps3xploit.me/hen/dev/488/cex/installer/Latest_HEN_Installer_signed.pkg", (wchar_t *) L"/dev_hdd0");}
 		}
 	else if(val==0x323032322F30322FULL)
 		{
@@ -513,7 +513,7 @@ static void downloadPKG_thread2(void)
 				}
 			}
 			else{
-				download_interface->DownloadURL(0, (wchar_t *) L"http://www.ps3xploit.me/hen/dev/489/cex/installer/Latest_HEN_Installer_DEV_signed.pkg", (wchar_t *) L"/dev_hdd0");}
+				download_interface->DownloadURL(0, (wchar_t *) L"http://www.ps3xploit.me/hen/dev/489/cex/installer/Latest_HEN_Installer_signed.pkg", (wchar_t *) L"/dev_hdd0");}
 		}
 	else if(val==0x3A35340000000000ULL) // for 4.90, kernel offset is off by 0x10 so we are checking this value instead of the timestamp
 		{
@@ -529,7 +529,7 @@ static void downloadPKG_thread2(void)
 				}
 			}
 			else{
-				download_interface->DownloadURL(0, (wchar_t *) L"http://www.ps3xploit.me/hen/dev/490/cex/installer/Latest_HEN_Installer_DEV_signed.pkg", (wchar_t *) L"/dev_hdd0");}
+				download_interface->DownloadURL(0, (wchar_t *) L"http://www.ps3xploit.me/hen/dev/490/cex/installer/Latest_HEN_Installer_signed.pkg", (wchar_t *) L"/dev_hdd0");}
 		}
 		
 		// Fix DEX kernel value
@@ -547,7 +547,7 @@ static void downloadPKG_thread2(void)
 				}
 			}
 			else{
-				download_interface->DownloadURL(0, (wchar_t *) L"http://www.ps3xploit.me/hen/dev/484/dex/installer/Latest_HEN_Installer_DEX_DEV_signed.pkg", (wchar_t *) L"/dev_hdd0");}
+				download_interface->DownloadURL(0, (wchar_t *) L"http://www.ps3xploit.me/hen/dev/484/dex/installer/Latest_HEN_Installer_DEX_signed.pkg", (wchar_t *) L"/dev_hdd0");}
 		}
 		
 	thread2_download_finish=1;
