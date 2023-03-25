@@ -188,7 +188,7 @@ LV2_HOOKED_FUNCTION_COND_POSTCALL_3(int,bnet_ioctl,(int socket,uint32_t flags, v
 		return DO_POSTCALL;
 }
 
-#if defined(FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX) || defined (FIRMWARE_4_82)
+#if defined(FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX)// || defined (FIRMWARE_4_82)
 	LV2_HOOKED_FUNCTION_PRECALL_SUCCESS_6(int,sys_fs_open,(const char *path, int flags, int *fd, uint64_t mode, const void *arg, uint64_t size))
 	{
 	/*	if(!strstr(get_process_name(get_current_process_critical()),"vsh"))
@@ -364,7 +364,7 @@ LV2_HOOKED_FUNCTION_COND_POSTCALL_3(int,read_eeprom_by_offset,(uint32_t offset, 
 	return DO_POSTCALL;
 }
 
-#if defined(FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX) || defined (FIRMWARE_4_82)
+#if defined(FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX)// || defined (FIRMWARE_4_82)
 	LV2_HOOKED_FUNCTION_PRECALL_SUCCESS_4(int,sys_fs_read,(int fd, void *buf, uint64_t nbytes, uint64_t *nread))
 	{
 		if(rif_fd==fd)
@@ -1191,11 +1191,11 @@ static INLINE void apply_kernel_patches(void)
 	*(uint64_t *)MKA(ECDSA_FLAG)=0;
 	
 	/// Adding HEN patches on init for stability ///	 -- END
-	#if defined(FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX) || defined (FIRMWARE_4_82)
+	#if defined(FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX)// || defined (FIRMWARE_4_82)
 		hook_function_with_precall(get_syscall_address(801),sys_fs_open,6);
 	#endif
 	hook_function_with_cond_postcall(get_syscall_address(724),bnet_ioctl,3);
-	#if defined(FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX) || defined (FIRMWARE_4_82)
+	#if defined(FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX)// || defined (FIRMWARE_4_82)
 		hook_function_with_precall(get_syscall_address(804),sys_fs_close,1);
 		hook_function_with_precall(get_syscall_address(802),sys_fs_read,4);
 	#endif
@@ -1321,7 +1321,7 @@ int main(void)
 	#endif
 
 	//	poke_count=0;
-	#if defined(FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX) || defined (FIRMWARE_4_82)
+	#if defined(FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX)// || defined (FIRMWARE_4_82)
 		ecdsa_set_curve();
 		ecdsa_set_pub();
 		ecdsa_set_priv();

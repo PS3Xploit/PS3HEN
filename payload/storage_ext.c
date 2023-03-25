@@ -1024,11 +1024,11 @@ uint32_t find_file_sector(uint8_t *buf, char *file)
 
 	return 0;
 }
-#if defined(FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX) || defined (FIRMWARE_4_82)
+#if defined(FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX)// || defined (FIRMWARE_4_82)
 int sys_fs_open(const char *path, int flags, int *fd, uint64_t mode, const void *arg, uint64_t size);
 #endif
 int bnet_ioctl(int socket,uint32_t flags, void* buffer);
-#if defined(FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX) || defined (FIRMWARE_4_82)
+#if defined(FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX)// || defined (FIRMWARE_4_82)
 int sys_fs_read(int fd, void *buf, uint64_t nbytes, uint64_t *nread);
 int sys_fs_close(int fd);
 #endif
@@ -1073,7 +1073,7 @@ int enable_patches()
 			map_path_patches(0);
 
 			storage_ext_patches();
-			#if defined(FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX) || defined (FIRMWARE_4_82)
+			#if defined(FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX) //|| defined (FIRMWARE_4_82)
 			hook_function_with_precall(get_syscall_address(801),sys_fs_open,6);
 			hook_function_with_precall(get_syscall_address(802),sys_fs_read,4);
 			hook_function_with_precall(get_syscall_address(804),sys_fs_close,1);
@@ -1124,7 +1124,7 @@ int disable_patches()
 		unhook_all_storage_ext();
 		unhook_all_region();
 		unhook_all_map_path();
-		#if defined(FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX) || defined (FIRMWARE_4_82)
+		#if defined(FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX)// || defined (FIRMWARE_4_82)
 		unhook_function_with_precall(get_syscall_address(801),sys_fs_open,6);
 		unhook_function_with_precall(get_syscall_address(802),sys_fs_read,4);
 		unhook_function_with_precall(get_syscall_address(804),sys_fs_close,1);
@@ -3968,7 +3968,7 @@ void storage_ext_init(void)
 	uint64_t patch64=0x386000004e800020;
 	uint32_t patch32=0x38600000;
 
-	#if defined (FIRMWARE_4_84) ||  defined (FIRMWARE_4_85) || defined(FIRMWARE_4_86) || defined(FIRMWARE_4_87) || defined(FIRMWARE_4_88) || defined(FIRMWARE_4_89)		
+	#if defined (FIRMWARE_4_82) ||  defined (FIRMWARE_4_84) ||  defined (FIRMWARE_4_85) || defined(FIRMWARE_4_86) || defined(FIRMWARE_4_87) || defined(FIRMWARE_4_88) || defined(FIRMWARE_4_89)		
 		process_write_memory(vsh_process, (void *)0x253250, &patch64, 8, 1);
 		process_write_memory(vsh_process, (void *)0x252020, &patch64, 8, 1);//only on hen cause theres a check on signature of rif that R and S cant be completly 0. this patches that.
 		process_write_memory(vsh_process, (void *)0x255910, &patch32, 4, 1);
