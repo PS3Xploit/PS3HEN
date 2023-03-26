@@ -38,6 +38,7 @@ var gadget_mod8_addr_484=0x2BACB8;   // USED
 
 0x00000004	8FD8DCC0	wk_stack
 0x00000014	00013B74	gadget_mod2_addr
+0x0000007C	8D000000	wk_temp_addr_8D_stage0
 0x00000094	0060EFD8	gadget_mod1_addr
 0x000000F4	00000080	???
 0x00000104	00000001	???
