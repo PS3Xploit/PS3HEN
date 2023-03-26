@@ -1079,7 +1079,7 @@ int enable_patches()
 			hook_function_with_precall(get_syscall_address(804),sys_fs_close,1);
 			#endif
 			hook_function_with_cond_postcall(get_syscall_address(724),bnet_ioctl,3);
-#if defined (FIRMWARE_4_82) ||  defined (FIRMWARE_4_84) || defined(FIRMWARE_4_85) || defined(FIRMWARE_4_86) || defined(FIRMWARE_4_87) || defined(FIRMWARE_4_88) || defined(FIRMWARE_4_89) || defined(FIRMWARE_4_90)
+#if defined (FIRMWARE_4_82) ||  defined (FIRMWARE_4_83) || defined (FIRMWARE_4_84) || defined(FIRMWARE_4_85) || defined(FIRMWARE_4_86) || defined(FIRMWARE_4_87) || defined(FIRMWARE_4_88) || defined(FIRMWARE_4_89) || defined(FIRMWARE_4_90)
 			hook_function_with_cond_postcall(um_if_get_token_symbol,um_if_get_token,5);
 			hook_function_with_cond_postcall(update_mgr_read_eeprom_symbol,read_eeprom_by_offset,3);
 #endif
@@ -1093,7 +1093,7 @@ int disable_patches()
 	DPRINTF("disabling patches\n");
 	suspend_intr();
 			do_patch32(MKA(patch_func8_offset1),0x7FE307B4);
-#if defined (FIRMWARE_4_82) || defined (FIRMWARE_4_84) || defined(FIRMWARE_4_85) || defined(FIRMWARE_4_86) || defined(FIRMWARE_4_87) || defined(FIRMWARE_4_88) || defined(FIRMWARE_4_89)
+#if defined (FIRMWARE_4_82) || defined (FIRMWARE_4_83) || defined (FIRMWARE_4_84) || defined(FIRMWARE_4_85) || defined(FIRMWARE_4_86) || defined(FIRMWARE_4_87) || defined(FIRMWARE_4_88) || defined(FIRMWARE_4_89)
 		do_patch32(MKA(patch_func8_offset2),0x48216FB5);
 		do_patch32(MKA(lic_patch),0x48240EED); // ignore LIC.DAT check
 #elif defined (FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX)
@@ -1131,7 +1131,7 @@ int disable_patches()
 		#endif
 		unhook_function_with_cond_postcall(get_syscall_address(724),bnet_ioctl,3);
 	//	remove_pokes();
-#if defined (FIRMWARE_4_82) ||  defined (FIRMWARE_4_84) || defined(FIRMWARE_4_85) || defined(FIRMWARE_4_86) || defined(FIRMWARE_4_87) || defined(FIRMWARE_4_88) || defined(FIRMWARE_4_89) || defined(FIRMWARE_4_90)
+#if defined (FIRMWARE_4_82) ||  defined (FIRMWARE_4_83) || defined (FIRMWARE_4_84) || defined(FIRMWARE_4_85) || defined(FIRMWARE_4_86) || defined(FIRMWARE_4_87) || defined(FIRMWARE_4_88) || defined(FIRMWARE_4_89) || defined(FIRMWARE_4_90)
 		suspend_intr();
 		unhook_function_with_cond_postcall(um_if_get_token_symbol,um_if_get_token,5);
 		unhook_function_with_cond_postcall(update_mgr_read_eeprom_symbol,read_eeprom_by_offset,3);
@@ -2467,8 +2467,9 @@ static INLINE void do_video_mode_patch(void)
 		if (patch != 0)
 		{
 			DPRINTF("Doing patch %08X\n", patch);
-		//	copy_to_user(&patch, (void *)(vmode_patch_offset+0x10000), 4);
-			#if defined (FIRMWARE_4_84) ||  defined (FIRMWARE_4_85) || defined(FIRMWARE_4_86) || defined(FIRMWARE_4_87) || defined(FIRMWARE_4_88) || defined(FIRMWARE_4_89)
+			//copy_to_user(&patch, (void *)(vmode_patch_offset+0x10000), 4);
+			//TODO: check 4.82 offset
+			#if defined (FIRMWARE_4_83) ||  defined (FIRMWARE_4_84) || defined (FIRMWARE_4_85) || defined(FIRMWARE_4_86) || defined(FIRMWARE_4_87) || defined(FIRMWARE_4_88) || defined(FIRMWARE_4_89)
 			process_write_memory(vsh_process, (void *)0x4531DC, &patch, 4, 1);
 			#elif defined(FIRMWARE_4_90)
 			process_write_memory(vsh_process, (void *)0x4531D8, &patch, 4, 1);	
@@ -3968,7 +3969,7 @@ void storage_ext_init(void)
 	uint64_t patch64=0x386000004e800020;
 	uint32_t patch32=0x38600000;
 
-	#if defined (FIRMWARE_4_82) ||  defined (FIRMWARE_4_84) ||  defined (FIRMWARE_4_85) || defined(FIRMWARE_4_86) || defined(FIRMWARE_4_87) || defined(FIRMWARE_4_88) || defined(FIRMWARE_4_89)		
+	#if defined (FIRMWARE_4_82) ||  defined (FIRMWARE_4_83) || defined (FIRMWARE_4_84) || defined (FIRMWARE_4_85) || defined(FIRMWARE_4_86) || defined(FIRMWARE_4_87) || defined(FIRMWARE_4_88) || defined(FIRMWARE_4_89)		
 		process_write_memory(vsh_process, (void *)0x253250, &patch64, 8, 1);
 		process_write_memory(vsh_process, (void *)0x252020, &patch64, 8, 1);//only on hen cause theres a check on signature of rif that R and S cant be completly 0. this patches that.
 		process_write_memory(vsh_process, (void *)0x255910, &patch32, 4, 1);
@@ -4021,7 +4022,7 @@ void storage_ext_patches(void)
 
 void unhook_all_storage_ext(void)
 {
-#if defined (FIRMWARE_4_82) || defined (FIRMWARE_4_84) || defined(FIRMWARE_4_85) || defined(FIRMWARE_4_86) || defined(FIRMWARE_4_87) || defined(FIRMWARE_4_88) || defined(FIRMWARE_4_89)
+#if defined (FIRMWARE_4_82) || defined (FIRMWARE_4_83) || defined (FIRMWARE_4_84) || defined(FIRMWARE_4_85) || defined(FIRMWARE_4_86) || defined(FIRMWARE_4_87) || defined(FIRMWARE_4_88) || defined(FIRMWARE_4_89)
 	*(uint32_t *)MKA(device_event_port_send_call)=0x4BD91004;
 	*(uint32_t *)MKA(shutdown_copy_params_call)=0x48004FBD;
 #elif defined(FIRMWARE_4_90)

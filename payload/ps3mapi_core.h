@@ -43,6 +43,17 @@
 	#define PS3MAPI_IDPS_2			 			0x800000000049CAF4ULL
 	#define PS3MAPI_PSID						0x800000000049CB0CULL
 #endif
+#if defined(FIRMWARE_4_83)
+	#define PS3MAPI_FW_VERSION			 		0x0483
+	#if defined(IS_MAMBA)
+		#define PS3MAPI_FW_TYPE			 		"CEX MAMBA"
+	#else
+		#define PS3MAPI_FW_TYPE			 		"CEX COBRA"
+	#endif
+	#define PS3MAPI_IDPS_1			 			0x80000000003E2E30ULL
+	#define PS3MAPI_IDPS_2			 			0x8000000000474AF4ULL
+	#define PS3MAPI_PSID						0x8000000000474B0CULL
+#endif
 #if defined(FIRMWARE_4_84)
 	#define PS3MAPI_FW_VERSION			 		0x0484
 	#if defined(IS_MAMBA)
