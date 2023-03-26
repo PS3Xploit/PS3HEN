@@ -2006,9 +2006,9 @@ function dex()
 			break;
 			
 		case "4.83":
-			if(document.getElementById('dex').checked===true){loadcex_483();}//alert("calling loaddex_483");
-			else {loadcex_483();}
-			disable_trigger();
+			//if(document.getElementById('dex').checked===true){loadcex_483();}//alert("calling loaddex_483");
+			//else {loadcex_483();}
+			//disable_trigger();
 			break;
 			
 		case "4.84":
@@ -2400,7 +2400,7 @@ function ps3chk(){
 	var ua = navigator.userAgent;
 	var uaStringCheck = ua.substring(ua.indexOf("5.0 (") + 5, ua.indexOf(") Apple") - 7);
 	var fwVersion = ua.substring(ua.indexOf("5.0 (") + 19, ua.indexOf(") Apple"));
-	var msgHFW = "ATTENTION!\n\nYour firmware version requires 4.84 - 4.88 HFW (Hybrid Firmware) to be installed, containing exploitable modules.";
+	var msgHFW = "ATTENTION!\n\nYour firmware version requires 4.83 - 4.88 HFW (Hybrid Firmware) to be installed, containing exploitable modules.";
 	var msgCongrats = "Congratulations! We've detected your PlayStation 3 is running FW " + fwVersion + ", which is compatible with ps3hen! Enjoy!";
 	switch (uaStringCheck) {
 		case "PLAYSTATION":
@@ -2409,6 +2409,12 @@ function ps3chk(){
 					//alert(msgHFW);
 					initDEX();
 					loadcex_482();
+					break;
+					
+				case fwCompat[25]:
+					//alert(msgHFW);
+					//initDEX();
+					loadcex_483();
 					break;
 					
 				case fwCompat[26]:
