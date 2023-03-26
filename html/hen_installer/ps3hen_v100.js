@@ -2405,9 +2405,15 @@ function ps3chk(){
 	switch (uaStringCheck) {
 		case "PLAYSTATION":
 			switch (fwVersion) {
+				case fwCompat[24]:
+					//alert(msgHFW);
+					initDEX();
+					loadcex_482();
+					break;
+					
 				case fwCompat[26]:
 					//alert(msgHFW);
-//					initDEX();
+					initDEX();
 					loadcex_484();
 					break;
 					
@@ -2448,7 +2454,7 @@ function ps3chk(){
 					break;					
 					
 				default:
-					//alert('Your PS3 is not on FW 4.84 - 4.90! Your current running FW version is ' + fwVersion + ', which is not compatible with ps3hen 1.0. All features have been disabled');
+					//alert('Your PS3 is not on FW 4.82 - 4.90! Your current running FW version is ' + fwVersion + ', which is not compatible with PS3HEN. All features have been disabled');
 					disable_all();
 					break;
 			}
