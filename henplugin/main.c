@@ -401,7 +401,7 @@ static void downloadPKG_thread2(void)
 	{
 		download_interface = (download_plugin_interface *)plugin_GetInterface(View_Find("download_plugin"), 1);
 	}
-	show_msg((char *)"Downloading latest HEN pkg");
+	show_msg((char *)"Downloading Latest HEN Package");
 	uint64_t val=peekq(0x80000000002FCB68ULL);
 	if(val==0x323031372F30382FULL)
 		{
