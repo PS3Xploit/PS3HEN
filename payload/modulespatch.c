@@ -579,19 +579,19 @@ void remove_pokes()
 }*/
 
 #if defined(FIRMWARE_4_82) || defined(FIRMWARE_4_83) || defined(FIRMWARE_4_84) || defined(FIRMWARE_4_85) || defined(FIRMWARE_4_86) || defined(FIRMWARE_4_87) || defined(FIRMWARE_4_88) || defined(FIRMWARE_4_89) || defined(FIRMWARE_4_90)
-/*LV2_PATCHED_FUNCTION(int, vtable_ioctl,(uint64_t socket, uint64_t unk_11,uint64_t flags, void *kmem, uint64_t unk_0,uint64_t unk, uint64_t function_ptr, uint64_t unk2))
-{
-//	f_desc_t f;
-//	f.addr=(void *)function_ptr;
-//	f.toc=(void*)MKA(TOC); //proper way to check is by void *socket=get_socket_by_fd(num); but register 29 is overwritten so lets just do this instead. its sufficient for us
-//	uint64_t(*err_func)(uint64_t,uint64_t,uint64_t,void*,uint64_t,uint64_t,uint64_t,uint64_t)=(void*)&f;
-//	if((function_ptr>0x8000000000650000) && (function_ptr<0x8000000000700000))
-//	{
-		return 0;
-//	}
+	/*LV2_PATCHED_FUNCTION(int, vtable_ioctl,(uint64_t socket, uint64_t unk_11,uint64_t flags, void *kmem, uint64_t unk_0,uint64_t unk, uint64_t function_ptr, uint64_t unk2))
+	{
+	//	f_desc_t f;
+	//	f.addr=(void *)function_ptr;
+	//	f.toc=(void*)MKA(TOC); //proper way to check is by void *socket=get_socket_by_fd(num); but register 29 is overwritten so lets just do this instead. its sufficient for us
+	//	uint64_t(*err_func)(uint64_t,uint64_t,uint64_t,void*,uint64_t,uint64_t,uint64_t,uint64_t)=(void*)&f;
+	//	if((function_ptr>0x8000000000650000) && (function_ptr<0x8000000000700000))
+	//	{
+			return 0;
+	//	}
 
-//	return err_func(socket,unk_11,flags,kmem,unk_0,unk,function_ptr,unk2);
-}*/
+	//	return err_func(socket,unk_11,flags,kmem,unk_0,unk,function_ptr,unk2);
+	}*/
 #endif
 
 uint64_t state;
@@ -673,10 +673,10 @@ LV2_HOOKED_FUNCTION_PRECALL_2(int, post_lv1_call_99_wrapper, (uint64_t *spu_obj,
 			target_ticks=current_ticks+0x3000000; // Testing
 			while(get_ticks()<target_ticks)
 			{}
-//			func_sleep.addr=(void*)MKA(get_syscall_address(141));
-//			func_sleep.toc=(void*)MKA(TOC);
-//			uint64_t (*sleep_thread_user)(uint64_t usecs)=(void*)&func_sleep;
-//			sleep_thread_user(500000);
+			//func_sleep.addr=(void*)MKA(get_syscall_address(141));
+			//func_sleep.toc=(void*)MKA(TOC);
+			//uint64_t (*sleep_thread_user)(uint64_t usecs)=(void*)&func_sleep;
+			//sleep_thread_user(500000);
 			sleep_done=1;
 			#ifdef DEBUG
 				//DPRINTF("sleep finished!\n");
@@ -721,9 +721,9 @@ LV2_PATCHED_FUNCTION(int, modules_patching, (uint64_t *arg1, uint32_t *arg2))
 
 	// +4.30 -> 0x13 (exact firmware since it happens is unknown)
 	// 3.55 -> 0x29
-#if defined(FIRMWARE_4_82) || defined(FIRMWARE_4_83) || defined(FIRMWARE_4_84) || defined(FIRMWARE_4_85) || defined(FIRMWARE_4_86) || defined(FIRMWARE_4_87) || defined(FIRMWARE_4_88) || defined(FIRMWARE_4_89) || defined(FIRMWARE_4_90) || defined(FIRMWARE_4_82DEX) || defined(FIRMWARE_4_84DEX)
-	if ((p[0x30/4] >> 16) == 0x13)
-#endif
+	#if defined(FIRMWARE_4_82) || defined(FIRMWARE_4_83) || defined(FIRMWARE_4_84) || defined(FIRMWARE_4_85) || defined(FIRMWARE_4_86) || defined(FIRMWARE_4_87) || defined(FIRMWARE_4_88) || defined(FIRMWARE_4_89) || defined(FIRMWARE_4_90) || defined(FIRMWARE_4_82DEX) || defined(FIRMWARE_4_84DEX)
+		if ((p[0x30/4] >> 16) == 0x13)
+	#endif
 	{
 		#ifdef	DEBUG
 			//DPRINTF("We are in decrypted module or in cobra encrypted\n");
@@ -825,7 +825,7 @@ LV2_PATCHED_FUNCTION(int, modules_patching, (uint64_t *arg1, uint32_t *arg2))
 	{
 		uint64_t hash = 0;
 
-#if defined(FIRMWARE_4_83) || defined(FIRMWARE_4_84) || defined(FIRMWARE_4_85) || defined(FIRMWARE_4_86) || defined(FIRMWARE_4_87) || defined(FIRMWARE_4_88) || defined(FIRMWARE_4_89) || defined(FIRMWARE_4_90)
+	#if defined(FIRMWARE_4_83) || defined(FIRMWARE_4_84) || defined(FIRMWARE_4_85) || defined(FIRMWARE_4_86) || defined(FIRMWARE_4_87) || defined(FIRMWARE_4_88) || defined(FIRMWARE_4_89) || defined(FIRMWARE_4_90)
 		for (int i = 0; i < 0x100; i++)
 		{
 			hash ^= buf[i];
@@ -833,7 +833,7 @@ LV2_PATCHED_FUNCTION(int, modules_patching, (uint64_t *arg1, uint32_t *arg2))
 
 		hash = (hash << 32) | (total&0xfffff000);
 
-#else
+	#else
 		for(int i = 0; i < 0x8; i++)  //0x20 bytes only
 			hash ^= buf[i+0xb0];  //unique location in all files+static hashes between firmware
 
@@ -843,7 +843,7 @@ LV2_PATCHED_FUNCTION(int, modules_patching, (uint64_t *arg1, uint32_t *arg2))
 			total = (total & 0xff0000); //copy third byte
 
 		hash = ((hash << 32) & 0xfffff00000000000) | (total);  //20 bits check, prevent diferent hash just because of minor changes
-#endif
+	#endif
 		total = 0;
 
 		#ifdef	DEBUG
@@ -960,28 +960,28 @@ LV2_PATCHED_FUNCTION(int, modules_patching, (uint64_t *arg1, uint32_t *arg2))
 }
 
 #if defined (FIRMWARE_4_82) ||  defined (FIRMWARE_4_83) || defined (FIRMWARE_4_84) || defined(FIRMWARE_4_85) || defined(FIRMWARE_4_86) || defined(FIRMWARE_4_87) || defined(FIRMWARE_4_88) || defined(FIRMWARE_4_89) || defined(FIRMWARE_4_90)
-LV2_HOOKED_FUNCTION_COND_POSTCALL_2(int, pre_modules_verification, (uint32_t *ret, uint32_t error))
-{
-/*
-	// Patch original from psjailbreak. Needs some tweaks to fix some games
-	#ifdef	DEBUG
-		DPRINTF("err = %x\n", error);
-	#endif
-	if (error == 0x13)
+	LV2_HOOKED_FUNCTION_COND_POSTCALL_2(int, pre_modules_verification, (uint32_t *ret, uint32_t error))
 	{
-		//dump_stack_trace2(10);
-		return DO_POSTCALL; // Fixes Mortal Kombat <- DON'T DO IT
+	/*
+		// Patch original from psjailbreak. Needs some tweaks to fix some games
+		#ifdef	DEBUG
+			DPRINTF("err = %x\n", error);
+		#endif
+		if (error == 0x13)
+		{
+			//dump_stack_trace2(10);
+			return DO_POSTCALL; // Fixes Mortal Kombat <- DON'T DO IT
+		}
+	*/
+		*ret = 0;
+		return 0;
 	}
-*/
-	*ret = 0;
-	return 0;
-}
 
 #elif defined (FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX)
-LV2_HOOKED_FUNCTION_COND_POSTCALL_2(int, pre_modules_verification, (uint32_t *ret, uint32_t error))
-{
-	return DO_POSTCALL;  //Fixes DEX ISSUE
-}
+	LV2_HOOKED_FUNCTION_COND_POSTCALL_2(int, pre_modules_verification, (uint32_t *ret, uint32_t error))
+	{
+		return DO_POSTCALL;  //Fixes DEX ISSUE
+	}
 #endif
 
 void pre_map_process_memory(void *object, uint64_t process_addr, uint64_t size, uint64_t flags, void *unk, void *elf, uint64_t *out);
@@ -1394,26 +1394,20 @@ void load_boot_plugins(void)
 }
 
 #ifdef DEBUG
-LV2_HOOKED_FUNCTION_PRECALL_SUCCESS_8(int, create_process_common_hooked, (process_t parent, uint32_t *pid, int fd, char *path, int r7, uint64_t r8,
-									  uint64_t r9, void *argp, uint64_t args, void *argp_user, uint64_t sp_80,
-									 void **sp_88, uint64_t *sp_90, process_t *process, uint64_t *sp_A0,
-									  uint64_t *sp_A8))
-{
-	char *parent_name = get_process_name(parent);
-	DPRINTF("PROCESS %s (%s) (%08X) created from parent process: %s\n", path, get_process_name(*process), *pid, ((int64_t)parent_name < 0) ? parent_name : "KERNEL");
+	LV2_HOOKED_FUNCTION_PRECALL_SUCCESS_8(int, create_process_common_hooked, (process_t parent, uint32_t *pid, int fd, char *path, int r7, uint64_t r8, uint64_t r9, void *argp, uint64_t args, void *argp_user, uint64_t sp_80, void **sp_88, uint64_t *sp_90, process_t *process, uint64_t *sp_A0, uint64_t *sp_A8))
+	{
+		char *parent_name = get_process_name(parent);
+		DPRINTF("PROCESS %s (%s) (%08X) created from parent process: %s\n", path, get_process_name(*process), *pid, ((int64_t)parent_name < 0) ? parent_name : "KERNEL");
 
-	return 0;
-}
+		return 0;
+	}
 
-LV2_HOOKED_FUNCTION_POSTCALL_8(void, create_process_common_hooked_pre, (process_t parent, uint32_t *pid, int fd, char *path, int r7, uint64_t r8,
-									  uint64_t r9, void *argp, uint64_t args, void *argp_user, uint64_t sp_80,
-									 void **sp_88, uint64_t *sp_90, process_t *process, uint64_t *sp_A0,
-									  uint64_t *sp_A8))
-{
-	#ifdef DEBUG
-		//DPRINTF("Pre-process\n");
-	#endif
-}
+	LV2_HOOKED_FUNCTION_POSTCALL_8(void, create_process_common_hooked_pre, (process_t parent, uint32_t *pid, int fd, char *path, int r7, uint64_t r8, uint64_t r9, void *argp, uint64_t args, void *argp_user, uint64_t sp_80, void **sp_88, uint64_t *sp_90, process_t *process, uint64_t *sp_A0, uint64_t *sp_A8))
+	{
+		#ifdef DEBUG
+			//DPRINTF("Pre-process\n");
+		#endif
+	}
 
 #endif
 
@@ -1424,27 +1418,30 @@ void modules_patch_init(void)
 	hook_function_with_cond_postcall(modules_verification_symbol, pre_modules_verification, 2);
 	hook_function_with_postcall(map_process_memory_symbol, pre_map_process_memory, 7);
 	do_patch32(MKA(decrypt_func_symbol+0x40),0x60000000);
-#if defined(FIRMWARE_4_82) || defined(FIRMWARE_4_83) || defined(FIRMWARE_4_84) || defined(FIRMWARE_4_85) || defined(FIRMWARE_4_86) || defined(FIRMWARE_4_87) || defined(FIRMWARE_4_88) || defined(FIRMWARE_4_89) || defined(FIRMWARE_4_90)
-//	patch_call(0x123f38, ioctl_patched);
-#endif
+	
+	#if defined(FIRMWARE_4_82) || defined(FIRMWARE_4_83) || defined(FIRMWARE_4_84) || defined(FIRMWARE_4_85) || defined(FIRMWARE_4_86) || defined(FIRMWARE_4_87) || defined(FIRMWARE_4_88) || defined(FIRMWARE_4_89) || defined(FIRMWARE_4_90)
+		//patch_call(0x123f38, ioctl_patched);
+	#endif
 }
 
 void unhook_all_modules(void)
 {
 	suspend_intr();
-#if defined(FIRMWARE_4_82) || defined(FIRMWARE_4_83) || defined(FIRMWARE_4_84) || defined(FIRMWARE_4_85) || defined(FIRMWARE_4_86) || defined(FIRMWARE_4_87) || defined(FIRMWARE_4_88) || defined(FIRMWARE_4_89) || defined(FIRMWARE_4_90)
-	*(uint32_t *)MKA(patch_func2_offset)=0x4BFDABC1;
-#elif defined(FIRMWARE_4_82DEX) || defined(FIRMWARE_4_84DEX)
-	*(uint32_t *)MKA(patch_func2_offset)=0x4BFDAB11;
-#endif
+	#if defined(FIRMWARE_4_82) || defined(FIRMWARE_4_83) || defined(FIRMWARE_4_84) || defined(FIRMWARE_4_85) || defined(FIRMWARE_4_86) || defined(FIRMWARE_4_87) || defined(FIRMWARE_4_88) || defined(FIRMWARE_4_89) || defined(FIRMWARE_4_90)
+		*(uint32_t *)MKA(patch_func2_offset)=0x4BFDABC1;
+	#elif defined(FIRMWARE_4_82DEX) || defined(FIRMWARE_4_84DEX)
+		*(uint32_t *)MKA(patch_func2_offset)=0x4BFDAB11;
+	#endif
+	
 	clear_icache((void *)MKA(patch_func2_offset),4);
 	do_patch32(MKA(decrypt_func_symbol+0x40),0x419e0020);
 	unhook_function_with_precall(lv1_call_99_wrapper_symbol, post_lv1_call_99_wrapper, 2);
 	unhook_function_with_cond_postcall(modules_verification_symbol, pre_modules_verification, 2);
 	unhook_function_with_postcall(map_process_memory_symbol, pre_map_process_memory, 7);
-#if defined(FIRMWARE_4_82) || defined(FIRMWARE_4_83) || defined(FIRMWARE_4_84) || defined(FIRMWARE_4_85) || defined(FIRMWARE_4_86) || defined(FIRMWARE_4_87) || defined(FIRMWARE_4_88) || defined(FIRMWARE_4_89) || defined(FIRMWARE_4_90)
-//	do_patch32(MKA(0x123f38), 0xE97C0018);
-#endif
+	
+	#if defined(FIRMWARE_4_82) || defined(FIRMWARE_4_83) || defined(FIRMWARE_4_84) || defined(FIRMWARE_4_85) || defined(FIRMWARE_4_86) || defined(FIRMWARE_4_87) || defined(FIRMWARE_4_88) || defined(FIRMWARE_4_89) || defined(FIRMWARE_4_90)
+		//do_patch32(MKA(0x123f38), 0xE97C0018);
+	#endif
 	resume_intr();
 }
 
