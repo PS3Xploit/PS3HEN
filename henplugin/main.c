@@ -584,8 +584,7 @@ static void downloadPKG_thread2(void)
 				}
 		}
 		
-		// Fix DEX kernel value
-	else if(val==0x323031392F30312FULL)
+	else if(val==0x2062696721202825ULL)
 		{
 			if(build_type==RELEASE)
 			{
