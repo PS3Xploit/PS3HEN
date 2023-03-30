@@ -21,6 +21,30 @@ MultiFW support has been added.
 Changelog<br>
 -----------<br>
 
+# 3.2.1<br>
+# HEN Global Changes<br>
+  - Added support for 4.84 DEX firmware<br>
+  - Updated DEX resources and stackframe (4.84 DEX/PEX Only) (thanks Joonie)<br>
+  - Added support for 4.83 firmware (OFW)<br>
+  - Re-added support for 4.82 firmware (OFW)<br>
+  - Updates to PS3HEN_GEN and added makefile (thanks bucanero)<br>
+# Installer Changes<br>
+  - Bytes will be written by webkit if HEN is being loaded from HTML, so HEN can set the installing flag<br>
+  - Added downloadhenD() function to allow DEX p3t download if DEX checkbox is checked (4.82D/4.84D Only)<br>
+# HEN Plugin Changes<br>
+  - Added check for webMAN-MOD, and if installed will download package with WMM included, only if HEN is installing<br>
+  - Updated peekq offsets and values for CEX/DEX when downloading packages<br>
+# Payload Changes<br>
+  - Updated detected COBRA version to 8.4<br>
+  - Updated PS3MAPI_CORE_VERSION to 1.24 (thanks bucanero)<br>
+  - Added check for HEN installing. Boot plugins text files will be deleted if HEN is ran from installer html<br>
+  - Updated UMD/PSP blacklisting and fixed spacing (thanks aldostools)<br>
+# Resource Changes<br>
+  - Added VSH message to alert users of deleted boot plugins text<br>
+  - Updated HEN Welcome Message for developer mode/release<br>
+<br>
+<br>
+
 # 3.2.0<br>
 # HEN Global Changes<br>
   - Added support for 4.90 firmware. Special thanks to lmn7 and Joonie for their work on porting offsets, HFW, and other code contributions<br>
