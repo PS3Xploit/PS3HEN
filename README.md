@@ -29,7 +29,7 @@ Changelog<br>
   - Automatic reboot after successful initial HEN installation from Network and USB<br>
   - Added Clear Browser Cache code, currently disabled. This will be moved into xai_plugin (thanks xfrcc)<br>
   - Changes to HEN plugin attempting to make it unload properly (thanks @aldostools, TheRouLetteBoi)<br>
-  - Updated host domain name from ps3xploit.me to ps3xploit.me<br>
+  - Updated host domain name from ps3xploit.com to ps3xploit.me<br>
 # Payload Changes<br>
   - Added mutex functionality to map_path and open_path_hook (thanks bguerville)<br>
   - Updated, fixed, and optimized map_path and open_path_hook. Also kept support for legacy homebrew that uses map_path (thanks bguerville)<br>
