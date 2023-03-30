@@ -2006,13 +2006,19 @@ function dex()
 			break;
 			
 		case "4.83":
-			//if(document.getElementById('dex').checked===true){loadcex_483();}//alert("calling loaddex_483");
-			//else {loadcex_483();}
-			//disable_trigger();
+			if(document.getElementById('dex').checked===true){loadcex_483();}//alert("calling loaddex_483");
+			else {loadcex_483();}
+			disable_trigger();
 			break;
 			
 		case "4.84":
-			if(document.getElementById('dex').checked===true){loaddex_484();}//alert("calling loaddex_484");
+			if(document.getElementById('dex').checked===true)
+			{
+				alert('DEX Payload Will Now Download. Overwrite This File When Prompted!');
+				downloadhenD();
+				loaddex_484();
+			}
+			//alert("calling loaddex_484");
 			else {loadcex_484();}
 			disable_trigger();
 			break;
@@ -2408,7 +2414,7 @@ function ps3chk(){
 				case fwCompat[24]:
 					//alert(msgHFW);
 					initDEX();
-					loadcex_482();
+					//loadcex_482();
 					break;
 					
 				case fwCompat[25]:
@@ -2420,7 +2426,7 @@ function ps3chk(){
 				case fwCompat[26]:
 					//alert(msgHFW);
 					initDEX();
-					loadcex_484();
+					//loadcex_484();
 					break;
 					
 				case fwCompat[27]:
