@@ -5,8 +5,10 @@ stage0.bin is appended to actual stackframe
 MultiFW support has been added.
 [Supported Firmwares]
 
+* CEX OFW 4.82
 * CEX HFW 4.83.1 (thanks Joonie)
 * CEX HFW 4.84.2 (thanks Joonie/habib)
+* DEX HFW 4.84.2 (thanks Joonie)
 * CEX HFW 4.85.1 (thanks Joonie/habib)
 * CEX HFW 4.86.1 (thanks Joonie/habib)
 * CEX HFW 4.87.1 (thanks Joonie)
