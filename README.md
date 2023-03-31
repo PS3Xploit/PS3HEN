@@ -5,6 +5,7 @@ stage0.bin is appended to actual stackframe
 MultiFW support has been added.
 [Supported Firmwares]
 
+* CEX HFW 4.83.1 (thanks Joonie)
 * CEX HFW 4.84.2 (thanks Joonie/habib)
 * CEX HFW 4.85.1 (thanks Joonie/habib)
 * CEX HFW 4.86.1 (thanks Joonie/habib)
@@ -25,7 +26,7 @@ Changelog<br>
 # HEN Global Changes<br>
   - Added support for 4.84 DEX firmware<br>
   - Updated DEX resources and stackframe (4.84 DEX/PEX Only) (thanks Joonie)<br>
-  - Added support for 4.83 firmware (HFW)<br>
+  - Added support for 4.83 firmware (HFW) (thanks Joonie)<br>
   - Re-added support for 4.82 firmware (OFW)<br>
   - Updates to PS3HEN_GEN and added makefile (thanks bucanero)<br>
 # Installer Changes<br>
