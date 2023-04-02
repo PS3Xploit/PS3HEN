@@ -575,8 +575,8 @@
 #define unk_func3_unregister_service					0xa3394
 
 // Target Manager Fix (haxxen, EvilNat, habib)
-#define sys_toc_symbol 0x80000000003759C0
-#define sys_tty_write_symbol 0x800000000027550C
+//#define sys_toc_symbol 0x80000000003759C0
+//#define sys_tty_write_symbol 0x800000000027550C
 
 #elif defined(FIRMWARE_4_90)
 

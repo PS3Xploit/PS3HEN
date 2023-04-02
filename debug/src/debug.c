@@ -114,22 +114,6 @@ void debug_uninstall(void)
 
 #elif defined(LV2)
 
-// DEX Target Manager Fix (haxxen, EvilNat, habib)
-// https://www.psx-place.com/threads/cfw-4-90-evilnat-cobra-8-4-cex-dex-pex-d-pex.39743/page-15#post-361139
-LV2_SYSCALL(int, ttyWrite, (int channel, const char* message, int length, int* written))
-{
-f_desc_t f;
-f.addr=(void *)sys_tty_write_symbol;
-f.toc=(void *)sys_toc_symbol;
-int (*func)(int, const char *, int, int *)=(void *)&f;
-// func(channel, message, length, written);
-debug_print(message, length);
-/* if (written)
-*written = length; */
-return func(channel, message, length, written);
-}
-
-/*
 LV2_SYSCALL2(int, ttyWrite, (int channel, const char* message, int length, int* written))
 {
 	debug_print(message, length);
@@ -146,7 +130,6 @@ LV2_SYSCALL2(int, ttyWrite, (int channel, const char* message, int length, int* 
 	
 	return 0;
 }
-*/
 
 LV2_SYSCALL2(int, consoleWrite, (const char* message, int length))
 {
