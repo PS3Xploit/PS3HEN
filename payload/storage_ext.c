@@ -1041,8 +1041,8 @@ int enable_patches()
 {
 	DPRINTF("enabling patches!\n");
 	suspend_intr();
-				#if defined (FIRMWARE_4_82DEX) ||  defined (FIRMWARE_4_84DEX)
-			do_patch(MKA(vsh_patch),0x386000014E800020);
+			#if defined (FIRMWARE_4_82DEX) ||  defined (FIRMWARE_4_84DEX)
+				//do_patch(MKA(vsh_patch),0x386000014E800020); // VSH Attach to Debugger
 			#endif
 			//do_patch32(MKA(patch_data1_offset), 0x01000000);
 			do_patch32(MKA(module_sdk_version_patch_offset), NOP);
@@ -1099,7 +1099,7 @@ int disable_patches()
 #elif defined (FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX)
  		do_patch32(MKA(patch_func8_offset2),0x4821B4BD);
 		do_patch32(MKA(lic_patch),0x482584B5); // ignore LIC.DAT check
-		do_patch(MKA(vsh_patch),0xE92280087C0802A6);
+		//do_patch(MKA(vsh_patch),0xE92280087C0802A6); // VSH Attach to Debugger
 #elif defined (FIRMWARE_4_90)
 		do_patch32(MKA(patch_func8_offset2),0x48216FAD);
 		do_patch32(MKA(lic_patch),0x48240EE5); // ignore LIC.DAT check
