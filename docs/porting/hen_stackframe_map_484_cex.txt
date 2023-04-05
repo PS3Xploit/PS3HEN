@@ -8,6 +8,8 @@ PS3HEN.BIN Layout
 0x00070000 - 0x0007FFF7 sprx (max size: 0xFFF8)
 0x0007FFF8 - 0x0007FFFF size of stage2 (8 bytes)
 0x00080000 - 0x0009FFF7 stage2 (max size: 0x1FFF8)
+0x000A0044 - 0x000A0047 vsh toc
+0x000FFFF4 - 0x000FFFF7 vsh toc
 0x00100010 - 0x00101FFF stackframe lv2/vsh offsets
 0x001008B8 - 0x001008BF size of stage0 (8 bytes)
 0x00102000 - 0x0010EFFF stage0 (max size: 0xD000)
