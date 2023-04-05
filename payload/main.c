@@ -342,7 +342,7 @@ LV2_HOOKED_FUNCTION_COND_POSTCALL_5(int,um_if_get_token,(uint8_t *token,uint32_t
 		seed[39] |= 0x2; /* QA_FLAG_QA_MODE_ENABLE */
 		seed[47] |= 0x2;
 		seed[47] |= 0x4; /* checked by lv2_kernel.self and sys_init_osd.self */
-				 /* can run sys_init_osd.self from /app_home ? */
+						 /* can run sys_init_osd.self from /app_home ? */
 		seed[51] |= 0x1; /* QA_FLAG_ALLOW_NON_QA */
 		seed[51] |= 0x2; /* QA_FLAG_FORCE_UPDATE */
         /// 2.1.2 QA flag - hmac hash check - START
@@ -387,7 +387,7 @@ LV2_HOOKED_FUNCTION_COND_POSTCALL_3(int,read_eeprom_by_offset,(uint32_t offset, 
 				memcpy(buf1+0x70+0x14, S+1, 0x14);
 				memcpy(buf+0x70,buf1+0x70,0x28);
 				page_free(NULL, buf1, 0x2F);
-	//			DPRINTF("R:%015x\nS:%015x\n",R,S);
+				//DPRINTF("R:%015x\nS:%015x\n",R,S);
 			}
 		}
 		else if(act_fd==fd)
@@ -408,7 +408,7 @@ LV2_HOOKED_FUNCTION_COND_POSTCALL_3(int,read_eeprom_by_offset,(uint32_t offset, 
 				memcpy(buf1+0x1010+0x14, S+1, 0x14);
 				memcpy(buf+0x1010,buf1+0x1010,0x28);
 				page_free(NULL, buf1, 0x2F);
-	//			DPRINTF("R:%015x\nS:%015x\n",R,S);
+				//DPRINTF("R:%015x\nS:%015x\n",R,S);
 			}
 		}
 		else if(misc_fd==fd)
@@ -1174,6 +1174,7 @@ static INLINE void apply_kernel_patches(void)
 	#if defined (FIRMWARE_4_82DEX) ||  defined (FIRMWARE_4_84DEX)
 		do_patch(MKA(vsh_patch),0x386000014E800020);
 	#endif
+	
 	//do_patch32(MKA(patch_data1_offset), 0x01000000);
 	do_patch32(MKA(module_sdk_version_patch_offset), NOP);
 	do_patch32(MKA(patch_func8_offset1),0x38600000);
@@ -1196,34 +1197,40 @@ static INLINE void apply_kernel_patches(void)
 	#if defined(FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX)// || defined (FIRMWARE_4_82)
 		hook_function_with_precall(get_syscall_address(801),sys_fs_open,6);
 	#endif
+	
 	hook_function_with_cond_postcall(get_syscall_address(724),bnet_ioctl,3);
+	
 	#if defined(FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX)// || defined (FIRMWARE_4_82)
 		hook_function_with_precall(get_syscall_address(804),sys_fs_close,1);
 		hook_function_with_precall(get_syscall_address(802),sys_fs_read,4);
 	#endif
+	
 	#if defined (FIRMWARE_4_82) || defined (FIRMWARE_4_83) || defined (FIRMWARE_4_84) || defined (FIRMWARE_4_85) || defined (FIRMWARE_4_86) || defined (FIRMWARE_4_87) || defined (FIRMWARE_4_88) || defined (FIRMWARE_4_89) || defined (FIRMWARE_4_90)
 		hook_function_with_cond_postcall(um_if_get_token_symbol,um_if_get_token,5);
 		hook_function_with_cond_postcall(update_mgr_read_eeprom_symbol,read_eeprom_by_offset,3);
 	#endif
+	
 	create_syscall2(8, syscall8);
 	create_syscall2(6, sys_cfw_peek);
 	create_syscall2(7, sys_cfw_poke);
-//	create_syscall2(9, sys_cfw_poke_lv1);
+	//create_syscall2(9, sys_cfw_poke_lv1);
 	create_syscall2(10, sys_cfw_lv1_call);
-//	create_syscall2(11, sys_cfw_peek_lv1);
+	//create_syscall2(11, sys_cfw_peek_lv1);
 	create_syscall2(15, sys_cfw_lv2_func);
 	create_syscall2(389, sm_set_fan_policy_sc);
 	create_syscall2(409, sm_get_fan_policy_sc);
 }
 
-/*void enable_ingame_screenshot()
+/*
+void enable_ingame_screenshot()
 {
 	f_desc_t f;
 	f.addr=(void*)0x19531c;
 	f.toc=(void*)0x6F5558;
 	int(*set_SSHT)(int)=(void*)&f;
 	set_SSHT(1);
-}*/
+}
+*/
 
 // Cleanup Old and Temp HEN Files
 void cleanup_files(void)
@@ -1322,7 +1329,7 @@ int main(void)
 		DPRINTF("PS3HEN loaded (load base = %p, end = %p) (version = %08X)\n", &_start, &__self_end, MAKE_VERSION(COBRA_VERSION, FIRMWARE_VERSION, IS_CFW));
 	#endif
 
-	//	poke_count=0;
+	//poke_count=0;
 	#if defined(FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX)// || defined (FIRMWARE_4_82)
 		ecdsa_set_curve();
 		ecdsa_set_pub();
@@ -1378,14 +1385,14 @@ int main(void)
 			//DPRINTF("PAYLOAD->plugins loaded\n");
 		#endif
 	}
-/*
+	/*
 	else
 	{
 		#ifdef DEBUG
 			//DPRINTF("PAYLOAD->plugins not loaded\n");
 		#endif
 	}
-*/
+	*/
 	
 	//enable_ingame_screenshot();
 	
