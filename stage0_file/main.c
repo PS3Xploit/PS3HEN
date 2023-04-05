@@ -27,7 +27,7 @@ void *main(void)
 	void *stage2 = NULL;
 	f_desc_t f;	
 	cellFsUnlink("/dev_hdd0/HENplugin.sprx");	
-	#if defined(FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX) || defined (FIRMWARE_4_82)
+	#if defined(FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX)
 	HEN_CONFIG CONFIG;
 	CONFIG.config_hdl=*(uint32_t *)0x8d000500;
 	CONFIG.service_hdl1=*(uint32_t *)0x8D0FF050;

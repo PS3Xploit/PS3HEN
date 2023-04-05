@@ -1024,11 +1024,11 @@ uint32_t find_file_sector(uint8_t *buf, char *file)
 
 	return 0;
 }
-#if defined(FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX)// || defined (FIRMWARE_4_82)
+#if defined(FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX)
 int sys_fs_open(const char *path, int flags, int *fd, uint64_t mode, const void *arg, uint64_t size);
 #endif
 int bnet_ioctl(int socket,uint32_t flags, void* buffer);
-#if defined(FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX)// || defined (FIRMWARE_4_82)
+#if defined(FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX)
 int sys_fs_read(int fd, void *buf, uint64_t nbytes, uint64_t *nread);
 int sys_fs_close(int fd);
 #endif
@@ -1073,7 +1073,7 @@ int enable_patches()
 			map_path_patches(0);
 
 			storage_ext_patches();
-			#if defined(FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX) //|| defined (FIRMWARE_4_82)
+			#if defined(FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX)
 			hook_function_with_precall(get_syscall_address(801),sys_fs_open,6);
 			hook_function_with_precall(get_syscall_address(802),sys_fs_read,4);
 			hook_function_with_precall(get_syscall_address(804),sys_fs_close,1);
@@ -1093,17 +1093,17 @@ int disable_patches()
 	DPRINTF("disabling patches\n");
 	suspend_intr();
 			do_patch32(MKA(patch_func8_offset1),0x7FE307B4);
-#if defined (FIRMWARE_4_82) || defined (FIRMWARE_4_83) || defined (FIRMWARE_4_84) || defined(FIRMWARE_4_85) || defined(FIRMWARE_4_86) || defined(FIRMWARE_4_87) || defined(FIRMWARE_4_88) || defined(FIRMWARE_4_89)
+	#if defined (FIRMWARE_4_82) || defined (FIRMWARE_4_83) || defined (FIRMWARE_4_84) || defined(FIRMWARE_4_85) || defined(FIRMWARE_4_86) || defined(FIRMWARE_4_87) || defined(FIRMWARE_4_88) || defined(FIRMWARE_4_89)
 		do_patch32(MKA(patch_func8_offset2),0x48216FB5);
 		do_patch32(MKA(lic_patch),0x48240EED); // ignore LIC.DAT check
-#elif defined (FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX)
+	#elif defined (FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX)
  		do_patch32(MKA(patch_func8_offset2),0x4821B4BD);
 		do_patch32(MKA(lic_patch),0x482584B5); // ignore LIC.DAT check
 		//do_patch(MKA(vsh_patch),0xE92280087C0802A6); // VSH Attach to Debugger
-#elif defined (FIRMWARE_4_90)
+	#elif defined (FIRMWARE_4_90)
 		do_patch32(MKA(patch_func8_offset2),0x48216FAD);
 		do_patch32(MKA(lic_patch),0x48240EE5); // ignore LIC.DAT check
-#endif
+	#endif
 		do_patch32(MKA(module_sdk_version_patch_offset), 0x419D0008);        
 		do_patch32(MKA(user_thread_prio_patch),0x419DFF84); // for NetISO
 		do_patch32(MKA(user_thread_prio_patch2),0x419D0258); // for NetISO
@@ -1124,19 +1124,19 @@ int disable_patches()
 		unhook_all_storage_ext();
 		unhook_all_region();
 		unhook_all_map_path();
-		#if defined(FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX)// || defined (FIRMWARE_4_82)
+	#if defined(FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX)
 		unhook_function_with_precall(get_syscall_address(801),sys_fs_open,6);
 		unhook_function_with_precall(get_syscall_address(802),sys_fs_read,4);
 		unhook_function_with_precall(get_syscall_address(804),sys_fs_close,1);
-		#endif
+	#endif
 		unhook_function_with_cond_postcall(get_syscall_address(724),bnet_ioctl,3);
-	//	remove_pokes();
-#if defined (FIRMWARE_4_82) ||  defined (FIRMWARE_4_83) || defined (FIRMWARE_4_84) || defined(FIRMWARE_4_85) || defined(FIRMWARE_4_86) || defined(FIRMWARE_4_87) || defined(FIRMWARE_4_88) || defined(FIRMWARE_4_89) || defined(FIRMWARE_4_90)
+		//remove_pokes();
+	#if defined (FIRMWARE_4_82) ||  defined (FIRMWARE_4_83) || defined (FIRMWARE_4_84) || defined(FIRMWARE_4_85) || defined(FIRMWARE_4_86) || defined(FIRMWARE_4_87) || defined(FIRMWARE_4_88) || defined(FIRMWARE_4_89) || defined(FIRMWARE_4_90)
 		suspend_intr();
 		unhook_function_with_cond_postcall(um_if_get_token_symbol,um_if_get_token,5);
 		unhook_function_with_cond_postcall(update_mgr_read_eeprom_symbol,read_eeprom_by_offset,3);
 		resume_intr();
-#endif
+	#endif
 
 	remove_syscall_handler();
 	#ifdef DEBUG
