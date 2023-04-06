@@ -1079,10 +1079,10 @@ int enable_patches()
 			hook_function_with_precall(get_syscall_address(804),sys_fs_close,1);
 			#endif
 			hook_function_with_cond_postcall(get_syscall_address(724),bnet_ioctl,3);
-#if defined (FIRMWARE_4_82) ||  defined (FIRMWARE_4_83) || defined (FIRMWARE_4_84) || defined(FIRMWARE_4_85) || defined(FIRMWARE_4_86) || defined(FIRMWARE_4_87) || defined(FIRMWARE_4_88) || defined(FIRMWARE_4_89) || defined(FIRMWARE_4_90)
+		#if defined (FIRMWARE_4_82) ||  defined (FIRMWARE_4_83) || defined (FIRMWARE_4_84) || defined(FIRMWARE_4_85) || defined(FIRMWARE_4_86) || defined(FIRMWARE_4_87) || defined(FIRMWARE_4_88) || defined(FIRMWARE_4_89) || defined(FIRMWARE_4_90)
 			hook_function_with_cond_postcall(um_if_get_token_symbol,um_if_get_token,5);
 			hook_function_with_cond_postcall(update_mgr_read_eeprom_symbol,read_eeprom_by_offset,3);
-#endif
+		#endif
 resume_intr();
 
 	return 0;
@@ -3966,7 +3966,23 @@ void storage_ext_init(void)
 	event_port_connect(result_port, result_queue);
 	ppu_thread_create(&dispatch_thread, dispatch_thread_entry, 0, -0x1D8, 0x4000, 0, THREAD_NAME);
 
-	#if defined (FIRMWARE_4_82) ||  defined (FIRMWARE_4_83) || defined (FIRMWARE_4_84) || defined (FIRMWARE_4_85) || defined(FIRMWARE_4_86) || defined(FIRMWARE_4_87) || defined(FIRMWARE_4_88) || defined(FIRMWARE_4_89)
+	#if defined (FIRMWARE_4_82)
+		uint64_t patch64=0x386000004e800020;
+		uint32_t patch32=0x38600000;
+		process_write_memory(vsh_process, (void *)0x253250, &patch64, 8, 1);
+		process_write_memory(vsh_process, (void *)0x252020, &patch64, 8, 1);//only on hen cause theres a check on signature of rif that R and S cant be completly 0. this patches that.
+		process_write_memory(vsh_process, (void *)0x255910, &patch32, 4, 1);
+		process_write_memory(vsh_process, (void *)0x255af0, &patch32, 4, 1);
+		patch32=0x60000000;
+		process_write_memory(vsh_process, (void *)0x255f68, &patch32, 4, 1);
+		patch32=0x38600000;
+		process_write_memory(vsh_process, (void *)0x2563d0, &patch32, 4, 1);
+		process_write_memory(vsh_process, (void *)0x256970, &patch32, 4, 1);
+		process_write_memory(vsh_process, (void *)0x5f4bcc, &patch64, 8, 1);
+		patch64=0x386000014e800020;
+		process_write_memory(vsh_process, (void *)0x5fc594, &patch64, 8, 1);
+
+	#elif defined (FIRMWARE_4_83) || defined (FIRMWARE_4_84) || defined (FIRMWARE_4_85) || defined(FIRMWARE_4_86) || defined(FIRMWARE_4_87) || defined(FIRMWARE_4_88) || defined(FIRMWARE_4_89)
 		uint64_t patch64=0x386000004e800020;
 		uint32_t patch32=0x38600000;
 		process_write_memory(vsh_process, (void *)0x253250, &patch64, 8, 1);
