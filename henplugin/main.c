@@ -976,7 +976,7 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 		unload_web_plugins();
 		
 		// Check for Webman-MOD and use PS3HEN-WMM Package Link
-		if((is_wmm_installed==1) && (is_hen_installing==1))
+		if((is_wmm_installed==1) && (is_hen_installing==1) && (build_type==!DEV))
 		{
 			DPRINTF("HENPLUGIN->Use WMM Update Package\n");
 			memset(pkg_path,0,256);
