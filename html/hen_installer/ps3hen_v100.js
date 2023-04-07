@@ -2000,7 +2000,13 @@ function dex()
 			break;
 			
 		case "4.82":
-			if(document.getElementById('dex').checked===true){loaddex_482();}//alert("calling loaddex_482");
+			if(document.getElementById('dex').checked===true)
+			{
+				alert('DEX Payload Will Now Download. Overwrite This File When Prompted!');
+				downloadhenD();
+				loaddex_482();
+			}
+			//alert("calling loaddex_482");
 			else {loadcex_482();}
 			disable_trigger();
 			break;
