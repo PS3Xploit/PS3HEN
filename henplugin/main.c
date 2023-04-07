@@ -1027,8 +1027,11 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 		}
 	}
 	else
-	{    
-		cellFsUnlink(pkg_path);
+	{   
+		// Removing temp packages
+		//cellFsUnlink(pkg_path);
+		cellFsUnlink("/dev_hdd0/Latest_HEN_Installer_signed.pkg");
+		cellFsUnlink("/dev_hdd0/Latest_HEN_Installer_WMM_signed.pkg");
 	}
 	
 done:
@@ -1058,7 +1061,15 @@ done:
 			cellFsUnlink("/dev_rewrite/vsh/resource/explore/xmb/zzz_hen_installed.tmp");// Remove temp file
 			//DPRINTF("Waiting for temporary zzz_hen_installed.tmp file to be removed\n");
 		}
-		if(tick_expire==0){reboot_ps3();}// Default Hard Reboot
+		if(tick_expire==0)
+		{
+			// Removing temp packages
+			DPRINTF("HENPLUGIN->Removing Temp Installer Packages");
+			cellFsUnlink("/dev_hdd0/Latest_HEN_Installer_signed.pkg");
+			cellFsUnlink("/dev_hdd0/Latest_HEN_Installer_WMM_signed.pkg");
+			
+			reboot_ps3();// Default Hard Reboot
+		}
 	}
 	
 	clear_web_cache_check();// Clear WebBrowser cache check (thanks xfrcc)
