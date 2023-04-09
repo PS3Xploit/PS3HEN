@@ -1429,6 +1429,7 @@ void unhook_all_modules(void)
 	suspend_intr();
 	#if defined(FIRMWARE_4_80) || defined(FIRMWARE_4_82) || defined(FIRMWARE_4_83) || defined(FIRMWARE_4_84) || defined(FIRMWARE_4_85) || defined(FIRMWARE_4_86) || defined(FIRMWARE_4_87) || defined(FIRMWARE_4_88) || defined(FIRMWARE_4_89) || defined(FIRMWARE_4_90)
 		*(uint32_t *)MKA(patch_func2_offset)=0x4BFDABC1;
+		
 	#elif defined(FIRMWARE_4_82DEX) || defined(FIRMWARE_4_84DEX)
 		*(uint32_t *)MKA(patch_func2_offset)=0x4BFDAB11;
 	#endif

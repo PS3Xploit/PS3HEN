@@ -217,7 +217,7 @@ static INLINE void get_next_read(int64_t discoffset, uint64_t bufsize, uint64_t 
 		base += discfile->sizes[i];
 	}
 	#ifdef DEBUG
-	DPRINTF("Offset or size out of range  %lx   %lx!!!!!!!!\n", discoffset, bufsize);
+		DPRINTF("Offset or size out of range  %lx   %lx!!!!!!!!\n", discoffset, bufsize);
 	#endif
 }
 
@@ -716,14 +716,14 @@ int process_proxy_cmd(uint64_t command, process_t process, uint8_t *buf, uint64_
 	if (!do_copy)
 	{
 		#ifdef DEBUG
-		DPRINTF("Native VSH read\n");
+			DPRINTF("Native VSH read\n");
 		#endif
 
 		ret = event_port_send(proxy_command_port, command, offset, (((uint64_t)buf)<<32ULL) | remaining);
 		if (ret != SUCCEEDED)
 		{
 			#ifdef DEBUG
-			DPRINTF("event_port send failed: %x\n", ret);
+				DPRINTF("event_port send failed: %x\n", ret);
 			#endif
 			return ret;
 		}
@@ -732,7 +732,7 @@ int process_proxy_cmd(uint64_t command, process_t process, uint8_t *buf, uint64_
 		if (ret != SUCCEEDED)
 		{
 			#ifdef DEBUG
-			DPRINTF("event_queue_receive failed: %x\n", ret);
+				DPRINTF("event_queue_receive failed: %x\n", ret);
 			#endif
 			return ret;
 		}
@@ -782,7 +782,7 @@ int process_proxy_cmd(uint64_t command, process_t process, uint8_t *buf, uint64_
 		if (ret != SUCCEEDED)
 		{
 			#ifdef DEBUG
-			DPRINTF("page_allocate failed: %x\n", ret);
+				DPRINTF("page_allocate failed: %x\n", ret);
 			#endif
 			return ret;
 		}
@@ -791,7 +791,7 @@ int process_proxy_cmd(uint64_t command, process_t process, uint8_t *buf, uint64_
 		if (ret != SUCCEEDED)
 		{
 			#ifdef DEBUG
-			DPRINTF("page_export_to_proc failed: %x\n", ret);
+				DPRINTF("page_export_to_proc failed: %x\n", ret);
 			#endif
 			page_free(vsh_process, kbuf, 0x2F);
 			return ret;
@@ -990,7 +990,7 @@ int read_psx_sector(void *dma, void *buf, uint64_t sector)
 	{
 		uint64_t x;
 
-                //cellFsLseek(discfd, (sector * cd_sector_size)+0x18, SEEK_SET, &x);
+        //cellFsLseek(discfd, (sector * cd_sector_size)+0x18, SEEK_SET, &x);
 		cellFsLseek(discfd, base_offset + (sector * cd_sector_size)+0x18, SEEK_SET, &x);
 		return cellFsRead(discfd, buf, 2048, &x);
 	}
@@ -1143,8 +1143,8 @@ int disable_patches()
 		unhook_function_with_precall(get_syscall_address(804),sys_fs_close,1);
 	#endif
 	
-		unhook_function_with_cond_postcall(get_syscall_address(724),bnet_ioctl,3);
-		//remove_pokes();
+	unhook_function_with_cond_postcall(get_syscall_address(724),bnet_ioctl,3);
+	//remove_pokes();
 		
 	#if defined (FIRMWARE_4_80) ||  defined (FIRMWARE_4_82) ||  defined (FIRMWARE_4_83) || defined (FIRMWARE_4_84) || defined(FIRMWARE_4_85) || defined(FIRMWARE_4_86) || defined(FIRMWARE_4_87) || defined(FIRMWARE_4_88) || defined(FIRMWARE_4_89) || defined(FIRMWARE_4_90)
 		suspend_intr();
@@ -1258,8 +1258,8 @@ int process_get_psx_video_mode(void)
 	}
 
 	#ifdef DEBUG
-	if(ret == SUCCEEDED) DPRINTF("NTSC\n");
-	if(ret == 1) DPRINTF("PAL\n");
+		if(ret == SUCCEEDED) DPRINTF("NTSC\n");
+		if(ret == 1) DPRINTF("PAL\n");
 	#endif
 
 	forced_video_mode = (ret + 1);
@@ -1349,7 +1349,7 @@ static int read_real_disc_sector (void *buf, uint64_t lba, uint32_t size, int re
 	cmd.sector_count = size;
 
 	#ifdef DEBUG
-	//DPRINTF("Read sector %lx\n", lba);
+		//DPRINTF("Read sector %lx\n", lba);
 	#endif
 
 	for (int i = 0; i < retries && ret != SUCCEEDED; i++)
@@ -1572,7 +1572,7 @@ LV2_PATCHED_FUNCTION(int, device_event, (event_port_t event_port, uint64_t event
 				mutex_lock(mutex, 0);
 
 			#ifdef DEBUG
-			DPRINTF("Disc removed.\n");
+				DPRINTF("Disc removed.\n");
 			#endif
 
 			if (effective_disctype == DEVICE_TYPE_PSX_CD)
@@ -1704,7 +1704,7 @@ LV2_HOOKED_FUNCTION_PRECALL_SUCCESS_2(int, post_storage_get_device_info, (uint64
 			}
 
 			#ifdef DEBUG
-			DPRINTF("Faked size to %lx\n", device_info->sector_count);
+				DPRINTF("Faked size to %lx\n", device_info->sector_count);
 			#endif
 		}
 
@@ -3873,8 +3873,8 @@ cd_sector_size = (trackscount & 0xffff00)>>4; //  <- Use: trackscount = num_of_t
 */
 	get_cd_sector_size(trackscount);
 	trackscount &= 0xff;
-        //DPRINTF("CD Sector size: %i\n", cd_sector_size);
-        //DPRINTF("Track count: %i\n", trackscount);
+    //DPRINTF("CD Sector size: %i\n", cd_sector_size);
+    //DPRINTF("Track count: %i\n", trackscount);
 	// --
 
 	if (emu_type == EMU_PSX)
@@ -3909,7 +3909,7 @@ cd_sector_size = (trackscount & 0xffff00)>>4; //  <- Use: trackscount = num_of_t
 				if (ret != SUCCEEDED)
 				{
 					#ifdef DEBUG
-					DPRINTF("Failed in connecting proxy result port/queue: %x\n", ret);
+						DPRINTF("Failed in connecting proxy result port/queue: %x\n", ret);
 					#endif
 					event_port_disconnect(proxy_command_port);
 				}
