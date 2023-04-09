@@ -4,15 +4,24 @@ Stackframe Mapping For PS3HEN v3
 ------------------------------------------------------------------------------
 PS3HEN.BIN Layout
 
-0x00000000 - 0x0006FFFF webkit stackframe base
+0x00000000 - 0x0006FFFF webkit (vsh) gadgets #1: stackframe base
 0x00070000 - 0x0007FFF7 sprx (max size: 0xFFF8)
-0x0007FFF8 - 0x0007FFFF size of stage2 (8 bytes)
+0x0007FFF8 - 0x0007FFFF size of stage2 (0x8 bytes)
 0x00080000 - 0x0009FFF7 stage2 (max size: 0x1FFF8)
+0x0009FFF8 - 0x000A0387 webkit (vsh) gadgets #2: ???
+0x000A0388 - 0x000A4FAF padding (all 0s) (0x4C28 bytes)
+0x000A4FB0 - 0x000A5EEF socket lv2 value 8000000000670000
+0x000A5EF0 - 0x000FFFDF padding (all 0s) (0x5A0F0 bytes)
+0x000FFFE0 - 0x00101FFF stackframe lv2/vsh offsets
+0x00102000 - 0x0010EFFF stage0 (max size: 0xD000)
+0x0010F000 - 0x0010FFFF padding ??? (all Fs) (0x1000 bytes)
+
+TOC Locations
 0x000A0044 - 0x000A0047 vsh toc
 0x000FFFF4 - 0x000FFFF7 vsh toc
-0x00100010 - 0x00101FFF stackframe lv2/vsh offsets
-0x001008B8 - 0x001008BF size of stage0 (8 bytes)
-0x00102000 - 0x0010EFFF stage0 (max size: 0xD000)
+
+Other offsets in between ranges
+0x001008B8 - 0x001008BF size of stage0 (0x8 bytes)
 ------------------------------------------------------------------------------
 
 
@@ -39,6 +48,9 @@ var gadget_mod8_addr_484=0x2BACB8;   // USED
 
 4.84 CEX Stackframe
 
+-----------------------
+0x00000000 - 0x0006FFFF
+-----------------------
 0x00000004	8FD8DCC0	sp_exit
 0x00000014	00013B74	gadget_mod2_addr
 0x0000007C	8D000000	wk_temp_addr_8D_stage0
@@ -272,8 +284,8 @@ var gadget_mod8_addr_484=0x2BACB8;   // USED
 0x00002CF4	00013B74	gadget_mod2_addr
 0x00002D5C	8D000128	socket id pointer / wk_temp_addr_8D_stage0+0x128
 
-********************************************************************
-THIS AREA REPEATS THIS MOSTLY UNTIL THE NEXT LISTED OFFSETS
+************************************************
+THIS AREA REPEATS UNTIL THE NEXT LISTED OFFSETS
 
 0x0000	000D9684	gadget_mod4a_addr
 0x0000	8FD8DCC0	sp_exit
@@ -288,8 +300,8 @@ THIS AREA REPEATS THIS MOSTLY UNTIL THE NEXT LISTED OFFSETS
 0x0000	00013B74	gadget_mod2_addr
 0x0000	8D00011C	socket id pointer / wk_temp_addr_8D_stage0+0xXXX
 
-THIS AREA REPEATS THIS MOSTLY UNTIL THE NEXT LISTED OFFSETS
-********************************************************************
+THIS AREA REPEATS UNTIL THE NEXT LISTED OFFSETS
+************************************************
 
 0x0005021C 8D0004F8 socket id pointer / wk_temp_addr_8D_stage0+0x4F8
 0x00050234 0042C778 gadget_mod4b_addr
@@ -349,8 +361,137 @@ THIS AREA REPEATS THIS MOSTLY UNTIL THE NEXT LISTED OFFSETS
 
 0x00065018 - 0x0006FFFC 00000000 padding
 
-0x0006FFFF END STACKFRAME
 
+-----------------------
+0x0009FFF8 - 0x000A0387
+-----------------------
+0x0009FFFC 8D000000 wk_temp_addr_8D_stage0
+0x000A0000 8A0A0000 wk_temp_addr_8A_stage0+0x0A0000
+0x000A0014 0060EFD8 gadget_mod1_addr
+0x000A003C 8A0A0040 wk_temp_addr_8A_stage0+0x0A0040
+0x000A0040 00010B24 ???
+0x000A0044 006F5558 toc
+0x000A0074 000002D4 ???
+0x000A008C 10007300 ???
+0x000A00BC 8D0003C4 wk_temp_addr_8D_stage0+0x0003C4
+0x000A00D4 0042C778 ???
+0x000A013C 8D000000 wk_temp_addr_8D_stage0
+0x000A0144 8FD8DCC0 sp_exit
+0x000A0154 00013B74 gadget_mod2_addr
+0x000A01BC 8D000000 wk_temp_addr_8D_stage0
+0x000A01D4 0060EFD8 gadget_mod1_addr
+0x000A0234 00000029 ???
+0x000A0294 00013B74 gadget_mod2_addr
+0x000A02FC 8D000000 wk_temp_addr_8D_stage0
+0x000A0314 000D9684 gadget_mod4a_addr
+0x000A0384 8FD8DCC0 sp_exit
+
+0x000A0388 - 0x000A4FAF 00000000 padding
+
+
+-----------------------
+0x000A4FB0 - 0x000A5EEF
+-----------------------
+0x000A4FB0 - 0x000A4FFF padding (comment)
+
+0x000A5000 80000000
+0x000A5004 00670000
+
+************************************************
+THIS AREA REPEATS UNTIL THE NEXT LISTED OFFSETS
+************************************************
+
+0x000A5EE8 80000000
+0x000A5EEC 00670000
+
+
+-----------------------
+0x000FFFE0 - 0x00101FFF
+-----------------------
+0x000FFFE0 424E4554 BNET
+0x000FFFE4 5F494F43 _IOC
+0x000FFFE8 544C0000 TL
+0x000FFFF0 00474750 unk12 lwz r11, 0(r3)
+0x000FFFF4 006F5558 toc
+0x00100000 4D595354 MYST
+0x00100004 41434B46 ACKF
+0x00100008 52414D45 RAME
+0x00100010 80000000 lv2 offset1
+0x00100014 00020E98 lv2 offset1
+0x00100038 80000000 lv2 offset2
+0x0010003C 00670040 lv2 offset2
+0x00100040 80000000 lv2 offset3
+0x00100044 00294828 lv2 offset3
+0x00100050 80000000 lv2 offset4
+0x00100054 00670000 lv2 offset4
+0x00100070 80000000 lv2 offset5
+0x00100074 0012EF58 lv2 offset5
+0x00100080 80000000 lv2 offset6
+0x00100084 00670090 lv2 offset6
+0x00100090 80000000 lv2 offset7
+0x00100094 0012EF58 lv2 offset7
+0x001000A0 80000000 lv2 offset8
+0x001000A4 0F003F80 lv2 offset8
+0x001000B0 80000000 lv2 offset9
+0x001000B4 00198468 lv2 offset9
+0x00100150 80000000 lv2 offset10
+0x00100154 0004060C lv2 offset10
+0x001001C8 80000000 lv2 offset11
+0x001001CC 007E0000 lv2 offset11
+0x00100200 80000000 lv2 offset12
+0x00100204 001648B8 lv2 offset12
+0x00100280 80000000 lv2 offset13
+0x00100284 0000BB78 lv2 offset13
+0x00100318 80000000 lv2 offset14
+0x0010031C 007E0000 lv2 offset14
+0x00100330 80000000 lv2 offset15
+0x00100334 007E0000 lv2 offset15
+0x00100338 80000000 lv2 offset16
+0x0010033C 007E0000 lv2 offset16
+0x00100350 80000000 lv2 offset17
+0x00100354 0005028C lv2 offset17
+0x0010035C 000003F8 ???
+0x00100380 80000000 lv2 offset18
+0x00100384 00004548 lv2 offset18
+0x001003DC 000003F8 ???
+0x00100400 80000000 lv2 offset19
+0x00100404 001648B8 lv2 offset19
+0x0010043C 000003F8 ???
+0x00100460 80000000 lv2 offset20
+0x00100464 000137D8 lv2 offset20
+0x00100480 80000000 lv2 offset21
+0x00100484 000137D8 lv2 offset21
+0x00100510 80000000 lv2 offset22
+0x00100514 0007B410 lv2 offset22
+0x00100574 00000001 ???
+0x00100640 80000000 lv2 offset23
+0x00100644 001648B8 lv2 offset23
+0x001006C0 80000000 lv2 offset24
+0x001006C4 00025A34 lv2 offset24
+0x00100750 80000000 lv2 offset25
+0x00100754 001D4B04 lv2 offset25
+0x001007D8 80000000 lv2 offset26
+0x001007DC 007F0000 lv2 offset26
+0x00100810 80000000 lv2 offset27
+0x00100814 00672000 lv2 offset27
+0x00100850 80000000 lv2 offset28
+0x00100854 001D4C58 lv2 offset28
+0x001008B8 00000000 size of stage2
+0x001008BC 000004D0 size of stage2
+0x00100950 80000000 lv2 offset29
+0x00100954 007F0000 lv2 offset29
+0x00100B54 10007060 ???
+0x00100B58 00000000 ???
+0x00100B5C 00000000 ???
+0x00100BE8 00000000 ???
+0x00100BEC 00000000 ???
+
+0x100BF0 - 0x101FFF FFFFFFFF padding 
+
+
+-----------------------
+0x00102000 - 0x0010EFFF
+-----------------------
 0x00102000	-> Insert Stage0 Payload
 
 
