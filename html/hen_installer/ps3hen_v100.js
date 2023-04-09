@@ -146,6 +146,53 @@ var progress_msg_frag1=hr+"<h1><b>Exploit Initialization..."+br+"<span style='co
 var progress_msg_frag2='%, please wait...</span></b></h1>';
 
 
+//CEX 4.80
+var toc_addr_480 = 0x6F5520;
+var default_vsh_pub_toc_480=0x6ED574;
+var vsh_opd_patch_480=0x096D5C;
+var vsh_opd_addr_480=0x6EBB38;
+var vsh_ps3hen_key_toc_480=0x707314;
+var vsh_toc_addr_screenshot_480=0x72054C;
+var toc_entry1_addr_480=0x6DA3D0;
+var toc_entry2_addr_480=0x7255D8;
+var toc_entry3_addr_480=0x6DA3C8;
+var toc_entry4_addr_480=0x740000;
+var toc_entry5_addr_480=0x6EB690;
+var toc_entry6_addr_480=0x0;
+var gadget1_addr_480=0x097604;
+var gadget2_addr_480=0x609694;
+var gadget3_addr_480=0x0D505C;
+var gadget4_addr_480=0x229834;
+var gadget5_addr_480=0x12BB1C;
+var gadget6_addr_480=0x61528C;//malloc
+var gadget7_addr_480=0x01FFD0;//memset
+var gadget8_addr_480=0x020000;//memcpy
+var gadget9_addr_480=0x029B08;
+var gadget10_addr_480=0x62D5D4;
+var gadget11_addr_480=0x59A09C;
+var gadget12_addr_480=0x0C864C;
+var gadget13_addr_480=0x48E594;//free
+var gadget14_addr_480=0x48C78C;
+var gadget15_addr_480=0x489C74;
+var gadget_mod1_addr_480=0x60E588;//
+var gadget_mod2_addr_480=0x013B74;
+var gadget_mod3_addr_480=0x0B8E00;
+var gadget_mod4a_addr_480=0x0D9684;//
+var gadget_mod4b_addr_480=0x42C780;//
+var gadget_mod4c_addr_480=0x054AF0;
+var gadget_mod5_addr_480=0x4238E4;
+var gadget_mod6_addr_480=0x4E23E0;
+var gadget_mod7_addr_480=0x01A6AC;
+var gadget_mod8_addr_480=0x2BACB0;
+var gadget_mod9_addr_480=0x010B20;
+var gadget_mod10_addr_480=0x1C5794;
+var gadget_mod11_addr_480=0x18B144;
+var gadget_mod12_addr_480=0x6327AC;
+var gadget_mod13_addr_480=0x336878;
+var gadget_mod14_addr_480=0x632EB0;
+var gadget_mod15_addr_480=0x39D040;
+var gadget_mod16_addr_480=0x4F7318;
+
 //DEX 4.81
 var toc_addr_481_d = 0x705610;
 var vsh_opd_addr_481_d=0x6FBC28;
@@ -250,7 +297,7 @@ var default_vsh_pub_toc_481=0x6ED574;
 var vsh_opd_patch_481=0x096D5C;
 var vsh_opd_addr_481=0x6EBB38;
 var vsh_ps3hen_key_toc_481=0x70733C;
-var vsh_toc_addr_screenshot_481=0x72057C;
+var vsh_toc_addr_screenshot_481=0x72014C;//0x72057C
 var toc_entry1_addr_481=0x6DA3D0;
 var toc_entry2_addr_481=0x725608;
 var toc_entry3_addr_481=0x6DA3C8;
@@ -1355,6 +1402,54 @@ function autoclose()
 function autoreboot()
 {
 }
+function loadcex_480()
+{
+	toc_addr = toc_addr_480;
+	vsh_opd_addr=vsh_opd_addr_480;
+	vsh_opd_patch=vsh_opd_patch_480;
+	vsh_toc_addr_screenshot=vsh_toc_addr_screenshot_480;
+	vsh_ps3hen_key_toc=vsh_ps3hen_key_toc_480;
+	default_vsh_pub_toc=default_vsh_pub_toc_480;
+	toc_entry1_addr=toc_entry1_addr_480;
+	toc_entry2_addr=toc_entry2_addr_480;
+	toc_entry3_addr=toc_entry3_addr_480;
+	toc_entry4_addr=toc_entry4_addr_480;
+	toc_entry5_addr=toc_entry5_addr_480;
+	toc_entry6_addr=toc_entry6_addr_480;
+	gadget1_addr=gadget1_addr_480;
+	gadget2_addr=gadget2_addr_480;
+	gadget3_addr=gadget3_addr_480;
+	gadget4_addr=gadget4_addr_480;
+	gadget5_addr=gadget5_addr_480;
+	gadget6_addr=gadget6_addr_480;
+	gadget7_addr=gadget7_addr_480;
+	gadget8_addr=gadget8_addr_480;
+	gadget9_addr=gadget9_addr_480;
+	gadget10_addr=gadget10_addr_480;
+	gadget11_addr=gadget11_addr_480;
+	gadget12_addr=gadget12_addr_480;
+	gadget13_addr=gadget13_addr_480;
+	gadget14_addr=gadget14_addr_480;
+	gadget15_addr=gadget15_addr_480;
+	gadget_mod1_addr=gadget_mod1_addr_480;
+	gadget_mod2_addr=gadget_mod2_addr_480;
+	gadget_mod3_addr=gadget_mod3_addr_480;
+	gadget_mod4a_addr=gadget_mod4a_addr_480;
+	gadget_mod4b_addr=gadget_mod4b_addr_480;
+	gadget_mod4c_addr=gadget_mod4c_addr_480;
+	gadget_mod5_addr=gadget_mod5_addr_480;
+	gadget_mod6_addr=gadget_mod6_addr_480;
+	gadget_mod7_addr=gadget_mod7_addr_480;
+	gadget_mod8_addr=gadget_mod8_addr_480;
+	gadget_mod9_addr=gadget_mod9_addr_480;
+	gadget_mod10_addr=gadget_mod10_addr_480;
+	gadget_mod11_addr=gadget_mod11_addr_480;
+	gadget_mod12_addr=gadget_mod12_addr_480;
+	gadget_mod13_addr=gadget_mod13_addr_480;
+	gadget_mod14_addr=gadget_mod14_addr_480;
+	gadget_mod15_addr=gadget_mod15_addr_480;
+	gadget_mod16_addr=gadget_mod16_addr_480;
+}
 function loaddex_481()
 {
 	toc_addr = toc_addr_481_d;
@@ -1993,6 +2088,12 @@ function dex()
 function dex()
 {
 	switch (fwVersion) {
+		case "4.80":
+			if(document.getElementById('dex').checked===true){loaddex_480();}//alert("calling loaddex_480");
+			else {loadcex_480();}
+			disable_trigger();
+			break;
+			
 		case "4.81":
 			if(document.getElementById('dex').checked===true){loaddex_481();}//alert("calling loaddex_481");
 			else {loadcex_481();}
@@ -2417,10 +2518,22 @@ function ps3chk(){
 	switch (uaStringCheck) {
 		case "PLAYSTATION":
 			switch (fwVersion) {
+				case fwCompat[22]:
+					//alert(msgHFW);
+					initDEX();
+					loadcex_480();
+					break;
+					
+				case fwCompat[23]:
+					//alert(msgHFW);
+					initDEX();
+					loadcex_481();
+					break;
+					
 				case fwCompat[24]:
 					//alert(msgHFW);
 					initDEX();
-					//loadcex_482();
+					loadcex_482();
 					break;
 					
 				case fwCompat[25]:
@@ -2432,7 +2545,7 @@ function ps3chk(){
 				case fwCompat[26]:
 					//alert(msgHFW);
 					initDEX();
-					//loadcex_484();
+					loadcex_484();
 					break;
 					
 				case fwCompat[27]:
@@ -2472,7 +2585,7 @@ function ps3chk(){
 					break;					
 					
 				default:
-					alert('Your PS3 is not on FW 4.82 - 4.90! Your current running FW version is ' + fwVersion + ', which is not compatible with PS3HEN. All features have been disabled');
+					alert('Your PS3 is not on FW 4.80 - 4.90! Your current running FW version is ' + fwVersion + ', which is not compatible with PS3HEN. All features have been disabled');
 					disable_all();
 					break;
 			}

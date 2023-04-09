@@ -578,7 +578,7 @@
 //#define sys_toc_symbol 0x80000000003759C0
 //#define sys_tty_write_symbol 0x800000000027550C
 
-#elif defined(FIRMWARE_4_90)
+#elif defined(FIRMWARE_4_80) || defined(FIRMWARE_4_90)
 
 #define TOC 											0x34FBA0
 

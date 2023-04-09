@@ -1079,7 +1079,7 @@ int enable_patches()
 			hook_function_with_precall(get_syscall_address(804),sys_fs_close,1);
 			#endif
 			hook_function_with_cond_postcall(get_syscall_address(724),bnet_ioctl,3);
-		#if defined (FIRMWARE_4_82) ||  defined (FIRMWARE_4_83) || defined (FIRMWARE_4_84) || defined(FIRMWARE_4_85) || defined(FIRMWARE_4_86) || defined(FIRMWARE_4_87) || defined(FIRMWARE_4_88) || defined(FIRMWARE_4_89) || defined(FIRMWARE_4_90)
+		#if defined (FIRMWARE_4_80) ||  defined (FIRMWARE_4_82) ||  defined (FIRMWARE_4_83) || defined (FIRMWARE_4_84) || defined(FIRMWARE_4_85) || defined(FIRMWARE_4_86) || defined(FIRMWARE_4_87) || defined(FIRMWARE_4_88) || defined(FIRMWARE_4_89) || defined(FIRMWARE_4_90)
 			hook_function_with_cond_postcall(um_if_get_token_symbol,um_if_get_token,5);
 			hook_function_with_cond_postcall(update_mgr_read_eeprom_symbol,read_eeprom_by_offset,3);
 		#endif
@@ -1100,7 +1100,7 @@ int disable_patches()
  		do_patch32(MKA(patch_func8_offset2),0x4821B4BD);
 		do_patch32(MKA(lic_patch),0x482584B5); // ignore LIC.DAT check
 		//do_patch(MKA(vsh_patch),0xE92280087C0802A6); // VSH Attach to Debugger
-	#elif defined (FIRMWARE_4_90)
+	#elif defined (FIRMWARE_4_80) || defined (FIRMWARE_4_90)
 		do_patch32(MKA(patch_func8_offset2),0x48216FAD);
 		do_patch32(MKA(lic_patch),0x48240EE5); // ignore LIC.DAT check
 	#endif
@@ -1131,7 +1131,7 @@ int disable_patches()
 	#endif
 		unhook_function_with_cond_postcall(get_syscall_address(724),bnet_ioctl,3);
 		//remove_pokes();
-	#if defined (FIRMWARE_4_82) ||  defined (FIRMWARE_4_83) || defined (FIRMWARE_4_84) || defined(FIRMWARE_4_85) || defined(FIRMWARE_4_86) || defined(FIRMWARE_4_87) || defined(FIRMWARE_4_88) || defined(FIRMWARE_4_89) || defined(FIRMWARE_4_90)
+	#if defined (FIRMWARE_4_80) ||  defined (FIRMWARE_4_82) ||  defined (FIRMWARE_4_83) || defined (FIRMWARE_4_84) || defined(FIRMWARE_4_85) || defined(FIRMWARE_4_86) || defined(FIRMWARE_4_87) || defined(FIRMWARE_4_88) || defined(FIRMWARE_4_89) || defined(FIRMWARE_4_90)
 		suspend_intr();
 		unhook_function_with_cond_postcall(um_if_get_token_symbol,um_if_get_token,5);
 		unhook_function_with_cond_postcall(update_mgr_read_eeprom_symbol,read_eeprom_by_offset,3);
@@ -2468,11 +2468,12 @@ static INLINE void do_video_mode_patch(void)
 		{
 			DPRINTF("Doing patch %08X\n", patch);
 			//copy_to_user(&patch, (void *)(vmode_patch_offset+0x10000), 4);
-			//TODO: check 4.82 offset
-			#if defined (FIRMWARE_4_83) ||  defined (FIRMWARE_4_84) || defined (FIRMWARE_4_85) || defined(FIRMWARE_4_86) || defined(FIRMWARE_4_87) || defined(FIRMWARE_4_88) || defined(FIRMWARE_4_89)
-			process_write_memory(vsh_process, (void *)0x4531DC, &patch, 4, 1);
-			#elif defined(FIRMWARE_4_90)
-			process_write_memory(vsh_process, (void *)0x4531D8, &patch, 4, 1);	
+			#if defined (FIRMWARE_4_80)
+				process_write_memory(vsh_process, (void *)0x4531E4, &patch, 4, 1);	
+			#elif defined (FIRMWARE_4_82) ||  defined (FIRMWARE_4_83) ||  defined (FIRMWARE_4_84) || defined (FIRMWARE_4_85) || defined(FIRMWARE_4_86) || defined(FIRMWARE_4_87) || defined(FIRMWARE_4_88) || defined(FIRMWARE_4_89)
+				process_write_memory(vsh_process, (void *)0x4531DC, &patch, 4, 1);
+			#elif defined (FIRMWARE_4_90)
+				process_write_memory(vsh_process, (void *)0x4531D8, &patch, 4, 1);	
 			#endif
 		}
 	}
@@ -3998,7 +3999,7 @@ void storage_ext_init(void)
 		patch64=0x386000014e800020;
 		process_write_memory(vsh_process, (void *)0x5fc634, &patch64, 8, 1);
 		
-	#elif defined(FIRMWARE_4_90)	
+	#elif defined(FIRMWARE_4_80) || defined(FIRMWARE_4_90)
 		uint64_t patch64=0x386000004e800020;
 		uint32_t patch32=0x38600000;
 		process_write_memory(vsh_process, (void *)0x25324C, &patch64, 8, 1);
@@ -4043,7 +4044,7 @@ void unhook_all_storage_ext(void)
 #if defined (FIRMWARE_4_82) || defined (FIRMWARE_4_83) || defined (FIRMWARE_4_84) || defined(FIRMWARE_4_85) || defined(FIRMWARE_4_86) || defined(FIRMWARE_4_87) || defined(FIRMWARE_4_88) || defined(FIRMWARE_4_89)
 	*(uint32_t *)MKA(device_event_port_send_call)=0x4BD91004;
 	*(uint32_t *)MKA(shutdown_copy_params_call)=0x48004FBD;
-#elif defined(FIRMWARE_4_90)
+#elif defined(FIRMWARE_4_80) || defined(FIRMWARE_4_90)
 	*(uint32_t *)MKA(device_event_port_send_call)=0x4BD9100C;
 	*(uint32_t *)MKA(shutdown_copy_params_call)=0x48004FB9;
 #elif defined(FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX)
