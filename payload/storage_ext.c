@@ -1019,18 +1019,20 @@ uint32_t find_file_sector(uint8_t *buf, char *file)
 
 
 	#ifdef DEBUG
-	DPRINTF("%s not found\n", file);
+		DPRINTF("%s not found\n", file);
 	#endif
 
 	return 0;
 }
 #if defined(FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX)
-int sys_fs_open(const char *path, int flags, int *fd, uint64_t mode, const void *arg, uint64_t size);
+	int sys_fs_open(const char *path, int flags, int *fd, uint64_t mode, const void *arg, uint64_t size);
 #endif
+
 int bnet_ioctl(int socket,uint32_t flags, void* buffer);
+	
 #if defined(FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX)
-int sys_fs_read(int fd, void *buf, uint64_t nbytes, uint64_t *nread);
-int sys_fs_close(int fd);
+	int sys_fs_read(int fd, void *buf, uint64_t nbytes, uint64_t *nread);
+	int sys_fs_close(int fd);
 #endif
 void debug_install(void);
 void debug_uninstall(void);
@@ -1041,49 +1043,55 @@ int enable_patches()
 {
 	DPRINTF("enabling patches!\n");
 	suspend_intr();
-			#if defined (FIRMWARE_4_82DEX) ||  defined (FIRMWARE_4_84DEX)
-				//do_patch(MKA(vsh_patch),0x386000014E800020); // VSH Attach to Debugger
-			#endif
-			//do_patch32(MKA(patch_data1_offset), 0x01000000);
-			do_patch32(MKA(module_sdk_version_patch_offset), NOP);
-			do_patch32(MKA(patch_func8_offset1),0x38600000);
-			do_patch32(MKA(patch_func8_offset2),0x60000000);
-			do_patch32(MKA(user_thread_prio_patch),0x60000000); // for NetISO
-			do_patch32(MKA(user_thread_prio_patch2),0x60000000); // for NetISO
-			do_patch32(MKA(ECDSA_1),0x38600000);
-			do_patch32(MKA(lic_patch),0x38600001); // ignore LIC.DAT check
-			do_patch32(MKA(patch_func9_offset),0x60000000);
-			do_patch32(MKA(fix_80010009),0x60000000);
-			do_patch(MKA(ode_patch),0x38600000F8690000); // fix 0x8001002B / 80010017 errors  known as ODE patch
-			do_patch(MKA(ECDSA_2),0x386000004e800020);
-			do_patch(MKA(mem_base2),0x386000014e800020); // psjailbreak, PL3, etc destroy this function to copy their code there.
-			do_patch(MKA(fix_8001003D),0x63FF003D60000000);
-			do_patch(MKA(fix_8001003E),0x3FE080013BE00000);
-			do_patch(MKA(PATCH_JUMP),0x2F84000448000098);
+		#if defined (FIRMWARE_4_82DEX) ||  defined (FIRMWARE_4_84DEX)
+			//do_patch(MKA(vsh_patch),0x386000014E800020); // VSH Attach to Debugger
+		#endif
+		
+		//do_patch32(MKA(patch_data1_offset), 0x01000000);
+		do_patch32(MKA(module_sdk_version_patch_offset), NOP);
+		do_patch32(MKA(patch_func8_offset1),0x38600000);
+		do_patch32(MKA(patch_func8_offset2),0x60000000);
+		do_patch32(MKA(user_thread_prio_patch),0x60000000); // for NetISO
+		do_patch32(MKA(user_thread_prio_patch2),0x60000000); // for NetISO
+		do_patch32(MKA(ECDSA_1),0x38600000);
+		do_patch32(MKA(lic_patch),0x38600001); // ignore LIC.DAT check
+		do_patch32(MKA(patch_func9_offset),0x60000000);
+		do_patch32(MKA(fix_80010009),0x60000000);
+		do_patch(MKA(ode_patch),0x38600000F8690000); // fix 0x8001002B / 80010017 errors  known as ODE patch
+		do_patch(MKA(ECDSA_2),0x386000004e800020);
+		do_patch(MKA(mem_base2),0x386000014e800020); // psjailbreak, PL3, etc destroy this function to copy their code there.
+		do_patch(MKA(fix_8001003D),0x63FF003D60000000);
+		do_patch(MKA(fix_8001003E),0x3FE080013BE00000);
+		do_patch(MKA(PATCH_JUMP),0x2F84000448000098);
 
-			*(uint64_t *)MKA(ECDSA_FLAG)=0;
+		*(uint64_t *)MKA(ECDSA_FLAG)=0;
 		//	do_pokes();
 		//	*(uint64_t *)(r4+8)=0; //ecdsa flag
+		
 		#ifdef DEBUG
-		debug_hook();
+			debug_hook();
 		#endif
+		
 		do_hook_all_syscalls();
-			region_patches();
-			modules_patch_init();
-			map_path_patches(0);
-
-			storage_ext_patches();
-			#if defined(FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX)
+		region_patches();
+		modules_patch_init();
+		map_path_patches(0);
+		storage_ext_patches();
+		
+		#if defined(FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX)
 			hook_function_with_precall(get_syscall_address(801),sys_fs_open,6);
 			hook_function_with_precall(get_syscall_address(802),sys_fs_read,4);
 			hook_function_with_precall(get_syscall_address(804),sys_fs_close,1);
-			#endif
-			hook_function_with_cond_postcall(get_syscall_address(724),bnet_ioctl,3);
+		#endif
+		
+		hook_function_with_cond_postcall(get_syscall_address(724),bnet_ioctl,3);
+		
 		#if defined (FIRMWARE_4_80) ||  defined (FIRMWARE_4_82) ||  defined (FIRMWARE_4_83) || defined (FIRMWARE_4_84) || defined(FIRMWARE_4_85) || defined(FIRMWARE_4_86) || defined(FIRMWARE_4_87) || defined(FIRMWARE_4_88) || defined(FIRMWARE_4_89) || defined(FIRMWARE_4_90)
 			hook_function_with_cond_postcall(um_if_get_token_symbol,um_if_get_token,5);
 			hook_function_with_cond_postcall(update_mgr_read_eeprom_symbol,read_eeprom_by_offset,3);
 		#endif
-resume_intr();
+		
+	resume_intr();
 
 	return 0;
 }
@@ -1092,45 +1100,52 @@ int disable_patches()
 {
 	DPRINTF("disabling patches\n");
 	suspend_intr();
-			do_patch32(MKA(patch_func8_offset1),0x7FE307B4);
+	do_patch32(MKA(patch_func8_offset1),0x7FE307B4);
+	
 	#if defined (FIRMWARE_4_82) || defined (FIRMWARE_4_83) || defined (FIRMWARE_4_84) || defined(FIRMWARE_4_85) || defined(FIRMWARE_4_86) || defined(FIRMWARE_4_87) || defined(FIRMWARE_4_88) || defined(FIRMWARE_4_89)
 		do_patch32(MKA(patch_func8_offset2),0x48216FB5);
 		do_patch32(MKA(lic_patch),0x48240EED); // ignore LIC.DAT check
+		
 	#elif defined (FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX)
  		do_patch32(MKA(patch_func8_offset2),0x4821B4BD);
 		do_patch32(MKA(lic_patch),0x482584B5); // ignore LIC.DAT check
 		//do_patch(MKA(vsh_patch),0xE92280087C0802A6); // VSH Attach to Debugger
+		
 	#elif defined (FIRMWARE_4_80) || defined (FIRMWARE_4_90)
 		do_patch32(MKA(patch_func8_offset2),0x48216FAD);
 		do_patch32(MKA(lic_patch),0x48240EE5); // ignore LIC.DAT check
 	#endif
-		do_patch32(MKA(module_sdk_version_patch_offset), 0x419D0008);        
-		do_patch32(MKA(user_thread_prio_patch),0x419DFF84); // for NetISO
-		do_patch32(MKA(user_thread_prio_patch2),0x419D0258); // for NetISO
-		do_patch32(MKA(ECDSA_1),0x7FE307B4);
-		do_patch32(MKA(patch_func9_offset),0x419e00ac);
-		do_patch32(MKA(fix_80010009),0x419e00ac);
-		do_patch(MKA(ode_patch),0xE86900007C6307B4); // fix 0x8001002B / 80010017 errors  known as ODE patch
-		do_patch(MKA(ECDSA_2),0xF821FE617CE802A6);
-		do_patch(MKA(mem_base2),0xF821FEB17C0802A6); // psjailbreak, PL3, etc destroy this function to copy their code there.
-		do_patch(MKA(fix_8001003D),0x63FF003D419EFFD4);
-		do_patch(MKA(fix_8001003E),0x3FE0800163FF003E);
-		do_patch(MKA(PATCH_JUMP),0x2F840004409C0048);
+	
+	do_patch32(MKA(module_sdk_version_patch_offset), 0x419D0008);        
+	do_patch32(MKA(user_thread_prio_patch),0x419DFF84); // for NetISO
+	do_patch32(MKA(user_thread_prio_patch2),0x419D0258); // for NetISO
+	do_patch32(MKA(ECDSA_1),0x7FE307B4);
+	do_patch32(MKA(patch_func9_offset),0x419e00ac);
+	do_patch32(MKA(fix_80010009),0x419e00ac);
+	do_patch(MKA(ode_patch),0xE86900007C6307B4); // fix 0x8001002B / 80010017 errors  known as ODE patch
+	do_patch(MKA(ECDSA_2),0xF821FE617CE802A6);
+	do_patch(MKA(mem_base2),0xF821FEB17C0802A6); // psjailbreak, PL3, etc destroy this function to copy their code there.
+	do_patch(MKA(fix_8001003D),0x63FF003D419EFFD4);
+	do_patch(MKA(fix_8001003E),0x3FE0800163FF003E);
+	do_patch(MKA(PATCH_JUMP),0x2F840004409C0048);
 
-		*(uint64_t *)MKA(ECDSA_FLAG)=0;
-		resume_intr();
-		unhook_all_modules();
+	*(uint64_t *)MKA(ECDSA_FLAG)=0;
+	resume_intr();
+	unhook_all_modules();
 
-		unhook_all_storage_ext();
-		unhook_all_region();
-		unhook_all_map_path();
+	unhook_all_storage_ext();
+	unhook_all_region();
+	unhook_all_map_path();
+	
 	#if defined(FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX)
 		unhook_function_with_precall(get_syscall_address(801),sys_fs_open,6);
 		unhook_function_with_precall(get_syscall_address(802),sys_fs_read,4);
 		unhook_function_with_precall(get_syscall_address(804),sys_fs_close,1);
 	#endif
+	
 		unhook_function_with_cond_postcall(get_syscall_address(724),bnet_ioctl,3);
 		//remove_pokes();
+		
 	#if defined (FIRMWARE_4_80) ||  defined (FIRMWARE_4_82) ||  defined (FIRMWARE_4_83) || defined (FIRMWARE_4_84) || defined(FIRMWARE_4_85) || defined(FIRMWARE_4_86) || defined(FIRMWARE_4_87) || defined(FIRMWARE_4_88) || defined(FIRMWARE_4_89) || defined(FIRMWARE_4_90)
 		suspend_intr();
 		unhook_function_with_cond_postcall(um_if_get_token_symbol,um_if_get_token,5);
@@ -1139,10 +1154,12 @@ int disable_patches()
 	#endif
 
 	remove_syscall_handler();
+	
 	#ifdef DEBUG
 		debug_uninstall();
-		#endif
-		return 0;
+	#endif
+	
+	return 0;
 }
 
 int process_get_psx_video_mode(void)
@@ -1316,8 +1333,9 @@ void dispatch_thread_entry(uint64_t arg)
 	}
 
 	#ifdef DEBUG
-	//DPRINTF("Exiting dispatch thread %d\n", ret);
+		//DPRINTF("Exiting dispatch thread %d\n", ret);
 	#endif
+	
 	ppu_thread_exit(0);
 }
 
@@ -1437,7 +1455,7 @@ void process_disc_insert(uint32_t disctype)
 	fake_disctype = 0;
 	emu_ps3_rec = 0;
 	#ifdef DEBUG
-	DPRINTF("real disc type = %x\n", real_disctype);
+		DPRINTF("real disc type = %x\n", real_disctype);
 	#endif
 
 	switch (disc_emulation)
@@ -1521,7 +1539,7 @@ void process_disc_insert(uint32_t disctype)
 	}
 
 	#ifdef DEBUG
-	DPRINTF("effective disc type = %x, fake disc type = %x\n", effective_disctype, fake_disctype);
+		DPRINTF("effective disc type = %x, fake disc type = %x\n", effective_disctype, fake_disctype);
 	#endif
 }
 
@@ -1529,7 +1547,7 @@ LV2_PATCHED_FUNCTION(int, device_event, (event_port_t event_port, uint64_t event
 {
 	int lock = !loop;
 	#ifdef DEBUG
-	DPRINTF("Storage event: %lx  %lx  %lx\n", event, param, device);
+		DPRINTF("Storage event: %lx  %lx  %lx\n", event, param, device);
 	#endif
 
 	if (device == BDVD_DRIVE)
@@ -1594,10 +1612,10 @@ int do_read_iso(void *buf, uint64_t offset, uint64_t size)
 	}
 
 	#ifdef DEBUG
-	if (ret != SUCCEEDED)
-	{
-		DPRINTF("Read failed: %x\n", ret);
-	}
+		if (ret != SUCCEEDED)
+		{
+			DPRINTF("Read failed: %x\n", ret);
+		}
 	#endif
 
 	return ret;
@@ -1611,7 +1629,7 @@ LV2_HOOKED_FUNCTION_COND_POSTCALL_8(int, emu_read_bdvd0, (void *object, uint64_t
 
 	if (disc_emulation != EMU_OFF)
 	{
-#ifdef DEBUG
+	#ifdef DEBUG
 		DPRINTF("Warning: emu_read_bdvd0 called.\n");
 		dump_stack_trace2(16);
 
@@ -1621,8 +1639,8 @@ LV2_HOOKED_FUNCTION_COND_POSTCALL_8(int, emu_read_bdvd0, (void *object, uint64_t
 			//dump_stack_trace2(16);
 			fatal("aborting.\n");
 		}
-#endif
-		ret = do_read_iso(buf, offset, size);
+	#endif
+	ret = do_read_iso(buf, offset, size);
 
 	}
 
@@ -1863,10 +1881,12 @@ int process_generic_iso_scsi_cmd(uint8_t *indata, uint64_t inlen, uint8_t *outda
 		}
 		break;
 
-		/*default:
+			/*
+			default:
 			#ifdef DEBUG
-			DPRINTF("Command %s outlen=%ld\n", get_scsi_cmd_name(indata[0]), outlen);
-			#endif*/
+				DPRINTF("Command %s outlen=%ld\n", get_scsi_cmd_name(indata[0]), outlen);
+			#endif
+			*/
 	}
 
 	return 1;
@@ -1990,7 +2010,7 @@ int process_cd_iso_scsi_cmd(uint8_t *indata, uint64_t inlen, uint8_t *outdata, u
 			if (GET_FORMAT(cmd) != FORMAT_TOC)
 			{
 				#ifdef DEBUG
-				DPRINTF("Requesting something other than TOC: %d!!\nPassing command to real function.", GET_FORMAT(cmd));
+					DPRINTF("Requesting something other than TOC: %d!!\nPassing command to real function.", GET_FORMAT(cmd));
 				#endif
 				return 0;
 			}
@@ -1998,7 +2018,7 @@ int process_cd_iso_scsi_cmd(uint8_t *indata, uint64_t inlen, uint8_t *outdata, u
 			if (GET_MSF(cmd))
 			{
 				#ifdef DEBUG
-				DPRINTF("Warning: requesting tracks in MSF format. Not implemented.\n");
+					DPRINTF("Warning: requesting tracks in MSF format. Not implemented.\n");
 				#endif
 				return -1;
 			}
@@ -2117,7 +2137,7 @@ int process_cd_iso_scsi_cmd(uint8_t *indata, uint64_t inlen, uint8_t *outdata, u
 			if (is2048)
 			{
 				#ifdef DEBUG
-				DPRINTF("READ TRACK INFORMATION not implemented for 2048 cd iso!\n");
+					DPRINTF("READ TRACK INFORMATION not implemented for 2048 cd iso!\n");
 				#endif
 				return -1;
 			}
@@ -2125,7 +2145,7 @@ int process_cd_iso_scsi_cmd(uint8_t *indata, uint64_t inlen, uint8_t *outdata, u
 			if (cmd->rv_o_type != 1)
 			{
 				#ifdef DEBUG
-				DPRINTF("rv_o_type = %x, not implemented\n", cmd->rv_o_type);
+					DPRINTF("rv_o_type = %x, not implemented\n", cmd->rv_o_type);
 				#endif
 				return -1;
 			}
@@ -2135,7 +2155,7 @@ int process_cd_iso_scsi_cmd(uint8_t *indata, uint64_t inlen, uint8_t *outdata, u
 			if (cmd->lba_tsn == 0 || cmd->lba_tsn > numtracks)
 			{
 				#ifdef DEBUG
-				DPRINTF("Invalid track %d\n", cmd->lba_tsn);
+					DPRINTF("Invalid track %d\n", cmd->lba_tsn);
 				#endif
 				return -1;
 			}
@@ -2240,7 +2260,7 @@ int process_cd_iso_scsi_cmd(uint8_t *indata, uint64_t inlen, uint8_t *outdata, u
 			else if (cmd->misc != 0xF8 && cmd->misc != 0x10)
 			{
 				#ifdef DEBUG
-				DPRINTF("Unexpected value for misc: %02X\n", cmd->misc);
+					DPRINTF("Unexpected value for misc: %02X\n", cmd->misc);
 				#endif
 				return -1;
 			}
@@ -2248,7 +2268,7 @@ int process_cd_iso_scsi_cmd(uint8_t *indata, uint64_t inlen, uint8_t *outdata, u
 			if (cmd->rv_scsb != 0 && cmd->rv_scsb != 2)
 			{
 				#ifdef DEBUG
-				DPRINTF("Unexpected value for subchannel: %02X\n", cmd->rv_scsb);
+					DPRINTF("Unexpected value for subchannel: %02X\n", cmd->rv_scsb);
 				#endif
 				return -1;
 			}
@@ -2256,7 +2276,7 @@ int process_cd_iso_scsi_cmd(uint8_t *indata, uint64_t inlen, uint8_t *outdata, u
 			if (GET_EXPECTED_SECTOR_TYPE(cmd) != 0)
 			{
 				#ifdef DEBUG
-				DPRINTF("Unexpected value for expected sector type: %d\n", GET_EXPECTED_SECTOR_TYPE(cmd));
+					DPRINTF("Unexpected value for expected sector type: %d\n", GET_EXPECTED_SECTOR_TYPE(cmd));
 				#endif
 				return -1;
 			}
@@ -2268,7 +2288,7 @@ int process_cd_iso_scsi_cmd(uint8_t *indata, uint64_t inlen, uint8_t *outdata, u
 			if (is2048)
 			{
 				#ifdef DEBUG
-				DPRINTF("Read CD on 2048 iso (lba=0x%x, length=0x%x)!!! Not implemented.\n", lba, length);
+					DPRINTF("Read CD on 2048 iso (lba=0x%x, length=0x%x)!!! Not implemented.\n", lba, length);
 				#endif
 				return 0; // Fallback to real disc, let's see what happens :)
 			}
@@ -2396,8 +2416,8 @@ int process_cd_iso_scsi_cmd(uint8_t *indata, uint64_t inlen, uint8_t *outdata, u
 
 			return 1;
 			//#ifdef DEBUG
-			//DPRINTF("READ CD, sector %x size %x, expected sector type: %d\n", cmd->lba, s, GET_EXPECTED_SECTOR_TYPE(cmd));
-			//DPRINTF("Misc: %02X, rv_scsb: %02X, outlen = %lu\n", cmd->misc, cmd->rv_scsb, outlen);
+				//DPRINTF("READ CD, sector %x size %x, expected sector type: %d\n", cmd->lba, s, GET_EXPECTED_SECTOR_TYPE(cmd));
+				//DPRINTF("Misc: %02X, rv_scsb: %02X, outlen = %lu\n", cmd->misc, cmd->rv_scsb, outlen);
 			//#endif
 
 		}
@@ -2468,10 +2488,13 @@ static INLINE void do_video_mode_patch(void)
 		{
 			DPRINTF("Doing patch %08X\n", patch);
 			//copy_to_user(&patch, (void *)(vmode_patch_offset+0x10000), 4);
+			
 			#if defined (FIRMWARE_4_80)
 				process_write_memory(vsh_process, (void *)0x4531E4, &patch, 4, 1);	
+				
 			#elif defined (FIRMWARE_4_82) ||  defined (FIRMWARE_4_83) ||  defined (FIRMWARE_4_84) || defined (FIRMWARE_4_85) || defined(FIRMWARE_4_86) || defined(FIRMWARE_4_87) || defined(FIRMWARE_4_88) || defined(FIRMWARE_4_89)
 				process_write_memory(vsh_process, (void *)0x4531DC, &patch, 4, 1);
+				
 			#elif defined (FIRMWARE_4_90)
 				process_write_memory(vsh_process, (void *)0x4531D8, &patch, 4, 1);	
 			#endif
@@ -2510,7 +2533,7 @@ int process_cmd(unsigned int command, void *indata, uint64_t inlen, void *outdat
 				memset(outdata, 0, outlen);
 				memcpy(outdata, &ret, (sizeof(ret) > outlen) ? sizeof(ret) : outlen);
 				#ifdef DEBUG
-				DPRINTF("FAKING to %16lx\n", ret);
+					DPRINTF("FAKING to %16lx\n", ret);
 				#endif
 				return 1;
 			}
@@ -2892,7 +2915,7 @@ static void build_netemu_params(uint8_t *ps2_soft, uint8_t *ps2_net)
 	if (cellFsOpen("/dev_hdd0/tmp/game/ps2bootparam.dat", CELL_FS_O_WRONLY | CELL_FS_O_CREAT | CELL_FS_O_TRUNC, &fd, 0666, NULL, 0) != 0)
 	{
 		#ifdef DEBUG
-		DPRINTF("Cannot open ps2bootparam.dat\n");
+			DPRINTF("Cannot open ps2bootparam.dat\n");
 		#endif
 		return;
 	}
@@ -2902,8 +2925,8 @@ static void build_netemu_params(uint8_t *ps2_soft, uint8_t *ps2_net)
 
 	// netemu ps2bootparam.dat has a format very similar to softemu sm arguments
 	ps2_soft[11] = 3;
-//	ps2_soft[6] = 0xba;
-//	ps2_soft[7] = 0x2e;
+	//ps2_soft[6] = 0xba;
+	//ps2_soft[7] = 0x2e;
 	ps2_soft[0x4d0] = 8;
 	ps2_soft[0x4d7] = 6;
 	strcpy((char *)ps2_soft+12, "--COBRA--");
@@ -3089,7 +3112,7 @@ static void build_netemu_params(uint8_t *ps2_soft, uint8_t *ps2_net)
 	if (cellFsOpen("/dev_hdd0/tmp/ps2bootparambkp.dat", CELL_FS_O_WRONLY | CELL_FS_O_CREAT | CELL_FS_O_TRUNC, &fd, 0666, NULL, 0) != 0)
 	{
 		#ifdef DEBUG
-		DPRINTF("Cannot open ps2bootparam.dat\n");
+			DPRINTF("Cannot open ps2bootparam.dat\n");
 		#endif
 		return;
 	}
@@ -3112,14 +3135,14 @@ LV2_HOOKED_FUNCTION(int, shutdown_copy_params_patched, (uint8_t *argp_user, uint
 	else if (param == 0x8204) /* Reboot into ps2_netemu LPAR */
 	{
 		#ifdef DEBUG
-		DPRINTF("Reboot into ps2_netemu LPAR (0x8204), ps2emu_type = %i\n", ps2emu_type);
+			DPRINTF("Reboot into ps2_netemu LPAR (0x8204), ps2emu_type = %i\n", ps2emu_type);
 		#endif
 
 		// Delete ps2emu config file when ps2_netemu is loaded on BC/Semi-BC Consoles to fix the issue with ISO redirection
 		if(ps2emu_type==PS2EMU_HW || ps2emu_type==PS2EMU_GX)
 		{
 			#ifdef DEBUG
-			DPRINTF("Deleting %s\n", PS2EMU_CONFIG_FILE);
+				DPRINTF("Deleting %s\n", PS2EMU_CONFIG_FILE);
 			#endif
 			cellFsUnlink(PS2EMU_CONFIG_FILE);
 		}
@@ -3321,7 +3344,7 @@ static INLINE int check_files_and_allocate(unsigned int filescount, char *files[
 		}
 
 		#ifdef DEBUG
-		DPRINTF("%s, filesize: %lx\n", files[i], stat.st_size);
+			DPRINTF("%s, filesize: %lx\n", files[i], stat.st_size);
 		#endif
 
 		if (stat.st_size < 4096 + base_offset)
@@ -3553,7 +3576,7 @@ int mount_ps2_discfile(unsigned int filescount, char *files[], unsigned int trac
 		uint64_t pos, nread;
 		uint8_t buf[0xB0];
 
-                //ret = cellFsOpen(files[0], CELL_FS_O_RDONLY, &fd, 0, NULL, 0);
+        //ret = cellFsOpen(files[0], CELL_FS_O_RDONLY, &fd, 0, NULL, 0);
 		ret = cellFsOpen(files[0], CELL_FS_O_RDONLY, &fd, base_offset, NULL, 0);
 		if (ret != SUCCEEDED)
 			return ret;
@@ -3698,7 +3721,7 @@ int sys_storage_ext_get_emu_state(sys_emu_state_t *state)
 	if (state->size != sizeof(sys_emu_state_t))
 	{
 		#ifdef DEBUG
-		DPRINTF("Unknown structure size: %d, expected %ld\n", state->size, sizeof(sys_emu_state_t));
+			DPRINTF("Unknown structure size: %d, expected %ld\n", state->size, sizeof(sys_emu_state_t));
 		#endif
 		return EINVAL;
 	}
@@ -4027,14 +4050,18 @@ void storage_ext_patches(void)
 	hook_function_with_cond_postcall(read_bdvd0_symbol, emu_read_bdvd0, 8);
 	hook_function_with_cond_postcall(read_bdvd1_symbol, emu_read_bdvd1, 4); // iso9660 driver func
 	hook_function_with_cond_postcall(read_bdvd2_symbol, emu_read_bdvd2, 3);	 // udf driver func
+	
 	// High level functions
 	hook_function_with_cond_postcall(storage_read_symbol, emu_storage_read, 7);
 	hook_function_with_cond_postcall(get_syscall_address(SYS_STORAGE_ASYNC_READ), emu_sys_storage_async_read, 7);
+	
 	// Command functions
 	hook_function_with_cond_postcall(storage_send_device_command_symbol, emu_storage_send_device_command, 7);
 	hook_function_with_cond_postcall(get_syscall_address(SYS_STORAGE_ASYNC_SEND_DEVICE_COMMAND), emu_sys_storage_async_send_device_command, 7);
+	
 	// SS function
 	hook_function_with_cond_postcall(get_syscall_address(864), emu_disc_auth, 2);
+	
 	// For PS2
 	patch_call(shutdown_copy_params_call, shutdown_copy_params_patched);
 }
@@ -4044,9 +4071,11 @@ void unhook_all_storage_ext(void)
 #if defined (FIRMWARE_4_82) || defined (FIRMWARE_4_83) || defined (FIRMWARE_4_84) || defined(FIRMWARE_4_85) || defined(FIRMWARE_4_86) || defined(FIRMWARE_4_87) || defined(FIRMWARE_4_88) || defined(FIRMWARE_4_89)
 	*(uint32_t *)MKA(device_event_port_send_call)=0x4BD91004;
 	*(uint32_t *)MKA(shutdown_copy_params_call)=0x48004FBD;
+	
 #elif defined(FIRMWARE_4_80) || defined(FIRMWARE_4_90)
 	*(uint32_t *)MKA(device_event_port_send_call)=0x4BD9100C;
 	*(uint32_t *)MKA(shutdown_copy_params_call)=0x48004FB9;
+	
 #elif defined(FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX)
 	*(uint32_t *)MKA(device_event_port_send_call)=0x4BD7CAC4;
 	*(uint32_t *)MKA(shutdown_copy_params_call)=0x48005585;
