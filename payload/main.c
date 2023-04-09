@@ -1249,7 +1249,7 @@ void cleanup_files(void)
 
 
 // Hotkey Buttons pressed at launch
-//static int mappath_disabled=0;// Disable all mappath mappings at launch
+static int mappath_disabled=0;// Disable all mappath mappings at launch
 static int boot_plugins_disabled=0;// Disable user and kernel plugins on launch
 
 static void check_combo_buttons(void);
@@ -1260,15 +1260,15 @@ static void check_combo_buttons(void)
 	timer_usleep(40000);
 	
 	if (pad_get_data(&onboot) >= ((PAD_BTN_OFFSET_DIGITAL+1)*2)){
-/*
+
 		if((onboot.button[PAD_BTN_OFFSET_DIGITAL] & (PAD_CTRL_L2)) == (PAD_CTRL_L2)){
 
 			mappath_disabled=1;
 			#ifdef DEBUG
-				DPRINTF("PAYLOAD->L2 Pressed: mappath remappings disabled\n");
+				//DPRINTF("PAYLOAD->L2 Pressed: mappath remappings disabled\n");
 			#endif
 		}
-*/
+
 		if((onboot.button[PAD_BTN_OFFSET_DIGITAL] & (PAD_CTRL_R2)) == (PAD_CTRL_R2)){
 
 			boot_plugins_disabled=1;
@@ -1345,10 +1345,13 @@ int main(void)
 	check_combo_buttons();
 	
 	// File and folder redirections using mappath mappings
-	//map_path("/dev_hdd0/hen/xml","/dev_flash/hen/remap/xml",FLAG_MAX_PRIORITY|FLAG_PROTECT); // Remap path to XML
-	map_path("/dev_hdd0/hen/xml/hfw_settings.xml","/dev_flash/hen/remap/xml/hfw_settings.xml",FLAG_MAX_PRIORITY|FLAG_PROTECT); // Enable HFW Tools on Launch 2.3.3+
-	map_path("/dev_hdd0/hen/xml/hen_pkg_manager_full.xml","/dev_flash/hen/remap/xml/hen_pkg_manager_full.xml",FLAG_MAX_PRIORITY|FLAG_PROTECT); // Show PKG Manager
-	map_path("/dev_hdd0/hen/xml/hen_enable.xml","/dev_flash/hen/remap/xml/hen_enable.xml",FLAG_MAX_PRIORITY|FLAG_PROTECT); // Hide Enable HEN Menu Item
+	if(mappath_disabled==0)
+	{
+		//map_path("/dev_hdd0/hen/xml","/dev_flash/hen/remap/xml",FLAG_MAX_PRIORITY|FLAG_PROTECT); // Remap path to XML
+		map_path("/dev_hdd0/hen/xml/hfw_settings.xml","/dev_flash/hen/remap/xml/hfw_settings.xml",FLAG_MAX_PRIORITY|FLAG_PROTECT); // Enable HFW Tools on Launch 2.3.3+
+		map_path("/dev_hdd0/hen/xml/hen_pkg_manager_full.xml","/dev_flash/hen/remap/xml/hen_pkg_manager_full.xml",FLAG_MAX_PRIORITY|FLAG_PROTECT); // Show PKG Manager
+		map_path("/dev_hdd0/hen/xml/hen_enable.xml","/dev_flash/hen/remap/xml/hen_enable.xml",FLAG_MAX_PRIORITY|FLAG_PROTECT); // Hide Enable HEN Menu Item
+	}
 	
 	#ifdef DEBUG
 		printMappingList();
