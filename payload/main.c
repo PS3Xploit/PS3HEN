@@ -1265,7 +1265,7 @@ static void check_combo_buttons(void)
 
 			mappath_disabled=1;
 			#ifdef DEBUG
-				//DPRINTF("PAYLOAD->L2 Pressed: mappath remappings disabled\n");
+				DPRINTF("PAYLOAD->L2 Pressed: mappath remappings disabled\n");
 			#endif
 		}
 
@@ -1273,7 +1273,7 @@ static void check_combo_buttons(void)
 
 			boot_plugins_disabled=1;
 			#ifdef DEBUG
-				//DPRINTF("PAYLOAD->R2 Pressed: boot plugins disabled\n");
+				DPRINTF("PAYLOAD->R2 Pressed: boot plugins disabled\n");
 			#endif
 		}
 	}
