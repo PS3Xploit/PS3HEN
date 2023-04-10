@@ -407,7 +407,7 @@ static void downloadPKG_thread2(void)
 	uint64_t valD=peekq(0x800000000031F028ULL);// DEX
 	
 	// 4.80 CEX
-	if(val==0x323031362F30332FULL)
+	if(val==0x3A32350000000000ULL)
 	{
 		if(build_type==RELEASE)
 		{
