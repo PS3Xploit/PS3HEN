@@ -17,7 +17,7 @@ set PSP_EMULATOR=pspemu/psp_emulator.self
 set PEMUCORELIB=pspemu/release/PEmuCoreLib.sprx
 set EMULATOR_API=pspemu/release/emulator_api.sprx
 set EMULATOR_DRM=pspemu/release/emulator_drm.sprx
-::set EMULATOR_DRM_DATA=pspemu/release/
+set EMULATOR_DRM_DATA=pspemu/release/emulator_drm.sprx
 set LIBSYSUTIL_SAVEDATA_PSP=sys/external/libsysutil_savedata_psp.sprx
 set LIBAUDIO=sys/external/libaudio.sprx
 set VSH=vsh/module/vsh.self
@@ -41,7 +41,7 @@ set PSP_EMULATOR_HASH=0
 set PEMUCORELIB_HASH=0
 set EMULATOR_API_HASH=0
 set EMULATOR_DRM_HASH=0
-::set EMULATOR_DRM_DATA_HASH=0
+set EMULATOR_DRM_DATA_HASH=0
 set LIBSYSUTIL_SAVEDATA_PSP_HASH=0
 set LIBAUDIO_HASH=0
 set VSH_HASH=0
@@ -124,9 +124,9 @@ hashcalc.exe %EMULATOR_DRM% | find "Section 0: " > tmp.txt
 (for /f "tokens=2,* delims= " %%a in (tmp.txt) do set EMULATOR_DRM_HASH=%%b)
 echo #define EMULATOR_DRM_HASH %EMULATOR_DRM_HASH%>>hashlist.txt
 
-::hashcalc.exe %EMULATOR_DRM_DATA% | find "Section 0: " > tmp.txt
-::(for /f "tokens=2,* delims= " %%a in (tmp.txt) do set EMULATOR_DRM_DATA_HASH=%%b)
-::echo #define EMULATOR_DRM_DATA_HASH %EMULATOR_DRM_DATA_HASH%>>hashlist.txt
+hashcalc.exe %EMULATOR_DRM_DATA% | find "Section 1: " > tmp.txt
+(for /f "tokens=2,* delims= " %%a in (tmp.txt) do set EMULATOR_DRM_DATA_HASH=%%b)
+echo #define EMULATOR_DRM_DATA_HASH %EMULATOR_DRM_DATA_HASH%>>hashlist.txt
 
 hashcalc.exe %LIBSYSUTIL_SAVEDATA_PSP% | find "Section 0: " > tmp.txt
 (for /f "tokens=2,* delims= " %%a in (tmp.txt) do set LIBSYSUTIL_SAVEDATA_PSP_HASH=%%b)
