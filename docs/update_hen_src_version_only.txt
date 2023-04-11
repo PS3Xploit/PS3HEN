@@ -13,9 +13,25 @@ PS3HEN/henplugin/main.c
 1) Change lv2 kernel date string in hex (323032302F30372F = 2020/07/)
 2) Change path on server to pkg (/4XX/cex/)
 
-else if(val==0x323032302F30372FULL)
+else if(val==0x323031372F30382FULL)
 	{
-		download_interface->DownloadURL(0,(wchar_t *) L"http://ps3xploit.com/hen/release/487/cex/installer/Latest_HEN_Installer_signed.pkg", (wchar_t *) L"/dev_hdd0");
+		if(build_type==RELEASE)
+		{
+			if(use_wmm_pkg==1)
+			{
+				DPRINTF("Downloading PKG: http://www.ps3xploit.me/hen/release/482/cex/installer/Latest_HEN_Installer_WMM_signed.pkg\n");
+				download_interface->DownloadURL(0, (wchar_t *) L"http://www.ps3xploit.me/hen/release/482/cex/installer/Latest_HEN_Installer_WMM_signed.pkg", (wchar_t *) L"/dev_hdd0");
+			}
+			else
+			{
+				DPRINTF("Downloading PKG: http://www.ps3xploit.me/hen/release/482/cex/installer/Latest_HEN_Installer_signed.pkg\n");
+				download_interface->DownloadURL(0, (wchar_t *) L"http://www.ps3xploit.me/hen/release/482/cex/installer/Latest_HEN_Installer_signed.pkg", (wchar_t *) L"/dev_hdd0");
+			}
+		}
+		else{
+			DPRINTF("Downloading PKG: http://www.ps3xploit.me/hen/dev/482/cex/installer/Latest_HEN_Installer_signed.pkg\n");
+			download_interface->DownloadURL(0, (wchar_t *) L"http://www.ps3xploit.me/hen/dev/482/cex/installer/Latest_HEN_Installer_signed.pkg", (wchar_t *) L"/dev_hdd0");
+			}
 	}	
 --------------------------------------------------------------
 	
