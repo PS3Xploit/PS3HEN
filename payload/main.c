@@ -1293,20 +1293,11 @@ void is_hen_being_installed(void)
 		#ifdef DEBUG
 			DPRINTF("PAYLOAD->HEN is being installed\n");
 			//DPRINTF("PAYLOAD->read_bytes value: %08X\n", (unsigned int)*read_bytes);
-			//DPRINTF("PAYLOAD->Removing /dev_hdd0/boot_plugins.txt\n");
-			//DPRINTF("PAYLOAD->Removing /dev_hdd0/boot_plugins_kernel.txt\n");
 		#endif
 		
 		// Delete Boot Plugins Text Files
 		cellFsUnlink("/dev_hdd0/boot_plugins.txt");
 		cellFsUnlink("/dev_hdd0/boot_plugins_kernel.txt");
-		cellFsUnlink("/dev_hdd0/boot_plugins_noncobra.txt");
-		cellFsUnlink("/dev_usb000/boot_plugins.txt");
-		cellFsUnlink("/dev_usb000/boot_plugins_kernel.txt");
-		cellFsUnlink("/dev_usb000/boot_plugins_noncobra.txt");
-		cellFsUnlink("/dev_usb001/boot_plugins.txt");
-		cellFsUnlink("/dev_usb001/boot_plugins_kernel.txt");
-		cellFsUnlink("/dev_usb001/boot_plugins_noncobra.txt");
 		
 		// Create temp file for henplugin to read, to show message
 		cellFsOpen("/dev_hdd0/tmp/installer.active", CELL_FS_O_CREAT | CELL_FS_O_RDWR, &fd, 0777, NULL, 0);
