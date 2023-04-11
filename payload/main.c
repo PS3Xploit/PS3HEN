@@ -63,6 +63,8 @@
 
 #if defined(FIRMWARE_4_80)
 	#define FIRMWARE_VERSION	0x0480
+#elif defined(FIRMWARE_4_81)
+	#define FIRMWARE_VERSION	0x0481
 #elif defined(FIRMWARE_4_82)
 	#define FIRMWARE_VERSION	0x0482
 #elif defined(FIRMWARE_4_82DEX)
@@ -1207,7 +1209,7 @@ static INLINE void apply_kernel_patches(void)
 		hook_function_with_precall(get_syscall_address(802),sys_fs_read,4);
 	#endif
 	
-	#if defined (FIRMWARE_4_80) || defined (FIRMWARE_4_82) || defined (FIRMWARE_4_83) || defined (FIRMWARE_4_84) || defined (FIRMWARE_4_85) || defined (FIRMWARE_4_86) || defined (FIRMWARE_4_87) || defined (FIRMWARE_4_88) || defined (FIRMWARE_4_89) || defined (FIRMWARE_4_90)
+	#if defined (FIRMWARE_4_80) || defined (FIRMWARE_4_81) || defined (FIRMWARE_4_82) || defined (FIRMWARE_4_83) || defined (FIRMWARE_4_84) || defined (FIRMWARE_4_85) || defined (FIRMWARE_4_86) || defined (FIRMWARE_4_87) || defined (FIRMWARE_4_88) || defined (FIRMWARE_4_89) || defined (FIRMWARE_4_90)
 		hook_function_with_cond_postcall(um_if_get_token_symbol,um_if_get_token,5);
 		hook_function_with_cond_postcall(update_mgr_read_eeprom_symbol,read_eeprom_by_offset,3);
 	#endif

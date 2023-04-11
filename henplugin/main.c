@@ -428,8 +428,30 @@ static void downloadPKG_thread2(void)
 			}
 	}
 	
+	// 4.81 CEX
+	else if(val==0x323031362F31302FULL)
+	{
+		if(build_type==RELEASE)
+		{
+			if(use_wmm_pkg==1)
+			{
+				DPRINTF("Downloading PKG: http://www.ps3xploit.me/hen/release/481/cex/installer/Latest_HEN_Installer_WMM_signed.pkg\n");
+				download_interface->DownloadURL(0, (wchar_t *) L"http://www.ps3xploit.me/hen/release/481/cex/installer/Latest_HEN_Installer_WMM_signed.pkg", (wchar_t *) L"/dev_hdd0");
+			}
+			else
+			{
+				DPRINTF("Downloading PKG: http://www.ps3xploit.me/hen/release/481/cex/installer/Latest_HEN_Installer_signed.pkg\n");
+				download_interface->DownloadURL(0, (wchar_t *) L"http://www.ps3xploit.me/hen/release/481/cex/installer/Latest_HEN_Installer_signed.pkg", (wchar_t *) L"/dev_hdd0");
+			}
+		}
+		else{
+			DPRINTF("Downloading PKG: http://www.ps3xploit.me/hen/dev/481/cex/installer/Latest_HEN_Installer_signed.pkg\n");
+			download_interface->DownloadURL(0, (wchar_t *) L"http://www.ps3xploit.me/hen/dev/481/cex/installer/Latest_HEN_Installer_signed.pkg", (wchar_t *) L"/dev_hdd0");
+			}
+	}
+	
 	// 4.82 CEX
-	if(val==0x323031372F30382FULL)
+	else if(val==0x323031372F30382FULL)
 	{
 		if(build_type==RELEASE)
 		{
