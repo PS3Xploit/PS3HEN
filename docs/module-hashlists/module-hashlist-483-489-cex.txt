@@ -1,5 +1,5 @@
 #define BDP_DISC_CHECK_PLUGIN_HASH		0xb8b7a5f900003000
-#define EXPLORE_PLUGIN_HASH				0xacf4af2b000ec000 // 4.84-4.88 has 4.84 DEX version and 4.89 has 4.89 CEX version of this module
+#define EXPLORE_PLUGIN_HASH				0xacf4af2b000ec000
 #define PS1_EMU_HASH					0x7a6cd7c70009b000
 #define PS1_NETEMU_HASH 				0x7a30b792000be000
 #define GAME_EXT_PLUGIN_HASH			0xe274af7b0001e000
