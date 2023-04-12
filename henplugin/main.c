@@ -32,6 +32,7 @@
 #include "game_ext_plugin.h"
 #include "xmb_plugin.h"
 #include "xregistry.h"
+//#include "paf.h"
 
 #include <sys/sys_time.h>
 #include <sys/types.h>
@@ -96,24 +97,22 @@ int (*vshtask_notify)(int, const char *) = NULL;
 //static int (*vshmain_is_ss_enabled)(void) = NULL;
 static int (*View_Find)(const char *) = NULL;
 static void *(*plugin_GetInterface)(int,int) = NULL;
-//static uint32_t *(*RCO_PlaySound)(uint32_t, const char *, float, int) = NULL;
+
 /*
 static int (*set_SSHT_)(int) = NULL;
 
 static int opd[2] = {0, 0};
 */
+
 #define IS_INSTALLING		(View_Find("game_plugin") != 0)
 #define IS_INSTALLING_NAS	(View_Find("nas_plugin") != 0)
 #define IS_DOWNLOADING		(View_Find("download_plugin") != 0)
-//#define IS_PLAYING_SOUND	(View_Find("system_plugin") != 0)
 
-// Example: paf_B93AFE7E( paf_F21655F3("system_plugin"), "snd_trophy", 1, 0)
-//extern void paf_B93AFE7E(uint32_t plugin, const char *sound, float arg1, int arg2);
-//Example: PlayRCOSound( FindLoadedPlugin("system_plugin"), "snd_trophy", 1, 0)
-//#define PlayRCOSound paf_B93AFE7E
+// Play RCO Sound
+extern void paf_B93AFE7E(uint32_t plugin, const char *sound, float arg1, int arg2);
+#define PlayRCOSound paf_B93AFE7E
 
 // Category IDs: 0 User 1 Setting 2 Photo 3 Music 4 Video 5 TV 6 Game 7 Net 8 PSN 9 Friend
-
 typedef struct
 {
 	int (*DoUnk0)(void);  // 1 Parameter: int value 0 - 4
@@ -212,12 +211,28 @@ static void * getNIDfunc(const char * vsh_module, uint32_t fnid, int offset)
 	return (int)p1;
 }*/
 
+// LED Control (thanks aldostools)
+#define SC_SYS_CONTROL_LED				(386)
+#define LED_GREEN			1
+#define LED_RED				2
+#define LED_YELLOW			2 //RED+GREEN (RED alias due green is already on)
+#define LED_OFF			0
+#define LED_ON			1
+#define LED_BLINK_FAST		2
+#define LED_BLINK_SLOW		3
+static void led(uint64_t color, uint64_t mode)
+{
+	system_call_2(SC_SYS_CONTROL_LED, (uint64_t)color, (uint64_t)mode);
+}
+
+// Reboot PS3
 int reboot_flag=0;
 void reboot_ps3(void);
 void reboot_ps3(void)
 {
 	cellFsUnlink("/dev_hdd0/tmp/turnoff");
-	system_call_3(379, 0x1200, 0, 0);
+	system_call_3(379, 0x200, 0, 0);// Soft Reboot
+	//system_call_3(379, 0x1200, 0, 0);// Hard Reboot
 }
 
 static void show_msg(char* msg)
@@ -901,6 +916,21 @@ void restore_act_dat(void)
 	}
 }
 
+// Shamelessly taken and modified from webmanMOD (thanks aldostools)
+static void play_rco_sound(const char *sound)
+{
+	//const char *system_plugin = (char*)"system_plugin";
+	//char *sep = strchr(sound, '|'); if(sep) {*sep = NULL, system_plugin = sep + 1;}
+	View_Find = getNIDfunc("paf", 0xF21655F3, 0);
+	uint32_t plugin = View_Find("system_plugin");
+	//uint32_t plugin = View_Find(system_plugin);
+	if(plugin)
+	{
+		PlayRCOSound(plugin, sound, 1, 0);
+		DPRINTF("HENPLUGIN->PlayRCOSound(%0X, %s, 1, 0)",plugin,sound);
+	}
+}
+
 static int tick_max=1000,tick_count=0,tick_expire=0;// Used for breaking out of while loop if package install hangs
 
 static void henplugin_thread(__attribute__((unused)) uint64_t arg)
@@ -909,7 +939,6 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 	
 	View_Find = getNIDfunc("paf", 0xF21655F3, 0);
 	plugin_GetInterface = getNIDfunc("paf", 0x23AFB290, 0);
-	//RCO_PlaySound = getNIDfunc("paf", 0xB93AFE7E, 0);
 	int view = View_Find("explore_plugin");
 	system_call_1(8, SYSCALL8_OPCODE_HEN_REV); hen_version = (int)p1;
 	char henver[0x30];
@@ -943,6 +972,8 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 	// Emergency USB HEN Installer
 	if(cellFsStat("/dev_usb000/HEN_UPD.pkg",&stat)==0)
 	{
+		play_rco_sound("snd_trophy");
+		led(LED_YELLOW,LED_BLINK_FAST);
 		//DPRINTF("Installing Emergency Package From USB\n");
 		tick_count=0;// Reset tick count for package installation
 		char hen_usb_update[0x80];
@@ -985,7 +1016,7 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 	if(cellFsStat("/dev_hdd0/tmp/installer.active",&stat)==0)
 	{
 		is_hen_installing=1;
-		//RCO_PlaySound(IS_PLAYING_SOUND, "snd_trophy", 1, 0);
+		play_rco_sound("snd_trophy");
 		char msg_boot_plugins[0x80];
 		if(is_wmm_installed==1)
 		{
@@ -1004,6 +1035,7 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 	
 	if((do_install_hen!=0) || (do_update==1))
 	{
+		led(LED_YELLOW,LED_BLINK_FAST);
 		int is_browser_open=View_Find("webbrowser_plugin");
 		
 		while(is_browser_open)
@@ -1086,13 +1118,17 @@ done:
 	
 	if(reboot_flag==1)
 	{
+		play_rco_sound("snd_trophy");
+		
 		char reboot_txt[0x80];
 		if(tick_expire==0)
 		{
+			led(LED_GREEN,LED_ON);
 			sprintf(reboot_txt, "Installation Complete!\n\nPrepare For Reboot...");
 		}
 		else
 		{
+			led(LED_RED,LED_BLINK_FAST);
 			sprintf(reboot_txt, "Error: Unable To Verify Installation!\nYou Must Reboot Manually!");
 		}
 		show_msg((char *)reboot_txt);
@@ -1112,7 +1148,7 @@ done:
 			cellFsUnlink("/dev_hdd0/Latest_HEN_Installer_signed.pkg");
 			cellFsUnlink("/dev_hdd0/Latest_HEN_Installer_WMM_signed.pkg");
 			
-			reboot_ps3();// Default Hard Reboot
+			reboot_ps3();// Default Soft Reboot
 		}
 	}
 	
