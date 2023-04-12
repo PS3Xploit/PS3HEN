@@ -927,7 +927,7 @@ static void play_rco_sound(const char *sound)
 	if(plugin)
 	{
 		PlayRCOSound(plugin, sound, 1, 0);
-		DPRINTF("HENPLUGIN->PlayRCOSound(%0X, %s, 1, 0)",plugin,sound);
+		DPRINTF("HENPLUGIN->PlayRCOSound(%0X, %s, 1, 0)\n",plugin,sound);
 	}
 }
 
