@@ -1016,7 +1016,7 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 	if(cellFsStat("/dev_hdd0/tmp/installer.active",&stat)==0)
 	{
 		is_hen_installing=1;
-		play_rco_sound("snd_trophy");
+		//play_rco_sound("snd_trophy");
 		char msg_boot_plugins[0x80];
 		if(is_wmm_installed==1)
 		{
@@ -1119,6 +1119,8 @@ done:
 	if(reboot_flag==1)
 	{
 		play_rco_sound("snd_trophy");
+		led(LED_YELLOW,LED_OFF);
+		led(LED_GREEN,LED_OFF);
 		
 		char reboot_txt[0x80];
 		if(tick_expire==0)
