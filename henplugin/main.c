@@ -919,11 +919,8 @@ void restore_act_dat(void)
 // Shamelessly taken and modified from webmanMOD (thanks aldostools)
 static void play_rco_sound(const char *sound)
 {
-	//const char *system_plugin = (char*)"system_plugin";
-	//char *sep = strchr(sound, '|'); if(sep) {*sep = NULL, system_plugin = sep + 1;}
 	View_Find = getNIDfunc("paf", 0xF21655F3, 0);
 	uint32_t plugin = View_Find("system_plugin");
-	//uint32_t plugin = View_Find(system_plugin);
 	if(plugin)
 	{
 		PlayRCOSound(plugin, sound, 1, 0);
