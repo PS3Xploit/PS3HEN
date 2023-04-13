@@ -964,13 +964,16 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 	
 	// Remove temp install check file here in case a package was installed containing it
 	// If the file exists before the pkg install starts, it will cause an early reboot trigger
-	cellFsUnlink("/dev_rewrite/vsh/resource/explore/xmb/zzz_hen_installed.tmp");
+	cellFsUnlink("/dev_rewrite/vsh/resource/explore/zzz_hen_installed.tmp");
 
 	// Emergency USB HEN Installer
 	if(cellFsStat("/dev_usb000/HEN_UPD.pkg",&stat)==0)
 	{
 		play_rco_sound("snd_trophy");
+		led(LED_YELLOW,LED_OFF);
+		led(LED_GREEN,LED_OFF);
 		led(LED_YELLOW,LED_BLINK_FAST);
+		led(LED_GREEN,LED_BLINK_FAST);
 		//DPRINTF("Installing Emergency Package From USB\n");
 		tick_count=0;// Reset tick count for package installation
 		char hen_usb_update[0x80];
@@ -983,7 +986,7 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 		{
 			sys_timer_usleep(70000);
 		}
-		while(cellFsStat("/dev_rewrite/vsh/resource/explore/xmb/zzz_hen_installed.tmp",&stat)!=0)
+		while(cellFsStat("/dev_rewrite/vsh/resource/explore/zzz_hen_installed.tmp",&stat)!=0)
 		{
 			sys_timer_usleep(70000);
 			tick_count++;
@@ -1030,9 +1033,17 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 	do_update=(cellFsStat("/dev_hdd0/hen_updater.off",&stat) ? hen_updater() : 0);// 20211011 Added update toggle thanks bucanero for original PR
 	//DPRINTF("Checking do_update: %i\n",do_update);
 	
+	// Removing temp installer packages so old ones can't be installed
+	DPRINTF("HENPLUGIN->Removing Temp Installer Packages\n");
+	cellFsUnlink("/dev_hdd0/Latest_HEN_Installer_signed.pkg");
+	cellFsUnlink("/dev_hdd0/Latest_HEN_Installer_WMM_signed.pkg");
+	
 	if((do_install_hen!=0) || (do_update==1))
 	{
+		led(LED_YELLOW,LED_OFF);
+		led(LED_GREEN,LED_OFF);
 		led(LED_YELLOW,LED_BLINK_FAST);
+		led(LED_GREEN,LED_BLINK_FAST);
 		int is_browser_open=View_Find("webbrowser_plugin");
 		
 		while(is_browser_open)
@@ -1073,7 +1084,7 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 		}
 		
 		// Fail Safe here in case of manual/other placement of file, will still reboot properly
-		cellFsUnlink("/dev_rewrite/vsh/resource/explore/xmb/zzz_hen_installed.tmp");
+		cellFsUnlink("/dev_rewrite/vsh/resource/explore/zzz_hen_installed.tmp");
 		
 		if(cellFsStat(pkg_path,&stat)==0)
 		{
@@ -1086,7 +1097,7 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 			
 			// The package is now installing
 			tick_count=0;// Reset tick count for package installation
-			while(cellFsStat("/dev_rewrite/vsh/resource/explore/xmb/zzz_hen_installed.tmp",&stat)!=0)
+			while(cellFsStat("/dev_rewrite/vsh/resource/explore/zzz_hen_installed.tmp",&stat)!=0)
 			{
 				//DPRINTF("tick_count: %i\n",tick_count);
 				sys_timer_usleep(70000);
@@ -1103,8 +1114,8 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 	{   
 		// Removing temp packages
 		//cellFsUnlink(pkg_path);
-		cellFsUnlink("/dev_hdd0/Latest_HEN_Installer_signed.pkg");
-		cellFsUnlink("/dev_hdd0/Latest_HEN_Installer_WMM_signed.pkg");
+		//cellFsUnlink("/dev_hdd0/Latest_HEN_Installer_signed.pkg");
+		//cellFsUnlink("/dev_hdd0/Latest_HEN_Installer_WMM_signed.pkg");
 	}
 	
 done:
@@ -1134,19 +1145,14 @@ done:
 		sys_timer_usleep(8000000);// Wait a few seconds
 		
 		// Verify the temp file is removed
-		while(cellFsStat("/dev_rewrite/vsh/resource/explore/xmb/zzz_hen_installed.tmp",&stat)==0)
+		while(cellFsStat("/dev_rewrite/vsh/resource/explore/zzz_hen_installed.tmp",&stat)==0)
 		{
 			sys_timer_usleep(70000);
-			cellFsUnlink("/dev_rewrite/vsh/resource/explore/xmb/zzz_hen_installed.tmp");// Remove temp file
+			cellFsUnlink("/dev_rewrite/vsh/resource/explore/zzz_hen_installed.tmp");// Remove temp file
 			//DPRINTF("Waiting for temporary zzz_hen_installed.tmp file to be removed\n");
 		}
 		if(tick_expire==0)
 		{
-			// Removing temp packages
-			DPRINTF("HENPLUGIN->Removing Temp Installer Packages");
-			cellFsUnlink("/dev_hdd0/Latest_HEN_Installer_signed.pkg");
-			cellFsUnlink("/dev_hdd0/Latest_HEN_Installer_WMM_signed.pkg");
-			
 			reboot_ps3();// Default Soft Reboot
 		}
 	}
