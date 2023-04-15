@@ -225,6 +225,36 @@ static void led(uint64_t color, uint64_t mode)
 	system_call_2(SC_SYS_CONTROL_LED, (uint64_t)color, (uint64_t)mode);
 }
 
+// Some LED Presets
+void set_led(const char* preset);
+void set_led(const char* preset)
+{
+	DPRINTF("HENPLUGIN->set_led->preset: %s\n",preset);
+	
+	if(strcmp(preset, "install_start") == 0)
+	{
+		DPRINTF("HENPLUGIN->set_led->install_start\n");
+		led(LED_RED, LED_OFF);
+		led(LED_GREEN, LED_OFF);
+		led(LED_YELLOW, LED_BLINK_FAST);
+		led(LED_GREEN, LED_BLINK_FAST);
+	}
+	else if(strcmp(preset, "install_success") == 0)
+	{
+		DPRINTF("HENPLUGIN->set_led->install_success\n");
+		led(LED_RED, LED_OFF);
+		led(LED_GREEN, LED_OFF);
+		led(LED_GREEN, LED_ON);
+	}
+	else if(strcmp(preset, "install_failed") == 0)
+	{
+		DPRINTF("HENPLUGIN->set_led->install_failed\n");
+		led(LED_RED, LED_OFF);
+		led(LED_GREEN, LED_OFF);
+		led(LED_RED, LED_BLINK_FAST);
+	}
+}
+
 // Reboot PS3
 int reboot_flag=0;
 void reboot_ps3(void);
@@ -964,17 +994,14 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 	
 	// Remove temp install check file here in case a package was installed containing it
 	// If the file exists before the pkg install starts, it will cause an early reboot trigger
-	cellFsUnlink("/dev_rewrite/vsh/resource/explore/zzz_hen_installed.tmp");
+	cellFsUnlink("/dev_rewrite/zzz/zzz_hen_installed.tmp");
 
 	// Emergency USB HEN Installer
 	if(cellFsStat("/dev_usb000/HEN_UPD.pkg",&stat)==0)
 	{
 		play_rco_sound("snd_trophy");
-		led(LED_YELLOW,LED_OFF);
-		led(LED_GREEN,LED_OFF);
-		led(LED_YELLOW,LED_BLINK_FAST);
-		led(LED_GREEN,LED_BLINK_FAST);
-		//DPRINTF("Installing Emergency Package From USB\n");
+		//set_led("install_start");
+		DPRINTF("Installing Emergency Package From USB\n");
 		tick_count=0;// Reset tick count for package installation
 		char hen_usb_update[0x80];
 		sprintf(hen_usb_update, "Installing Emergency Package\n\nRemove HEN_UPD.pkg after install");
@@ -986,7 +1013,7 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 		{
 			sys_timer_usleep(70000);
 		}
-		while(cellFsStat("/dev_rewrite/vsh/resource/explore/zzz_hen_installed.tmp",&stat)!=0)
+		while(cellFsStat("/dev_rewrite/zzz/zzz_hen_installed.tmp",&stat)!=0)
 		{
 			sys_timer_usleep(70000);
 			tick_count++;
@@ -1040,10 +1067,7 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 	
 	if((do_install_hen!=0) || (do_update==1))
 	{
-		led(LED_YELLOW,LED_OFF);
-		led(LED_GREEN,LED_OFF);
-		led(LED_YELLOW,LED_BLINK_FAST);
-		led(LED_GREEN,LED_BLINK_FAST);
+		//set_led("install_start");
 		int is_browser_open=View_Find("webbrowser_plugin");
 		
 		while(is_browser_open)
@@ -1084,7 +1108,7 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 		}
 		
 		// Fail Safe here in case of manual/other placement of file, will still reboot properly
-		cellFsUnlink("/dev_rewrite/vsh/resource/explore/zzz_hen_installed.tmp");
+		cellFsUnlink("/dev_rewrite/zzz/zzz_hen_installed.tmp");
 		
 		if(cellFsStat(pkg_path,&stat)==0)
 		{
@@ -1097,7 +1121,7 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 			
 			// The package is now installing
 			tick_count=0;// Reset tick count for package installation
-			while(cellFsStat("/dev_rewrite/vsh/resource/explore/zzz_hen_installed.tmp",&stat)!=0)
+			while(cellFsStat("/dev_rewrite/zzz/zzz_hen_installed.tmp",&stat)!=0)
 			{
 				//DPRINTF("tick_count: %i\n",tick_count);
 				sys_timer_usleep(70000);
@@ -1127,29 +1151,27 @@ done:
 	if(reboot_flag==1)
 	{
 		play_rco_sound("snd_trophy");
-		led(LED_YELLOW,LED_OFF);
-		led(LED_GREEN,LED_OFF);
 		
 		char reboot_txt[0x80];
 		if(tick_expire==0)
 		{
-			led(LED_GREEN,LED_ON);
+			//set_led("install_success");
 			sprintf(reboot_txt, "Installation Complete!\n\nPrepare For Reboot...");
 		}
 		else
 		{
-			led(LED_RED,LED_BLINK_FAST);
+			//set_led("install_failed");
 			sprintf(reboot_txt, "Error: Unable To Verify Installation!\nYou Must Reboot Manually!");
 		}
 		show_msg((char *)reboot_txt);
-		sys_timer_usleep(8000000);// Wait a few seconds
+		sys_timer_usleep(10000000);// Wait a few seconds
 		
 		// Verify the temp file is removed
-		while(cellFsStat("/dev_rewrite/vsh/resource/explore/zzz_hen_installed.tmp",&stat)==0)
+		while(cellFsStat("/dev_rewrite/zzz/zzz_hen_installed.tmp",&stat)==0)
 		{
 			sys_timer_usleep(70000);
-			cellFsUnlink("/dev_rewrite/vsh/resource/explore/zzz_hen_installed.tmp");// Remove temp file
-			//DPRINTF("Waiting for temporary zzz_hen_installed.tmp file to be removed\n");
+			cellFsUnlink("/dev_rewrite/zzz/zzz_hen_installed.tmp");// Remove temp file
+			DPRINTF("Waiting for temporary zzz_hen_installed.tmp file to be removed\n");
 		}
 		if(tick_expire==0)
 		{
