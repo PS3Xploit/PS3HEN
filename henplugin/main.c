@@ -90,6 +90,7 @@ int henplugin_stop(void);
 int is_wmm_installed = 0;
 int is_hen_installing = 0;
 int use_wmm_pkg = 0;
+const char hen_installed_trigger[128]={"/dev_rewrite/zzz/zzz_hen_installed.tmp"};
 
 extern int vshmain_87BB0001(int param);
 int (*vshtask_notify)(int, const char *) = NULL;
@@ -994,7 +995,7 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 	
 	// Remove temp install check file here in case a package was installed containing it
 	// If the file exists before the pkg install starts, it will cause an early reboot trigger
-	cellFsUnlink("/dev_rewrite/zzz/zzz_hen_installed.tmp");
+	cellFsUnlink(hen_installed_trigger);
 
 	// Emergency USB HEN Installer
 	if(cellFsStat("/dev_usb000/HEN_UPD.pkg",&stat)==0)
@@ -1013,7 +1014,7 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 		{
 			sys_timer_usleep(70000);
 		}
-		while(cellFsStat("/dev_rewrite/zzz/zzz_hen_installed.tmp",&stat)!=0)
+		while(cellFsStat(hen_installed_trigger,&stat)!=0)
 		{
 			sys_timer_usleep(70000);
 			tick_count++;
@@ -1108,7 +1109,7 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 		}
 		
 		// Fail Safe here in case of manual/other placement of file, will still reboot properly
-		cellFsUnlink("/dev_rewrite/zzz/zzz_hen_installed.tmp");
+		cellFsUnlink(hen_installed_trigger);
 		
 		if(cellFsStat(pkg_path,&stat)==0)
 		{
@@ -1121,7 +1122,7 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 			
 			// The package is now installing
 			tick_count=0;// Reset tick count for package installation
-			while(cellFsStat("/dev_rewrite/zzz/zzz_hen_installed.tmp",&stat)!=0)
+			while(cellFsStat(hen_installed_trigger,&stat)!=0)
 			{
 				//DPRINTF("HENPLUGIN->tick_count: %i\n",tick_count);
 				sys_timer_usleep(70000);
@@ -1167,10 +1168,10 @@ done:
 		sys_timer_usleep(10000000);// Wait a few seconds
 		
 		// Verify the temp file is removed
-		while(cellFsStat("/dev_rewrite/zzz/zzz_hen_installed.tmp",&stat)==0)
+		while(cellFsStat(hen_installed_trigger,&stat)==0)
 		{
 			sys_timer_usleep(70000);
-			cellFsUnlink("/dev_rewrite/zzz/zzz_hen_installed.tmp");// Remove temp file
+			cellFsUnlink(hen_installed_trigger);// Remove temp file
 			//DPRINTF("HENPLUGIN->Waiting for temporary zzz_hen_installed.tmp file to be removed\n");
 		}
 		
