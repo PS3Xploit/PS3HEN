@@ -1246,8 +1246,8 @@ void cleanup_files(void)
 	
 	// This file is installed by default pkg and is used to determine when HEN has finished installing, in henplugin.
 	// Remove it on launch to eliminate false checks.
-	cellFsUnlink("/dev_rewrite/vsh/resource/explore/xmb/zzz_hen_installed.tmp");// Legacy Path
-	cellFsUnlink("/dev_rewrite/vsh/resource/explore/zzz_hen_installed.tmp");
+	cellFsUnlink("/dev_rewrite/vsh/resource/explore/xmb/zzz_hen_installed.tmp");// Legacy Path (3.20 - 3.2.1)
+	cellFsUnlink("/dev_rewrite/zzz/zzz_hen_installed.tmp");// Added for 3.2.2
 }
 
 
@@ -1337,6 +1337,17 @@ int main(void)
 	
 	// Check for hotkey button presses on launch
 	check_combo_buttons();
+	
+	// Check for disabled remap
+	CellFsStat stat;
+	if(cellFsStat("/dev_hdd0/hen/toggles/remap_files.off",&stat)==0)
+	{
+		mappath_disabled=1;
+		cellFsUnlink("/dev_hdd0/hen/toggles/remap_files.off");
+		#ifdef DEBUG
+			DPRINTF("PAYLOAD->Disable Remap On Next Reboot\n");
+		#endif
+	}
 	
 	// File and folder redirections using mappath mappings
 	if(mappath_disabled==0)
