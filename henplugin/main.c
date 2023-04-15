@@ -758,7 +758,7 @@ static void unloadSysPluginCallback(void)
 {
 	//Add potential callback process
 	//show_msg((char *)"plugin shutdown via xmb call launched");
-	DPRINTF("plugin shutdown via xmb call launched");
+	DPRINTF("HENPLUGIN->plugin shutdown via xmb call launched");
 }
 
 static void unload_web_plugins(void)
@@ -879,7 +879,7 @@ void clear_web_cache_check(void)
 
 	if(cellFsStat(path1,&stat)==0 && cellFsStat("/dev_hdd0/hen/toggles/clear_web_history.on",&stat)==0)
 	{
-		//DPRINTF("Toggle Activated: clear_web_history\n");
+		//DPRINTF("HENPLUGIN->Toggle Activated: clear_web_history\n");
 		cellFsUnlink(path1);
 		cleared_history = 1;
 		cleared_total++;
@@ -887,7 +887,7 @@ void clear_web_cache_check(void)
 	
 	if(cellFsStat(path2,&stat)==0 && cellFsStat("/dev_hdd0/hen/toggles/clear_web_auth_cache.on",&stat)==0)
 	{
-		//DPRINTF("Toggle Activated: clear_web_auth_cache\n");
+		//DPRINTF("HENPLUGIN->Toggle Activated: clear_web_auth_cache\n");
 		cellFsUnlink(path2);
 		cleared_auth_cache = 1;
 		cleared_total++;
@@ -895,7 +895,7 @@ void clear_web_cache_check(void)
 	
 	if(cellFsStat(path3,&stat)==0 && cellFsStat("/dev_hdd0/hen/toggles/clear_web_cookie.on",&stat)==0)
 	{
-		//DPRINTF("Toggle Activated: clear_web_cookie\n");
+		//DPRINTF("HENPLUGIN->Toggle Activated: clear_web_cookie\n");
 		cellFsUnlink(path3);
 		cleared_cookie = 1;
 		cleared_total++;
@@ -908,7 +908,7 @@ void clear_web_cache_check(void)
 	}
 	else
 	{
-		//DPRINTF("No Clear Web Cache Toggles Activated\n");
+		//DPRINTF("HENPLUGIN->No Clear Web Cache Toggles Activated\n");
 	}
 }
 
@@ -917,7 +917,7 @@ void set_build_type(void)
 {
 	CellFsStat stat;
 	if(cellFsStat("/dev_hdd0/hen/toggles/dev_build_type.on",&stat)==0){build_type=DEV;}
-	DPRINTF("Setting build_type to %i\n", build_type);
+	DPRINTF("HENPLUGIN->Setting build_type to %i\n", build_type);
 }
 
 static int sysLv2FsLink(const char *oldpath, const char *newpath)
@@ -977,7 +977,7 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 	{
 		sprintf(henver, "Welcome to PS3HEN %X.%X.%X", hen_version>>8, (hen_version & 0xF0)>>4, (hen_version&0xF));
 	}
-	//DPRINTF("hen_version: %x\n",hen_version);
+	//DPRINTF("HENPLUGIN->hen_version: %x\n",hen_version);
 	show_msg((char *)henver);
 
 	if(view==0)
@@ -1001,7 +1001,7 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 	{
 		play_rco_sound("snd_trophy");
 		//set_led("install_start");
-		DPRINTF("Installing Emergency Package From USB\n");
+		DPRINTF("HENPLUGIN->Installing Emergency Package From USB\n");
 		tick_count=0;// Reset tick count for package installation
 		char hen_usb_update[0x80];
 		sprintf(hen_usb_update, "Installing Emergency Package\n\nRemove HEN_UPD.pkg after install");
@@ -1018,7 +1018,7 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 			sys_timer_usleep(70000);
 			tick_count++;
 			if(tick_count>=tick_max){tick_expire=1;break;};
-			//DPRINTF("Waiting for package to finish installing\n");
+			//DPRINTF("HENPLUGIN->Waiting for package to finish installing\n");
 		}
 		reboot_flag=1;
 		goto done;
@@ -1029,7 +1029,7 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 	
 	// If default HEN Check file is missing, assume HEN is not installed
 	do_install_hen=(cellFsStat("/dev_flash/vsh/resource/explore/icon/hen_enable.png",&stat));
-	//DPRINTF("do_install_hen: %x\n",do_install_hen);
+	//DPRINTF("HENPLUGIN->do_install_hen: %x\n",do_install_hen);
 	
 	// Check for webMAN-MOD
 	if((cellFsStat("/dev_hdd0/plugins/webftp_server.sprx",&stat)==0) || (cellFsStat("/dev_hdd0/plugins/webftp_server_lite.sprx",&stat)==0))
@@ -1058,7 +1058,7 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 	}
 	
 	do_update=(cellFsStat("/dev_hdd0/hen_updater.off",&stat) ? hen_updater() : 0);// 20211011 Added update toggle thanks bucanero for original PR
-	//DPRINTF("Checking do_update: %i\n",do_update);
+	//DPRINTF("HENPLUGIN->Checking do_update: %i\n",do_update);
 	
 	// Removing temp installer packages so old ones can't be installed
 	DPRINTF("HENPLUGIN->Removing Temp Installer Packages\n");
@@ -1104,7 +1104,7 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 		while(IS_DOWNLOADING)
 		{
 			sys_timer_usleep(500000);
-			//DPRINTF("Waiting for package to finish downloading\n");
+			//DPRINTF("HENPLUGIN->Waiting for package to finish downloading\n");
 		}
 		
 		// Fail Safe here in case of manual/other placement of file, will still reboot properly
@@ -1123,11 +1123,11 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 			tick_count=0;// Reset tick count for package installation
 			while(cellFsStat("/dev_rewrite/zzz/zzz_hen_installed.tmp",&stat)!=0)
 			{
-				//DPRINTF("tick_count: %i\n",tick_count);
+				//DPRINTF("HENPLUGIN->tick_count: %i\n",tick_count);
 				sys_timer_usleep(70000);
 				tick_count++;
 				if(tick_count>=tick_max){tick_expire=1;break;};
-				//DPRINTF("Waiting for package to finish installing\n");
+				//DPRINTF("HENPLUGIN->Waiting for package to finish installing\n");
 			}
 			reboot_flag=1;
 			
@@ -1143,7 +1143,7 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 	}
 	
 done:
-	DPRINTF("Exiting main thread!\n");	
+	DPRINTF("HENPLUGIN->Exiting main thread!\n");	
 	
 	cellFsUnlink("/dev_hdd0/theme/PS3HEN.p3t");// Removing temp HEN installer
 	done=1;
@@ -1171,8 +1171,18 @@ done:
 		{
 			sys_timer_usleep(70000);
 			cellFsUnlink("/dev_rewrite/zzz/zzz_hen_installed.tmp");// Remove temp file
-			DPRINTF("Waiting for temporary zzz_hen_installed.tmp file to be removed\n");
+			//DPRINTF("HENPLUGIN->Waiting for temporary zzz_hen_installed.tmp file to be removed\n");
 		}
+		
+		// Remove temp zzz directory
+		int zzz;
+		zzz = cellFsRmdir("/dev_rewrite/zzz");
+		if(zzz != CELL_OK)
+		{
+			DPRINTF("HENPLUGIN->Error 0x%08X Removing Temp Directory /dev_rewrite/zzz/\n",zzz);
+		}	
+		
+		// Check if the package install timed out and reboot if not expired
 		if(tick_expire==0)
 		{
 			reboot_ps3();// Default Soft Reboot
