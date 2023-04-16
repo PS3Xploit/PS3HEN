@@ -1335,17 +1335,23 @@ int main(void)
 	// Cleanup Old and Temp HEN Files
 	cleanup_files();
 	
-	// Check for hotkey button presses on launch
-	check_combo_buttons();
+	// Check for hotkey button presses on launch (updated for 3.2.2 thanks FFF256)
+	CellFsStat stat;
+	if(cellFsStat("/dev_hdd0/hen/toggles/hotkey_polling.off",&stat)!=0)
+	{
+		check_combo_buttons();
+		#ifdef DEBUG
+			//DPRINTF("PAYLOAD->hotkey_polling.off->L2 and R2 hotkeys are disabled\n");
+		#endif
+	}
 	
 	// Check for disabled remap
-	CellFsStat stat;
 	if(cellFsStat("/dev_hdd0/hen/toggles/remap_files.off",&stat)==0)
 	{
 		mappath_disabled=1;
 		cellFsUnlink("/dev_hdd0/hen/toggles/remap_files.off");
 		#ifdef DEBUG
-			DPRINTF("PAYLOAD->remap_files.off->Internal mappings disabled until reboot\n");
+			//DPRINTF("PAYLOAD->remap_files.off->Internal mappings disabled until reboot\n");
 		#endif
 	}
 	
