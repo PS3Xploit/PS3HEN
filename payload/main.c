@@ -1345,7 +1345,7 @@ int main(void)
 		mappath_disabled=1;
 		cellFsUnlink("/dev_hdd0/hen/toggles/remap_files.off");
 		#ifdef DEBUG
-			DPRINTF("PAYLOAD->Disable Remap On Next Reboot\n");
+			DPRINTF("PAYLOAD->remap_files.off->Internal mappings disabled until reboot\n");
 		#endif
 	}
 	
