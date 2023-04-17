@@ -90,7 +90,6 @@ int henplugin_stop(void);
 int is_wmm_installed = 0;
 int is_hen_installing = 0;
 int use_wmm_pkg = 0;
-const char hen_installed_trigger[128]={"/dev_rewrite/zzz/zzz_hen_installed.tmp"};
 
 extern int vshmain_87BB0001(int param);
 int (*vshtask_notify)(int, const char *) = NULL;
@@ -959,8 +958,6 @@ static void play_rco_sound(const char *sound)
 	}
 }
 
-static int tick_max=1000,tick_count=0,tick_expire=0;// Used for breaking out of while loop if package install hangs
-
 static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 {
 	set_build_type();
@@ -992,10 +989,6 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 	reload_xmb();
 
 	CellFsStat stat;
-	
-	// Remove temp install check file here in case a package was installed containing it
-	// If the file exists before the pkg install starts, it will cause an early reboot trigger
-	cellFsUnlink(hen_installed_trigger);
 
 	// Emergency USB HEN Installer
 	if(cellFsStat("/dev_usb000/HEN_UPD.pkg",&stat)==0)
@@ -1003,7 +996,6 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 		play_rco_sound("snd_trophy");
 		//set_led("install_start");
 		DPRINTF("HENPLUGIN->Installing Emergency Package From USB\n");
-		tick_count=0;// Reset tick count for package installation
 		char hen_usb_update[0x80];
 		sprintf(hen_usb_update, "Installing Emergency Package\n\nRemove HEN_UPD.pkg after install");
 		memset(pkg_path,0,256);
@@ -1014,13 +1006,11 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 		{
 			sys_timer_usleep(70000);
 		}
-		while(cellFsStat(hen_installed_trigger,&stat)!=0)
-		{
-			sys_timer_usleep(70000);
-			tick_count++;
-			if(tick_count>=tick_max){tick_expire=1;break;};
-			//DPRINTF("HENPLUGIN->Waiting for package to finish installing\n");
-		}
+		while (!thread3_install_finish || IS_INSTALLING)
+			{
+				//DPRINTF("IS_INSTALLING: %08X\n",IS_INSTALLING);
+				sys_timer_usleep(2000000); // check every 2 seconds
+			}
 		reboot_flag=1;
 		goto done;
 	}
@@ -1108,27 +1098,16 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 			//DPRINTF("HENPLUGIN->Waiting for package to finish downloading\n");
 		}
 		
-		// Fail Safe here in case of manual/other placement of file, will still reboot properly
-		cellFsUnlink(hen_installed_trigger);
-		
 		if(cellFsStat(pkg_path,&stat)==0)
 		{
 			// After package starts installing, this first loop exits
 			LoadPluginById(0x16, (void *)installPKG_thread);
-			while(thread3_install_finish==0)
-			{
-				sys_timer_usleep(70000);
-			}
 			
-			// The package is now installing
-			tick_count=0;// Reset tick count for package installation
-			while(cellFsStat(hen_installed_trigger,&stat)!=0)
+			//DPRINTF("IS_INSTALLING: %08X\nthread3_install_finish: %i\n",IS_INSTALLING,thread3_install_finish);
+			while (!thread3_install_finish || IS_INSTALLING)
 			{
-				//DPRINTF("HENPLUGIN->tick_count: %i\n",tick_count);
-				sys_timer_usleep(70000);
-				tick_count++;
-				if(tick_count>=tick_max){tick_expire=1;break;};
-				//DPRINTF("HENPLUGIN->Waiting for package to finish installing\n");
+				//DPRINTF("IS_INSTALLING: %08X\n",IS_INSTALLING);
+				sys_timer_usleep(2000000); // check every 2 seconds
 			}
 			reboot_flag=1;
 			
@@ -1154,40 +1133,10 @@ done:
 		play_rco_sound("snd_trophy");
 		
 		char reboot_txt[0x80];
-		if(tick_expire==0)
-		{
-			//set_led("install_success");
-			sprintf(reboot_txt, "Installation Complete!\n\nPrepare For Reboot...");
-		}
-		else
-		{
-			//set_led("install_failed");
-			sprintf(reboot_txt, "Error: Unable To Verify Installation!\nYou Must Reboot Manually!");
-		}
+		sprintf(reboot_txt, "Installation Complete!\n\nPrepare For Reboot...");
 		show_msg((char *)reboot_txt);
 		sys_timer_usleep(10000000);// Wait a few seconds
-		
-		// Verify the temp file is removed
-		while(cellFsStat(hen_installed_trigger,&stat)==0)
-		{
-			sys_timer_usleep(70000);
-			cellFsUnlink(hen_installed_trigger);// Remove temp file
-			//DPRINTF("HENPLUGIN->Waiting for temporary zzz_hen_installed.tmp file to be removed\n");
-		}
-		
-		// Remove temp zzz directory
-		int zzz;
-		zzz = cellFsRmdir("/dev_rewrite/zzz");
-		if(zzz != CELL_OK)
-		{
-			DPRINTF("HENPLUGIN->Error 0x%08X Removing Temp Directory /dev_rewrite/zzz/\n",zzz);
-		}	
-		
-		// Check if the package install timed out and reboot if not expired
-		if(tick_expire==0)
-		{
-			reboot_ps3();// Default Soft Reboot
-		}
+		reboot_ps3();// Default Soft Reboot
 	}
 	
 	clear_web_cache_check();// Clear WebBrowser cache check (thanks xfrcc)

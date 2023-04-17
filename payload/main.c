@@ -1243,11 +1243,6 @@ void cleanup_files(void)
 	cellFsUnlink("/dev_hdd0/hen/hfw_settings.xml");
 	cellFsUnlink("/dev_hdd0/hen/xml/hfw_settings.xml");
 	cellFsUnlink("/dev_hdd0/hen/xml/ps3hen_updater.xml");
-	
-	// This file is installed by default pkg and is used to determine when HEN has finished installing, in henplugin.
-	// Remove it on launch to eliminate false checks.
-	cellFsUnlink("/dev_rewrite/vsh/resource/explore/xmb/zzz_hen_installed.tmp");// Legacy Path (3.20 - 3.2.1)
-	cellFsUnlink("/dev_rewrite/zzz/zzz_hen_installed.tmp");// Added for 3.2.2
 }
 
 
