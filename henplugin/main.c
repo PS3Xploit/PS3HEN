@@ -916,7 +916,7 @@ void set_build_type(void);
 void set_build_type(void)
 {
 	CellFsStat stat;
-	if(cellFsStat("/dev_hdd0/hen/toggles/dev_build_type.on",&stat)==0){build_type=DEV;}
+	if((cellFsStat("/dev_hdd0/hen/toggles/dev_build_type.on",&stat)==0) || (cellFsStat("/dev_usb000/dev_build_type.on",&stat)==0) || (cellFsStat("/dev_usb001/dev_build_type.on",&stat)==0)){build_type=DEV;}
 	DPRINTF("HENPLUGIN->Setting build_type to %i\n", build_type);
 }
 
