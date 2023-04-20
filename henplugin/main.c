@@ -479,6 +479,7 @@ static void downloadPKG_thread2(void)
 	
 	
 	// 4.80 CEX
+	// Kernel offset is off by 0x10 so we are checking this value instead of the timestamp
 	if(val==0x3A32350000000000ULL)
 	{
 		fw_version = L"480";
@@ -549,7 +550,8 @@ static void downloadPKG_thread2(void)
 	}
 		
 	// 4.90 CEX
-	else if(val==0x3A35340000000000ULL) // for 4.90, kernel offset is off by 0x10 so we are checking this value instead of the timestamp
+	// Kernel offset is off by 0x10 so we are checking this value instead of the timestamp
+	else if(val==0x3A35340000000000ULL)
 	{
 		fw_version = L"490";
 		kernel_type = L"cex";
