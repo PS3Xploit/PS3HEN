@@ -2089,13 +2089,25 @@ function dex()
 {
 	switch (fwVersion) {
 		case "4.80":
-			if(document.getElementById('dex').checked===true){loaddex_480();}//alert("calling loaddex_480");
+			if(document.getElementById('dex').checked===true)
+			{
+				alert('DEX Payload Will Now Download. Overwrite This File When Prompted!');
+				downloadhenD();
+				loaddex_480();
+			}
+			//alert("calling loaddex_480");
 			else {loadcex_480();}
 			disable_trigger();
 			break;
 			
 		case "4.81":
-			if(document.getElementById('dex').checked===true){loaddex_481();}//alert("calling loaddex_481");
+			if(document.getElementById('dex').checked===true)
+			{
+				alert('DEX Payload Will Now Download. Overwrite This File When Prompted!');
+				downloadhenD();
+				loaddex_481();
+			}
+			//alert("calling loaddex_481");
 			else {loadcex_481();}
 			disable_trigger();
 			break;
