@@ -1332,9 +1332,9 @@ int main(void)
 	
 	// Check for hotkey button presses on launch (updated for 3.2.2 thanks FFF256)
 	CellFsStat stat;
-	if(cellFsStat("/dev_hdd0/hen/toggles/hotkey_polling.on",&stat)==0)
+	if(cellFsStat("/dev_hdd0/hen/toggles/hotkey_polling.off",&stat)!=0)
 	{
-		check_combo_buttons();// If more than one controller is plugged in and not synced, it will hang at HEN logo
+		check_combo_buttons();// Pad function fixed 20230422 (thanks aldostools)
 		#ifdef DEBUG
 			//DPRINTF("PAYLOAD->hotkey_polling.off->L2 and R2 hotkeys are disabled\n");
 		#endif
