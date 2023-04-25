@@ -1,4 +1,4 @@
-# PS3HEN 3.2.1
+# PS3HEN 3.2.2
 
 stage0.bin is appended to actual stackframe
 
@@ -23,6 +23,31 @@ MultiFW support has been added.
 
 Changelog<br>
 -----------<br>
+
+# 3.2.2<br>
+# HEN Global Changes<br>
+  - Added support for 4.80 and 4.81 CEX firmware<br>
+  - Added support for 4.82 DEX firmware<br>
+  - Automatic Updates are now disabled by default. You can use HFW Tools->Maintenance and toggle back on/off<br>
+# HEN Plugin Changes<br>
+  - Added support for RCO Sounds and LED Status (thanks aldostools)<br>
+  - Updated install finished detection method (thanks aldostools)<br>
+  - Updated and cleaned up downloadPKG_thread2 function<br>
+  - Added detection of dev_build toggle for usb000 and usb001<br>
+# Payload Changes<br>
+  - Pad function fixed to not hang when more than one device is connected (thanks aldostools)<br>
+  - Disabled VSH Attach To Debugger as default, to not conflict with some CFW (4.82/4.84 DEX)<br>
+  - Multiple Updates: PSP launcher blacklisting + more (thanks aldostools)<br>
+  - Added L2 to disable mappath remap on hen launch<br>
+# Resource Changes<br>
+  - Updated software_update_plugin.rco message to display the .me domain instead of the .com<br>
+  - Added *Uninstall HEN* option to HFW Tools->Maintenance<br>
+  - Added *Disable Remapping On Next Reboot* option in HFW Tools->Maintenance. This will disable the remapped files from mappath so these files can be managed and users can also use the backup/restore option from XMB (thanks Fredy66)<br>
+  - Added *Toggle Hotkey Polling* option in HFW Tools->Maintenance. This will enable/disable check_combo_buttons function when HEN launches. (thanks FFF256)<br>
+  - Added *Toggle app_home Support* option in HFW Tools->Maintenance. This updates xml containing the seg_gamedebug entries (thanks Fredy66)<br>
+  - Added *Enable Quick Preview Option On XMB* option in HFW Tools->Developer. This swaps the explore_plugin.sprx between CEX and DEX versions<br>
+<br>
+<br>
 
 # 3.2.1<br>
 # HEN Global Changes<br>
