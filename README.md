@@ -8,6 +8,7 @@ MultiFW support has been added.
 * CEX OFW 4.80
 * CEX OFW 4.81
 * CEX OFW 4.82
+* DEX OFW 4.82
 * CEX HFW 4.83.1 (thanks Joonie)
 * CEX HFW 4.84.2 (thanks Joonie/habib)
 * DEX HFW 4.84.2 (thanks Joonie)
