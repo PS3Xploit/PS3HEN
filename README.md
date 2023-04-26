@@ -1,7 +1,5 @@
 # PS3HEN 3.2.2
 
-stage0.bin is appended to actual stackframe
-
 MultiFW support has been added.
 [Supported Firmwares]
 
@@ -19,7 +17,9 @@ MultiFW support has been added.
 * CEX HFW 4.89.1 (thanks littlebalup)
 * CEX HFW 4.90.1 (thanks Joonie)
 
-** CFWs can be used for testing, but not recommended to use**
+** CFWs can be used for testing, but not recommended to use**<br>
+
+PS3HEN Package Templates: [https://github.com/esc0rtd3w/PS3HEN-Package-Templates](https://github.com/esc0rtd3w/PS3HEN-Package-Templates)
 
 <br>
 <br>
