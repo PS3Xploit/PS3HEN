@@ -19,8 +19,6 @@ MultiFW support has been added.
 
 ** CFWs can be used for testing, but not recommended to use**<br>
 
-PS3HEN Package Templates: [https://github.com/esc0rtd3w/PS3HEN-Package-Templates](https://github.com/esc0rtd3w/PS3HEN-Package-Templates)
-
 <br>
 <br>
 
