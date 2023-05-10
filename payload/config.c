@@ -7,7 +7,6 @@
 #include "config.h"
 #include "region.h"
 #include "modulespatch.h"
-#include "mappath.h"
 
 #define COBRA_CONFIG_FILE	"/dev_hdd0/vm/cobra_cfg.bin"
 
@@ -62,9 +61,7 @@ static void check_and_correct(CobraConfig *cfg)
 	
 	if (cfg->spoof_revision > MAX_SPOOF_REVISION)
 		cfg->spoof_revision = 0;
-
-	if(cfg->allow_restore_sc > 1)
-		cfg->allow_restore_sc = 0;
+		
 	if (cfg->size > sizeof(CobraConfig))
 		cfg->size = sizeof(CobraConfig);
 }
@@ -102,7 +99,6 @@ int read_cobra_config(void)
 	
 	bd_video_region = config.bd_video_region;
 	dvd_video_region = config.dvd_video_region;
-	allow_restore_sc = config.allow_restore_sc;
 	// Removed. Now condition_ps2softemu has another meaning and it is set automatically in storage_ext if no BC console
 	//condition_ps2softemu = config.ps2softemu;
 	#ifdef  DEBUG
@@ -174,9 +170,11 @@ int sys_write_cobra_config(CobraConfig *cfg)
 	memcpy(&config.checksum, &cfg->checksum, copy_size);
 	bd_video_region = config.bd_video_region;
 	dvd_video_region = config.dvd_video_region;
-	allow_restore_sc = config.allow_restore_sc;
 	// Removed. Now condition_ps2softemu has another meaning and it is set automatically in storage_ext if no BC console
 	//condition_ps2softemu = config.ps2softemu;
 	
 	return write_cobra_config();
 }
+
+
+

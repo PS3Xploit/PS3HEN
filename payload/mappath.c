@@ -32,8 +32,6 @@ typedef struct MapEntry {
 	// unsigned char p_writable;
 // } CellFsMountInformation_t;
 
-uint8_t allow_restore_sc = 1;
-static int8_t avoid_recursive_calls = 0;
 uint8_t photo_gui = 1;
 static MapEntry_t *head = NULL;
 static MapEntry_t *found = NULL;
@@ -1040,32 +1038,9 @@ static int read_act_dat_and_make_rif(uint8_t *idps,uint8_t *rap, uint8_t *act_da
 
 extern char umd_file;
 static uint8_t block_psp_launcher = 0;
-static int check_syscalls()
-{
-	uint8_t syscalls_disabled = ((*(uint64_t *)MKA(syscall_table_symbol + 8 * 6)) == (*(uint64_t *)MKA(syscall_table_symbol)));
-
-	return syscalls_disabled;
-}
-
-void restore_syscalls(const char *path)
-{
-	// Restore disabled CFW Syscalls without reboot just entering to Settings > System Update on XMB - aldostools
-//	if(allow_restore_sc)
-//	{
-		if(!strcmp(path, "/dev_flash/vsh/module/software_update_plugin.sprx")) 
-		{			
-			if(check_syscalls())
-				create_syscalls();
-		}		
-//	}
-}
 
 LV2_HOOKED_FUNCTION_POSTCALL_2(int, open_path_hook, (char *path0, char *path1))
-{	
-	if(avoid_recursive_calls) 
-		return 0;
-	avoid_recursive_calls = 1;
-	
+{
 	//extend_kstack(0);
 	if(path0) {
 		CellFsStat stat;
@@ -1150,14 +1125,12 @@ LV2_HOOKED_FUNCTION_POSTCALL_2(int, open_path_hook, (char *path0, char *path1))
 				// let's now block homebrews if the "allow" flag is false
 				if (!allow)
 				{
-					avoid_recursive_calls = 0;
 					set_patched_func_param(1, (uint64_t)no_exists);
 					return 0;
 				}
-				else avoid_recursive_calls = 1;
 			}
 		}
-		if((!strncmp(path0,"/dev_hdd0/home/", 14)) && (strstr(path0,".rif")))
+		else if((!strncmp(path0,"/dev_hdd0/home/", 14)) && (strstr(path0,".rif")))
 		{
 			char content_id[0x24];
 			strncpy(content_id, strrchr(path0,'/')+1, 0x24);
@@ -1304,7 +1277,6 @@ LV2_HOOKED_FUNCTION_POSTCALL_2(int, open_path_hook, (char *path0, char *path1))
 				}
 			}
 		}
-		restore_syscalls(path0);
 		if(path && (strncmp(path,"/dev_",5) == 0 || strncmp(path,"/app_",5) == 0 || strncmp(path,"/host_",6) == 0)) {
 			/*if (path && ((strcmp(path, "/dev_bdvd/PS3_UPDATE/PS3UPDAT.PUP") == 0)))  // Blocks FW update from Game discs!
 			{
@@ -1366,7 +1338,6 @@ LV2_HOOKED_FUNCTION_POSTCALL_2(int, open_path_hook, (char *path0, char *path1))
 			}
 		}
 	}
-	avoid_recursive_calls = 0;
 	return 0;
 }
 
