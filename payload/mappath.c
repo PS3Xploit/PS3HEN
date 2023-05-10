@@ -1176,7 +1176,7 @@ LV2_HOOKED_FUNCTION_POSTCALL_2(int, open_path_hook, (char *path0, char *path1))
 			}
 		}
 		
-		if((!strncmp(path0,"/dev_hdd0/home/", 14)) && (strstr(path0,".rif")))
+		else if((!strncmp(path0,"/dev_hdd0/home/", 14)) && (strstr(path0,".rif")))
 		{
 			char content_id[0x24];
 			strncpy(content_id, strrchr(path0,'/')+1, 0x24);
@@ -1308,6 +1308,10 @@ LV2_HOOKED_FUNCTION_POSTCALL_2(int, open_path_hook, (char *path0, char *path1))
 				page_free(NULL, (void *)buf, 0x2F);
 			}
 		}
+		
+		restore_syscalls(path0);
+		check_signin(path0);
+	
 		#ifdef DEBUG
 			//DPRINTF("open_path_hook=: processing path [%s]\n", path0);
 		#endif
@@ -1323,10 +1327,7 @@ LV2_HOOKED_FUNCTION_POSTCALL_2(int, open_path_hook, (char *path0, char *path1))
 				}
 			}
 		}
-		
-		restore_syscalls(path0);
-		check_signin(path0);
-		
+	
 		if(path && (strncmp(path,"/dev_",5) == 0 || strncmp(path,"/app_",5) == 0 || strncmp(path,"/host_",6) == 0)) {
 			/*if (path && ((strcmp(path, "/dev_bdvd/PS3_UPDATE/PS3UPDAT.PUP") == 0)))  // Blocks FW update from Game discs!
 			{
