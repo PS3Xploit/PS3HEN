@@ -249,6 +249,9 @@ int ps3mapi_create_process_thread(process_id_t pid, thread_t *thread, void *entr
 #define PS3MAPI_OPCODE_DISABLE_SYSCALL			0x0092
 #define PS3MAPI_OPCODE_PDISABLE_SYSCALL8 		0x0093 //Look in main.c for code.
 #define PS3MAPI_OPCODE_PCHECK_SYSCALL8 			0x0094 //Look in main.c for code.
+#define PS3MAPI_OPCODE_CREATE_CFW_SYSCALLS		0x0095
+#define PS3MAPI_OPCODE_ALLOW_RESTORE_SYSCALLS	0x0096
+#define PS3MAPI_OPCODE_GET_RESTORE_SYSCALLS		0x0097
 
 int ps3mapi_check_syscall(int num);
 int ps3mapi_disable_syscall(int num);

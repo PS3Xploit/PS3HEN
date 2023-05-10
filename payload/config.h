@@ -5,6 +5,8 @@
 #define MAX_SPOOF_REVISION			99999
 #define MAX_SPOOF_REVISION_CHARS	5
 
+#define CFG_ALLOW_RESTORE_SC 		1
+
 typedef struct
 {
 	uint16_t size;
@@ -14,6 +16,7 @@ typedef struct
 	uint8_t ps2softemu;
 	uint32_t spoof_version;
 	uint32_t spoof_revision;
+	uint8_t allow_restore_sc;  // 0 = Does not allow to restore CFW syscalls | 1 = Allow to restore CFW syscalls 
 } __attribute__((packed)) CobraConfig;
 
 extern CobraConfig config;

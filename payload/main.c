@@ -616,6 +616,15 @@ LV2_SYSCALL2(void, sys_cfw_lv1_poke, (uint64_t lv1_addr, uint64_t lv1_value))
 	lv1_poked(lv1_addr, lv1_value);
 }
 
+LV2_SYSCALL2(uint64_t, sys_cfw_lv1_peek, (uint64_t lv1_addr))
+{
+	DPRINTF("lv1_peek %p\n", (void*)lv1_addr);
+	
+    uint64_t ret;
+    ret = lv1_peekd(lv1_addr);
+    return ret;
+}
+
 LV2_SYSCALL2(void, sys_cfw_lv1_call, (uint64_t a1, uint64_t a2, uint64_t a3, uint64_t a4, uint64_t a5, uint64_t a6, uint64_t a7, uint64_t num))
 {
 	/* DO NOT modify */
@@ -879,6 +888,17 @@ LV2_SYSCALL2(int64_t, syscall8, (uint64_t function, uint64_t param1, uint64_t pa
 				break;
 				case PS3MAPI_OPCODE_PCHECK_SYSCALL8:
 					return ps3mapi_partial_disable_syscall8;
+				break;
+				case PS3MAPI_OPCODE_CREATE_CFW_SYSCALLS:
+					create_syscalls();
+					return SUCCEEDED;
+				break;
+				case PS3MAPI_OPCODE_ALLOW_RESTORE_SYSCALLS:
+					allow_restore_sc = (uint8_t)param2; // 1 = allow, 0 = do not allow
+					return SUCCEEDED;
+				break;
+				case PS3MAPI_OPCODE_GET_RESTORE_SYSCALLS:
+					return allow_restore_sc;
 				break;
 				//----------
 				//REMOVE HOOK
@@ -1170,6 +1190,20 @@ LV2_SYSCALL2(int, sm_get_fan_policy_sc,(uint8_t id, uint8_t *st, uint8_t *policy
 		}
 	}
 	return ret;
+}
+
+void create_syscalls(void)
+{
+	create_syscall2(8, syscall8);
+	create_syscall2(6, sys_cfw_peek);
+	create_syscall2(7, sys_cfw_poke);
+	//create_syscall2(9, sys_cfw_lv1_poke);
+	create_syscall2(10, sys_cfw_lv1_call);
+	//create_syscall2(11, sys_cfw_lv1_peek);
+	create_syscall2(15, sys_cfw_lv2_func);
+	create_syscall2(389, sm_set_fan_policy_sc);
+	create_syscall2(409, sm_get_fan_policy_sc);
+	create_syscall2(SYS_MAP_PATH, sys_map_path);
 }
 
 static INLINE void apply_kernel_patches(void)
