@@ -1391,6 +1391,7 @@ int main(void)
 		map_path("/dev_hdd0/hen/xml/hfw_settings.xml","/dev_flash/hen/remap/xml/hfw_settings.xml",FLAG_MAX_PRIORITY|FLAG_PROTECT); // Enable HFW Tools on Launch 2.3.3+
 		map_path("/dev_hdd0/hen/xml/hen_pkg_manager_full.xml","/dev_flash/hen/remap/xml/hen_pkg_manager_full.xml",FLAG_MAX_PRIORITY|FLAG_PROTECT); // Show PKG Manager
 		map_path("/dev_hdd0/hen/xml/hen_enable.xml","/dev_flash/hen/remap/xml/hen_enable.xml",FLAG_MAX_PRIORITY|FLAG_PROTECT); // Hide Enable HEN Menu Item
+		map_path("/dev_flash/vsh/resource/explore/icon/hen_enable.png","/dev_flash/vsh/resource/AAA/hen_enabled.png",FLAG_MAX_PRIORITY|FLAG_PROTECT); // Switches the HEN Logo
 	}
 	
 	#ifdef DEBUG

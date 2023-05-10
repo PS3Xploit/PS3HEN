@@ -327,6 +327,9 @@ static void reload_xmb(void)
 	{
 		sys_timer_usleep(70000);
 	}
+	// Reload to swap HEN icon 
+	explore_interface->ExecXMBcommand("reload_category_items game",0,0);
+	
 	explore_interface->ExecXMBcommand("reload_category game",0,0);
 	explore_interface->ExecXMBcommand("reload_category network",0,0);
 	
