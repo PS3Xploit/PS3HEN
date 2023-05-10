@@ -3,6 +3,9 @@
 
 #include <lv2/memory.h>
 
+#define NPSIGNIN_LOCK  			"/dev_flash/vsh/resource/npsignin_plugin.lck"
+#define NPSIGNIN_UNLOCK 		"/dev_flash/vsh/resource/npsignin_plugin.rco"
+
 extern uint8_t allow_restore_sc; // allow re-create cfw syscalls accessing system update on XMB
 
 #define SYS_MAP_PATH	35
@@ -28,8 +31,9 @@ int 	sys_map_path(char *oldpath, char *newpath, uint32_t flags);
 int 	sys_map_paths(char *paths[], char *new_paths[], uint32_t num);
 int 	get_map_path(uint32_t num, char *path, char *new_path);
 int 	sys_aio_copy_root(char *src, char *dst);
-void create_syscalls(void);
-void restore_syscalls(const char *path);
+void 	create_syscalls(void);
+void 	restore_syscalls(const char *path);
+void 	check_signin(const char *path);
 void 	unhook_all_map_path(void);
 
 #endif /* __MAPPATH_H_ */

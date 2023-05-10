@@ -1060,6 +1060,24 @@ void restore_syscalls(const char *path)
 //	}
 }
 
+void check_signin(const char *path)
+{
+	if(!strcmp(path, "/dev_flash/vsh/module/npsignin_plugin.sprx"))
+	{
+		// Lock/Unlock Sign In to PSN if DeViL303's RCO exists    
+		if(check_syscalls())
+			map_path(NPSIGNIN_UNLOCK, NULL, 0);
+		else
+		{	
+			CellFsStat stat;
+			if(cellFsStat(NPSIGNIN_LOCK, &stat) == SUCCEEDED)
+				map_path(NPSIGNIN_UNLOCK, NPSIGNIN_LOCK, 0);
+			else
+				map_path(NPSIGNIN_UNLOCK, NULL, 0);
+		}
+	}
+}
+
 LV2_HOOKED_FUNCTION_POSTCALL_2(int, open_path_hook, (char *path0, char *path1))
 {	
 	if(avoid_recursive_calls) 
@@ -1157,6 +1175,7 @@ LV2_HOOKED_FUNCTION_POSTCALL_2(int, open_path_hook, (char *path0, char *path1))
 				else avoid_recursive_calls = 1;
 			}
 		}
+		
 		if((!strncmp(path0,"/dev_hdd0/home/", 14)) && (strstr(path0,".rif")))
 		{
 			char content_id[0x24];
@@ -1304,7 +1323,10 @@ LV2_HOOKED_FUNCTION_POSTCALL_2(int, open_path_hook, (char *path0, char *path1))
 				}
 			}
 		}
+		
 		restore_syscalls(path0);
+		check_signin(path0);
+		
 		if(path && (strncmp(path,"/dev_",5) == 0 || strncmp(path,"/app_",5) == 0 || strncmp(path,"/host_",6) == 0)) {
 			/*if (path && ((strcmp(path, "/dev_bdvd/PS3_UPDATE/PS3UPDAT.PUP") == 0)))  // Blocks FW update from Game discs!
 			{
