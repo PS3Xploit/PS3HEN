@@ -722,6 +722,15 @@ void clear_web_cache_check(void)
 	char path3[0x40];
 	sprintf(path3, "/dev_hdd0/home/%08i/http/cookie.dat", xsetting_CC56EB2D()->GetCurrentUserNumber());
 
+	char path4[0x40];
+	sprintf(path4, "/dev_hdd0/home/%08i/community/CI.TMP", xsetting_CC56EB2D()->GetCurrentUserNumber());
+	
+	char path5[0x40];
+	sprintf(path5, "/dev_hdd0/home/%08i/community/MI.TMP", xsetting_CC56EB2D()->GetCurrentUserNumber());
+	
+	char path6[0x40];
+	sprintf(path6, "/dev_hdd0/home/%08i/community/PTL.TMP", xsetting_CC56EB2D()->GetCurrentUserNumber());
+	
 	if(cellFsStat(path1,&stat)==0 && cellFsStat("/dev_hdd0/hen/toggles/clear_web_history.on",&stat)==0)
 	{
 		//DPRINTF("HENPLUGIN->Toggle Activated: clear_web_history\n");
@@ -754,6 +763,19 @@ void clear_web_cache_check(void)
 	else
 	{
 		//DPRINTF("HENPLUGIN->No Clear Web Cache Toggles Activated\n");
+	}
+	
+	if(cellFsStat(path4,&stat)==0)
+	{
+		cellFsUnlink(path4);
+	}
+	if(cellFsStat(path5,&stat)==0)
+	{		
+		cellFsUnlink(path5);
+	}
+	if(cellFsStat(path6,&stat)==0)
+	{		
+		cellFsUnlink(path6);
 	}
 }
 
