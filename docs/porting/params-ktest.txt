@@ -1,0 +1,40 @@
+sys_net_socket 
+0x2c9 for r11
+r3 = 2
+r4 = 1
+r5 = 0
+
+sys_net_control
+r11 = 0x2D3
+r3 = 0
+r4 = 0x80080005
+r5 = pointer to 0x600 bytes of data
+r 6 = 0x600
+
+sys_net_open_dump
+r11 = 0x2CD
+r3 = 0x1000
+r4 = 0
+
+Queue evt
+r11 = 0x80
+r3 = pointer (queue id will be written here)
+r4 = pointer to attribute (posted before)
+r5 = 0
+r6 = 1
+
+Open Config
+r11 = 0x204
+r3 = Queue ID (written to memory in previous sc)
+r4 = pointer (config id will be written here)
+
+Register service
+r11 = 0x209
+r3 = config id (written in memory by previous sc)
+r4 =8000000000000030
+r5 = 0
+r6 = 1
+r7 = pointer to 0x1000 bytes of data
+r8 = 0x1000
+r9 = pointer (service id will be written there)
+
