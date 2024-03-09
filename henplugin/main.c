@@ -882,7 +882,7 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 	}
 	
 	// Display message about the removal of boot plugins
-	// Created from payload if HEN is installing, so plugins can not be loaded
+	// Created from payload if HEN is installing, so plugins cannot be loaded
 	if(cellFsStat("/dev_hdd0/tmp/installer.active",&stat)==0)
 	{
 		is_hen_installing=1;
