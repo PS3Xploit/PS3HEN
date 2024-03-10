@@ -1206,8 +1206,9 @@ LV2_HOOKED_FUNCTION_POSTCALL_2(int, open_path_hook, (char *path0, char *path1))
 			}
 
 			uint8_t is_ps2_classic = !strncmp(content_id, "2P0001-PS2U10000_00-0000111122223333", 0x24);
-			uint8_t is_psp_launcher = !strncmp(content_id, "UP0001-PSPC66820_00-0000111122223333", 0x24);
-			if(path_chk == 0 || is_ps2_classic || is_psp_launcher)
+			uint8_t is_psp_launcher_c = !strncmp(content_id, "UP0001-PSPC66820_00-0000111122223333", 0x24);
+			uint8_t is_psp_launcher_m = !strncmp(content_id, "UP0001-PSPM66820_00-0000111122223333", 0x24);
+			if(path_chk == 0 || is_ps2_classic || is_psp_launcher_c || is_psp_launcher_m)
 			{
 				uint8_t rap[0x10] = {0xF5, 0xDE, 0xCA, 0xBB, 0x09, 0x88, 0x4F, 0xF4, 0x02, 0xD4, 0x12, 0x3C, 0x25, 0x01, 0x71, 0xD9};
 				uint8_t idps[0x10];
@@ -1230,7 +1231,7 @@ LV2_HOOKED_FUNCTION_POSTCALL_2(int, open_path_hook, (char *path0, char *path1))
 				int fd;
 				uint64_t nread;
 
-				if(!is_ps2_classic || !is_psp_launcher)					
+				if(!is_ps2_classic || is_psp_launcher_c || is_psp_launcher_m)					
 				{
 					// uncomment this to avoid hook recursivity & remappings if appropriate
 					//lock_mtx(&pgui_mtx);
