@@ -32,7 +32,7 @@ HEN_GEN PS3HEN.BIN_CEX_487 stage2.bin_487C stage0.bin_487C HENplugin.sprx
 HEN_GEN PS3HEN.BIN_CEX_488 stage2.bin_488C stage0.bin_488C HENplugin.sprx
 HEN_GEN PS3HEN.BIN_CEX_489 stage2.bin_489C stage0.bin_489C HENplugin.sprx
 HEN_GEN PS3HEN.BIN_CEX_490 stage2.bin_490C stage0.bin_490C HENplugin.sprx
-HEN_GEN PS3HEN.BIN_CEX_490 stage2.bin_491C stage0.bin_491C HENplugin.sprx
+HEN_GEN PS3HEN.BIN_CEX_491 stage2.bin_491C stage0.bin_491C HENplugin.sprx
 rm stage* *.sprx *.exe
 mv PS3HEN* ../
 
