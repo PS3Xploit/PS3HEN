@@ -1205,6 +1205,7 @@ LV2_HOOKED_FUNCTION_POSTCALL_2(int, open_path_hook, (char *path0, char *path1))
 					break;
 			}
 
+			// TODO: Check why PSP Launchers now require a RAP since 3.2.2 / 4.90
 			uint8_t is_ps2_classic = !strncmp(content_id, "2P0001-PS2U10000_00-0000111122223333", 0x24);
 			uint8_t is_psp_launcher_c = !strncmp(content_id, "UP0001-PSPC66820_00-0000111122223333", 0x24);
 			uint8_t is_psp_launcher_m = !strncmp(content_id, "UP0001-PSPM66820_00-0000111122223333", 0x24);
