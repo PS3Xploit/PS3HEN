@@ -90,6 +90,7 @@ int henplugin_stop(void);
 int is_wmm_installed = 0;
 int is_hen_installing = 0;
 int use_wmm_pkg = 0;
+int usb_emergency_update = 0;
 
 extern int vshmain_87BB0001(int param);
 int (*vshtask_notify)(int, const char *) = NULL;
@@ -810,6 +811,98 @@ static void play_rco_sound(const char *sound)
 	}
 }
 
+static void close_browser_plugins(void);
+static void close_browser_plugins(void)
+{
+	View_Find = getNIDfunc("paf", 0xF21655F3, 0);
+	int is_browser_open=View_Find("webbrowser_plugin");
+	
+	// Silk
+	DPRINTF("HENPLUGIN->close_browser_plugins: silk \n");
+	while(is_browser_open)
+	{	
+		sys_timer_usleep(70000);
+		is_browser_open=View_Find("webbrowser_plugin");
+	}
+	
+	// Webkit
+	DPRINTF("HENPLUGIN->close_browser_plugins: webkit \n");
+	is_browser_open=View_Find("webrender_plugin");
+	while(is_browser_open)
+	{
+		sys_timer_usleep(70000);
+		is_browser_open=View_Find("webrender_plugin");
+	}
+	DPRINTF("HENPLUGIN->unload_web_plugins \n");
+	unload_web_plugins();
+}
+
+static void package_install(void);
+static void package_install(void)
+{
+	DPRINTF("HENPLUGIN->package_install: %s \n", pkg_path);
+	CellFsStat stat;
+	
+	/*
+	// Old method
+	if(cellFsStat(pkg_path,&stat)==0)
+	{
+		// After package starts installing, this first loop exits
+		LoadPluginById(0x16, (void *)installPKG_thread);
+		
+		DPRINTF("HENPLUGIN->IS_INSTALLING: %08X\nthread3_install_finish: %i\n",IS_INSTALLING,thread3_install_finish);
+		while (!thread3_install_finish || IS_INSTALLING)
+		{
+			DPRINTF("HENPLUGIN->IS_INSTALLING: %08X\n",IS_INSTALLING);
+			sys_timer_usleep(2000000); // check every 2 seconds
+		}
+		reboot_flag=1;
+	}
+	*/
+	
+	LoadPluginById(0x16, (void *)installPKG_thread);
+	
+	if(cellFsStat(pkg_path,&stat)==0)
+	{
+		if (usb_emergency_update==1)
+		{
+			// Paths to the files you expect to signal the completion of the update process
+			const char* checkFile1 = "/dev_rewrite/vsh/resource/explore/xmb/zzz_temp_install.check1";
+			const char* checkFile2 = "/dev_rewrite/vsh/resource/explore/xmb/zzz_temp_install.check2";
+
+			// Wait for the first file to appear, checking every 10 seconds
+			while (cellFsStat(checkFile1, &stat) != CELL_FS_SUCCEEDED) {
+				DPRINTF("HENPLUGIN->Checking first installation verification file \n",checkFile1);
+				sys_timer_usleep(10000000);
+			}
+			cellFsUnlink("/dev_rewrite/vsh/resource/explore/xmb/zzz_temp_install.check1");
+
+			// Now wait for the second file to appear, checking every 5 seconds
+			while (cellFsStat(checkFile2, &stat) != CELL_FS_SUCCEEDED) {
+				DPRINTF("HENPLUGIN->Checking second installation verification file \n",checkFile2);
+				sys_timer_usleep(5000000);
+			}
+			cellFsUnlink("/dev_rewrite/vsh/resource/explore/xmb/zzz_temp_install.check2");
+
+			// Both files found, wait an additional 5 seconds for the lulz ;)
+			DPRINTF("HENPLUGIN->Both installation verification files found. Proceeding to reboot... \n");
+			sys_timer_usleep(5000000);
+			reboot_flag = 1;
+		}
+		else 
+		{
+			// Original logic for waiting for package installation to complete, applicable to non-emergency updates
+			DPRINTF("HENPLUGIN->IS_INSTALLING: %08X\nthread3_install_finish: %i\n",IS_INSTALLING,thread3_install_finish);
+			while (!thread3_install_finish || IS_INSTALLING)
+			{
+				DPRINTF("HENPLUGIN->IS_INSTALLING: %08X\n",IS_INSTALLING);
+				sys_timer_usleep(2000000); // check every 2 seconds
+			}
+			reboot_flag=1;
+		}
+	}
+}
+
 static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 {
 	set_build_type();
@@ -845,25 +938,17 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 	// Emergency USB HEN Installer
 	if(cellFsStat("/dev_usb000/HEN_UPD.pkg",&stat)==0)
 	{
+		usb_emergency_update=1; // Set USB Emergency Update Flag so when the package_install function runs, it will check it differently
 		play_rco_sound("snd_trophy");
 		//set_led("install_start");
 		DPRINTF("HENPLUGIN->Installing Emergency Package From USB\n");
 		char hen_usb_update[0x80];
-		sprintf(hen_usb_update, "Installing Emergency Package\n\nRemove HEN_UPD.pkg after install");
+		sprintf(hen_usb_update, "Installing Emergency Package\n\nRemove HEN_UPD.pkg or unplug USB device after install\n");
 		memset(pkg_path,0,256);
 		strcpy(pkg_path,"/dev_usb000/HEN_UPD.pkg");
 		show_msg((char *)hen_usb_update);
-		LoadPluginById(0x16, (void *)installPKG_thread);
-		while(thread3_install_finish==0)
-		{
-			sys_timer_usleep(70000);
-		}
-		while (!thread3_install_finish || IS_INSTALLING)
-			{
-				//DPRINTF("IS_INSTALLING: %08X\n",IS_INSTALLING);
-				sys_timer_usleep(2000000); // check every 2 seconds
-			}
-		reboot_flag=1;
+		close_browser_plugins();
+		package_install();
 		goto done;
 	}
 	
@@ -911,20 +996,7 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 	if((do_install_hen!=0) || (do_update==1))
 	{
 		//set_led("install_start");
-		int is_browser_open=View_Find("webbrowser_plugin");
-		
-		while(is_browser_open)
-		{	
-			sys_timer_usleep(70000);
-			is_browser_open=View_Find("webbrowser_plugin");
-		}
-		is_browser_open=View_Find("webrender_plugin");
-		while(is_browser_open)
-		{
-			sys_timer_usleep(70000);
-			is_browser_open=View_Find("webrender_plugin");
-		}
-		unload_web_plugins();
+		close_browser_plugins();
 		
 		// Check for Webman-MOD and use PS3HEN-WMM Package Link
 		if((is_wmm_installed==1) && (is_hen_installing==1) && (build_type==!DEV))
@@ -950,21 +1022,9 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 			//DPRINTF("HENPLUGIN->Waiting for package to finish downloading\n");
 		}
 		
-		if(cellFsStat(pkg_path,&stat)==0)
-		{
-			// After package starts installing, this first loop exits
-			LoadPluginById(0x16, (void *)installPKG_thread);
+		package_install();
 			
-			//DPRINTF("IS_INSTALLING: %08X\nthread3_install_finish: %i\n",IS_INSTALLING,thread3_install_finish);
-			while (!thread3_install_finish || IS_INSTALLING)
-			{
-				//DPRINTF("IS_INSTALLING: %08X\n",IS_INSTALLING);
-				sys_timer_usleep(2000000); // check every 2 seconds
-			}
-			reboot_flag=1;
-			
-			goto done;
-		}
+		goto done;
 	}
 	else
 	{   
