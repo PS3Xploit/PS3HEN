@@ -866,32 +866,13 @@ static void package_install(void)
 	{
 		if (usb_emergency_update==1)
 		{
-			// Paths to the files you expect to signal the completion of the update process
-			const char* checkFile1 = "/dev_rewrite/vsh/resource/explore/xmb/zzz_temp_install.check1";
-			const char* checkFile2 = "/dev_rewrite/vsh/resource/explore/xmb/zzz_temp_install.check2";
-
-			// Wait for the first file to appear, checking every 10 seconds
-			while (cellFsStat(checkFile1, &stat) != CELL_FS_SUCCEEDED) {
-				DPRINTF("HENPLUGIN->Checking first installation verification file \n",checkFile1);
-				sys_timer_usleep(10000000);
-			}
-			cellFsUnlink("/dev_rewrite/vsh/resource/explore/xmb/zzz_temp_install.check1");
-
-			// Now wait for the second file to appear, checking every 5 seconds
-			while (cellFsStat(checkFile2, &stat) != CELL_FS_SUCCEEDED) {
-				DPRINTF("HENPLUGIN->Checking second installation verification file \n",checkFile2);
-				sys_timer_usleep(5000000);
-			}
-			cellFsUnlink("/dev_rewrite/vsh/resource/explore/xmb/zzz_temp_install.check2");
-
-			// Both files found, wait an additional 5 seconds for the lulz ;)
-			DPRINTF("HENPLUGIN->Both installation verification files found. Proceeding to reboot... \n");
-			sys_timer_usleep(5000000);
-			reboot_flag = 1;
+			char manual_reboot_txt[0x80];
+			sprintf(manual_reboot_txt, "HEN_UPD.PKG installing from /dev_usb000/\nYou will have to reboot your PS3 system manually when finished");
+			show_msg((char *)manual_reboot_txt);
 		}
 		else 
 		{
-			// Original logic for waiting for package installation to complete, applicable to non-emergency updates
+			// Original logic for waiting for package installation to complete
 			DPRINTF("HENPLUGIN->IS_INSTALLING: %08X\nthread3_install_finish: %i\n",IS_INSTALLING,thread3_install_finish);
 			while (!thread3_install_finish || IS_INSTALLING)
 			{
