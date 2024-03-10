@@ -1245,10 +1245,6 @@ void cleanup_files(void)
 	cellFsUnlink("/dev_hdd0/hen/hfw_settings.xml");
 	cellFsUnlink("/dev_hdd0/hen/xml/hfw_settings.xml");
 	cellFsUnlink("/dev_hdd0/hen/xml/ps3hen_updater.xml");
-	
-	// 3.3.0+ Temp installer files for USB Emergency Installer
-	cellFsUnlink("/dev_rewrite/vsh/resource/explore/xmb/zzz_temp_install.check1");
-	cellFsUnlink("/dev_rewrite/vsh/resource/explore/xmb/zzz_temp_install.check2");
 }
 
 
