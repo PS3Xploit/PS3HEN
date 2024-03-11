@@ -867,7 +867,7 @@ static void package_install(void)
 		if (usb_emergency_update==1)
 		{
 			char manual_reboot_txt[0x80];
-			sprintf(manual_reboot_txt, "HEN_UPD.PKG installing from /dev_usb000/\nYou will have to reboot your PS3 system manually when finished");
+			sprintf(manual_reboot_txt, "HEN_UPD.PKG installing from USB.\nWhen finished, reboot manually.");
 			show_msg((char *)manual_reboot_txt);
 		}
 		else 
@@ -923,11 +923,8 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 		play_rco_sound("snd_trophy");
 		//set_led("install_start");
 		DPRINTF("HENPLUGIN->Installing Emergency Package From USB\n");
-		char hen_usb_update[0x80];
-		sprintf(hen_usb_update, "Installing Emergency Package\n\nRemove HEN_UPD.pkg or unplug USB device after install\n");
 		memset(pkg_path,0,256);
 		strcpy(pkg_path,"/dev_usb000/HEN_UPD.pkg");
-		show_msg((char *)hen_usb_update);
 		close_browser_plugins();
 		package_install();
 		goto done;
