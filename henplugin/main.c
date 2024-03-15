@@ -1015,7 +1015,7 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 done:
 	DPRINTF("HENPLUGIN->Exiting main thread!\n");	
 	
-	cellFsUnlink("/dev_hdd0/theme/PS3HEN.P3T");// Removing temp HEN installer
+	cellFsUnlink("/dev_hdd0/theme/PS3HEN.p3t");// Removing temp HEN installer
 	done=1;
 	
 	if(reboot_flag==1)
