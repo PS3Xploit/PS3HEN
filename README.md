@@ -1,4 +1,4 @@
-# PS3HEN 3.2.2
+# PS3HEN 3.3.0
 
 MultiFW support has been added.
 [Supported Firmwares]
@@ -16,6 +16,7 @@ MultiFW support has been added.
 * CEX HFW 4.88.1 (thanks zecoxao/Joonie)
 * CEX HFW 4.89.1 (thanks littlebalup)
 * CEX HFW 4.90.1 (thanks Joonie)
+* CEX HFW 4.91.1 (thanks Joonie)
 
 ** CFWs can be used for testing, but not recommended to use**<br>
 
@@ -24,6 +25,21 @@ MultiFW support has been added.
 
 Changelog<br>
 -----------<br>
+
+# 3.3.0<br>
+# HEN Global Changes<br>
+  - Added support for 4.91 CEX firmware (HFW) (thanks Joonie)<br>
+# HEN Plugin Changes<br>
+  - Fixed early reboot problem with HEN_UPD.PKG for Emergency USB Recovery<br>
+# Payload Changes<br>
+  - Fixed issue with PSP Launcher (thanks aldostools, LuanTeles)<br>
+# Resource Changes<br>
+  - Added *Toggle 99 Percent Package Install/Delete* option in HFW Tools->Maintenance (thanks zmod)<br>
+  - Updated download_list.xml to use updated paths on dev_hdd0 (thanks LuanTeles, DeViL303)<br>
+  - Added support for PS Home Catalogue path in download_list.xml (thanks DeViL303, LuanTeles, aldostools)<br>
+  - Added support for dev_usb002 - dev_usb007 in package manager (thanks LuanTeles)<br>
+<br>
+<br>
 
 # 3.2.2<br>
 # HEN Global Changes<br>
