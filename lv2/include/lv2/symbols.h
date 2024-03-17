@@ -107,7 +107,7 @@
 #define cellFsOpen_symbol								0x297900
 #define cellFsClose_symbol								0x297768
 #define cellFsRead_symbol								0x2978A4
-#define cellFsMkdir_symbol 								0x299094
+#define cellFsMkdir_symbol 								0x2990A0
 #define cellFsWrite_symbol								0x297810
 #define cellFsLseek_symbol								0x296E98
 #define cellFsStat_symbol								0x29711C
@@ -686,6 +686,7 @@
 #define cellFsWrite_symbol								0x297804
 #define cellFsLseek_symbol								0x296E8C
 #define cellFsStat_symbol								0x297110
+#define cellFsMkdir_symbol 								0x299094
 #define cellFsUtime_symbol 								0x298BFC
 #define cellFsUnlink_internal_symbol   		 			0x19C644
 
