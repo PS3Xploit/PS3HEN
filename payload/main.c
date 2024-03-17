@@ -59,7 +59,7 @@
 
 #define COBRA_VERSION		0x0F
 #define COBRA_VERSION_BCD	0x0840
-#define HEN_REV				0x0330
+#define HEN_REV				0x0331
 
 #if defined(FIRMWARE_4_80)
 	#define FIRMWARE_VERSION	0x0480

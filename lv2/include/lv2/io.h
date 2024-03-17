@@ -89,6 +89,7 @@ LV2_EXPORT int cellFsRead(int fd, void *buf, uint64_t nbytes, uint64_t *nread);
 LV2_EXPORT int cellFsWrite(int fd, void *buf, uint64_t nbytes, uint64_t *nwrite);
 LV2_EXPORT int cellFsLseek(int fd, int64_t offset, int whence, uint64_t *pos);
 LV2_EXPORT int cellFsStat(const char *path, CellFsStat *sb);
+LV2_EXPORT int cellFsMkdir(const char *path, CellFsMode mode);
 LV2_EXPORT int cellFsUtime(const char *path, CellFsUtimbuf *timep);
 
 #ifdef io_sub_rtoc_entry_1

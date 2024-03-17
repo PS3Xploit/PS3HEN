@@ -6,7 +6,27 @@
 #include <string.h>
 #include <lv2/lv2.h>
 
-#define isalpha(c) ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z'))
+#define isupper(c) (c >= 'A' && c <= 'Z')
+#define islower(c) (c >= 'a' && c <= 'z')
+#define isalpha(c) (isupper(c) || islower(c))
+#define isdigit(c) (c >= '0' && c <= '9')
+#define isspace(c) (c == ' ' || c == '\f' || c == '\n' || c == '\r' || c =='\t' || c =='\v')
+
+#define SWAP32(value) 				   \
+	((value & 0xff000000ull) >> 24)    \
+	| ((value & 0x00ff0000ull) >> 8)   \
+	| ((value & 0x0000ff00ull) << 8)   \
+	| ((value & 0x000000ffull) << 24)
+
+#define SWAP64(value)  						   \
+	((value & 0xff00000000000000ull) >> 56)    \
+	| ((value & 0x00ff000000000000ull) >> 40)  \
+	| ((value & 0x0000ff0000000000ull) >> 24)  \
+	| ((value & 0x000000ff00000000ull) >> 8 )  \
+	| ((value & 0x00000000ff000000ull) << 8 )  \
+	| ((value & 0x0000000000ff0000ull) << 24)  \
+	| ((value & 0x000000000000ff00ull) << 40)  \
+	| ((value & 0x00000000000000ffull) << 56)
 
 LV2_EXPORT int lv2_printf(const char* format, ...) __attribute__ ((format (printf, 1, 2)));
 LV2_EXPORT int lv2_sprintf(char *str, const char* format, ...) __attribute__ ((format (printf, 2, 3)));
@@ -25,6 +45,10 @@ LV2_EXPORT void *lv2_memset(void *s, int c, size_t n);
 LV2_EXPORT int lv2_memcmp(const void *s1, const void *s2, size_t n);
 LV2_EXPORT void *lv2_memchr(const void *s, int c, size_t n);
 
+char *strstr(const char *haystack, const char *needle);
+int strncasecmp (__const char *s1, __const char *s2, size_t n);
+unsigned long long strtoull(const char *str, char **endptr, int base);
+
 //#define printf 		lv2_printf
 #define sprintf 	lv2_sprintf
 #define snprintf	lv2_snprintf
@@ -41,7 +65,5 @@ LV2_EXPORT void *lv2_memchr(const void *s, int c, size_t n);
 #define memset		lv2_memset
 #define memcmp		lv2_memcmp
 #define memchr		lv2_memchr
-
-
 
 #endif /* __LV2_LIBC_H__ */

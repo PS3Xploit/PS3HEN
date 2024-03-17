@@ -14,6 +14,10 @@
 #include <lv2/synchronization.h>
 #include <stdbool.h>
 #include <stdio.h>
+#define ACCOUNTID						1
+#define READ 							0
+
+#define XREGISTRY_FILE 					"/dev_flash2/etc/xRegistry.sys"
 
 typedef struct MapEntry {
 	char *oldpath;
@@ -894,11 +898,6 @@ static int listed(int blacklist, char *gameid)
 		return 0;
 	}
 
-#define IDPS_KEYBITS 128
-#define ACT_DAT_KEYBITS 128
-#define RIF_KEYBITS 128
-#define RAP_KEYBITS 128
-
 static uint8_t libft2d_access = 0;
 
 // BEGIN KW & AV block access to homebrews when syscalls are disabled
@@ -920,11 +919,89 @@ void aescbc128_decrypt(unsigned char *key, unsigned char *iv, unsigned char *in,
 	memset(iv, 0, 0x10);
 }
 
-static unsigned char RAP_KEY[] = {0x86, 0x9F, 0x77, 0x45, 0xC1, 0x3F, 0xD8, 0x90, 0xCC, 0xF2, 0x91, 0x88, 0xE3, 0xCC, 0x3E, 0xDF};
-static unsigned char RAP_PBOX[] = {0x0C, 0x03, 0x06, 0x04, 0x01, 0x0B, 0x0F, 0x08, 0x02, 0x07, 0x00, 0x05, 0x0A, 0x0E, 0x0D, 0x09};
-static unsigned char RAP_E1[] = {0xA9, 0x3E, 0x1F, 0xD6, 0x7C, 0x55, 0xA3, 0x29, 0xB7, 0x5F, 0xDD, 0xA6, 0x2A, 0x95, 0xC7, 0xA5};
-static unsigned char RAP_E2[] = {0x67, 0xD4, 0x5D, 0xA3, 0x29, 0x6D, 0x00, 0x6A, 0x4E, 0x7C, 0x53, 0x7B, 0xF5, 0x53, 0x8C, 0x74};
+static uint8_t empty[0x10] = 
+{
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+};
+
+unsigned char RAP_KEY[] =  { 0x86, 0x9F, 0x77, 0x45, 0xC1, 0x3F, 0xD8, 0x90, 0xCC, 0xF2, 0x91, 0x88, 0xE3, 0xCC, 0x3E, 0xDF };
+unsigned char RAP_PBOX[] = { 0x0C, 0x03, 0x06, 0x04, 0x01, 0x0B, 0x0F, 0x08, 0x02, 0x07, 0x00, 0x05, 0x0A, 0x0E, 0x0D, 0x09 };
+unsigned char RAP_E1[] =   { 0xA9, 0x3E, 0x1F, 0xD6, 0x7C, 0x55, 0xA3, 0x29, 0xB7, 0x5F, 0xDD, 0xA6, 0x2A, 0x95, 0xC7, 0xA5 };
+unsigned char RAP_E2[] =   { 0x67, 0xD4, 0x5D, 0xA3, 0x29, 0x6D, 0x00, 0x6A, 0x4E, 0x7C, 0x53, 0x7B, 0xF5, 0x53, 0x8C, 0x74 };
 static unsigned char no_exists[] = {"/fail"};
+
+uint32_t userID;
+uint8_t skip_existing_rif = 0;
+uint8_t account_id[0x10];
+
+static int xreg_data(char *value)
+{
+    int fd, result = -1; 
+    uint16_t offset = 0;
+    uint64_t read, seek;    
+
+    if(cellFsOpen(XREGISTRY_FILE, CELL_FS_O_RDWR, &fd, 0666, NULL, 0) != SUCCEEDED)
+		return result;
+
+	char *buffer = malloc(0x2A);    
+
+    if(!buffer)
+		return result;
+
+    // Get offset
+    for(int i = 0; i < 0x10000; i++)
+    {       
+        cellFsLseek(fd, i, SEEK_SET, &seek);
+        cellFsRead(fd, buffer, 0x31 + 1, &read);
+
+        // Found offset
+        if(strcmp(buffer, value) == 0) 
+        {
+            offset = i - 0x15;
+            uint8_t *data = NULL;
+
+            // Search value from value table
+            for(int i = 0x10000; i < 0x15000; i++)
+            {
+            	data = (uint8_t *) malloc(0x17);
+
+            	if(!data)
+            	{
+            		free(buffer);
+            		return result;
+            	}
+
+                cellFsLseek(fd, i, SEEK_SET, &seek);
+                cellFsRead(fd, data, 0x17, &read);
+                
+                // Found value
+                if (memcmp(data, &offset, 2) == 0 && data[4] == 0x00 && data[5] == 0x11 && data[6] == 0x02)
+                {       
+                    result = 0;   
+
+                    memcpy(&account_id, data + 7, 0x10);
+
+                    if(memcmp(data + 7, empty, 0x10) != SUCCEEDED)                        
+                        result = 1;                                                                    
+
+                    free(data);
+					free(buffer);
+					cellFsClose(fd);
+					
+					return result;
+                }
+
+                free(data);
+            }
+        }
+    }
+
+    free(buffer);
+    cellFsClose(fd);    
+
+    return result;
+}
 
 static void get_rif_key(unsigned char* rap, unsigned char* rif)
 {
@@ -937,7 +1014,8 @@ static void get_rif_key(unsigned char* rap, unsigned char* rif)
 	memset(iv, 0, 0x10);
 
 	// Initial decrypt.
-	aescbc128_decrypt(RAP_KEY, iv, rap, key, 0x10);
+	aescbccfb_dec(key, rap, 0x10, RAP_KEY, 0x80, iv);
+	memset(iv, 0, 0x10);
 
 	// rap2rifkey round.
 	for (round = 0; round < 5; ++round)
@@ -947,13 +1025,16 @@ static void get_rif_key(unsigned char* rap, unsigned char* rif)
 			int p = RAP_PBOX[i];
 			key[p] ^= RAP_E1[p];
 		}
+
 		for (i = 15; i >= 1; --i)
 		{
 			int p = RAP_PBOX[i];
 			int pp = RAP_PBOX[i - 1];
 			key[p] ^= key[pp];
 		}
+
 		int o = 0;
+
 		for (i = 0; i < 16; ++i)
 		{
 			int p = RAP_PBOX[i];
@@ -964,76 +1045,221 @@ static void get_rif_key(unsigned char* rap, unsigned char* rif)
 				o = kc < ec2 ? 1 : 0;
 				key[p] = kc - ec2;
 			}
-			else if (kc == 0xFF)
-			{
-				key[p] = kc - ec2;
-			}
-			else
-			{
-				key[p] = kc;
-			}
+			else if (kc == 0xFF)			
+				key[p] = kc - ec2;			
+			else			
+				key[p] = kc;			
 		}
 	}
+
 	memcpy(rif, key, 0x10);
 }
 
-static int read_act_dat_and_make_rif(uint8_t *idps,uint8_t *rap, uint8_t *act_dat, char *content_id, char *out)
+static void read_act_dat_and_make_rif(uint8_t *rap, uint8_t *act_dat, const char *content_id, const char *rif_path)
 {
-	uint8_t idps_const[0x10]={0x5E,0x06,0xE0,0x4F,0xD9,0x4A,0x71,0xBF,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x01};
-	uint8_t rif_key_const[0x10]={0xDA,0x7D,0x4B,0x5E,0x49,0x9A,0x4F,0x53,0xB1,0xC1,0xA1,0x4A,0x74,0x84,0x44,0x3B};
-
-	uint8_t act_dat_key[0x10];
-	uint64_t account_id;
-	//uint8_t rifkey[0x10];
-
-	memcpy(&account_id, act_dat+0x8,0x8);
-	memcpy(act_dat_key,act_dat+0x10,0x10);
-
-	uint8_t *rif;
-	page_allocate_auto(NULL, 0x98, 0x2F, (void *)&rif);
-
-	memset(rif,0,0x98);
-
-	get_rif_key(rap, rif+0x50); //convert rap to rifkey(klicensee)
-	uint8_t iv[16];
-	memset(iv,0,0x10);
-
-	aescbccfb_enc(idps_const,idps_const,0x10,idps,IDPS_KEYBITS,iv);
-	memset(iv,0,0x10);
-
-	aescbccfb_dec(act_dat_key,act_dat_key,0x10,idps_const,IDPS_KEYBITS,iv);
-	memset(iv,0,0x10);
-
-	aescbccfb_enc(rif+0x50,rif+0x50,0x10,act_dat_key,ACT_DAT_KEYBITS,iv);
-	memset(iv,0,0x10);
-
-	aescbccfb_enc(rif+0x40,rif+0x40,0x10,rif_key_const,RIF_KEYBITS,iv);
-	memset(iv,0,0x10);
-
-	uint64_t timestamp=0x000001619BF6DDCA;
-	uint32_t version_number=1;
-	uint32_t license_type=0x00010002;
-	uint64_t expiration_time=0;
-
-	memcpy(rif, &version_number,4);
-	memcpy(rif+4, &license_type,4);
-	memcpy(rif+8,&account_id,8);
-	memcpy(rif+0x10, content_id, 0x24);
-	memcpy(rif+0x60, &timestamp, 8);
-	memcpy(rif+0x68, &expiration_time,8);
-	memset(rif+0x70,1,0x28); //compatible with old cfw patches too
-
 	int fd;
-	uint64_t size;
-	// uncomment this to avoid hook recursivity & remappings if appropriate
-	// lock_mtx(&pgui_mtx);
-	if(cellFsOpen(out, CELL_FS_O_WRONLY|CELL_FS_O_CREAT|CELL_FS_O_TRUNC, &fd, 0666, NULL, 0) == 0)
+
+	if(cellFsOpen(rif_path, CELL_FS_O_WRONLY | CELL_FS_O_CREAT | CELL_FS_O_TRUNC, &fd, 0666, NULL, 0) == SUCCEEDED)
 	{
+		uint8_t idps_const[0x10]    = { 0x5E, 0x06, 0xE0, 0x4F, 0xD9, 0x4A, 0x71, 0xBF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01 };
+		uint8_t rif_key_const[0x10] = { 0xDA, 0x7D, 0x4B, 0x5E, 0x49, 0x9A, 0x4F, 0x53, 0xB1, 0xC1, 0xA1, 0x4A, 0x74, 0x84, 0x44, 0x3B };
+
+		uint8_t *rif = ALLOC_RIF_BUFFER;
+		uint8_t *key_index = rif + 0x40;
+		uint8_t *rif_key = rif + 0x50;
+		memset(rif, 0, 0x70);
+
+		get_rif_key(rap, rif_key); //convert rap to rifkey (klicensee)
+
+		uint8_t *iv = rif + 0x60;
+		aescbccfb_enc(idps_const, idps_const, 0x10, (void*)PS3MAPI_IDPS_2, IDPS_KEYBITS, iv);
+
+		uint8_t *act_dat_key = rap;
+		memcpy(act_dat_key, act_dat + 0x10, 0x10);
+
+		memset(iv, 0, 0x10);
+		aescbccfb_dec(act_dat_key, act_dat_key, 0x10, idps_const, IDPS_KEYBITS, iv);
+
+		memset(iv, 0, 0x10);
+		aescbccfb_enc(rif_key, rif_key, 0x10, act_dat_key, ACT_DAT_KEYBITS, iv);
+
+		memset(iv, 0, 0x10);
+		aescbccfb_enc(key_index, key_index, 0x10, rif_key_const, RIF_KEYBITS, iv);
+
+		const uint32_t version_number = 1;
+		const uint32_t license_type = 0x00010002;
+		const uint64_t timestamp = 0x000001619BF6DDCA;
+		const uint64_t expiration_time = 0;
+
+		memcpy(rif,        &version_number,  4); // 0x00 version_number
+		memcpy(rif + 0x04, &license_type,    4); // 0x04 license_type
+		memcpy(rif + 0x08, act_dat + 0x8,    8); // 0x08 account_id
+		memcpy(rif + 0x10, content_id,    0x24); // 0x10 content_id
+												 // 0x40 encrypted key index (Used for choosing act.dat key)
+												 // 0x50 encrypted rif_key
+		memcpy(rif + 0x60, &timestamp,       8); // 0x60 timestamp
+		memcpy(rif + 0x68, &expiration_time, 8); // 0x68 expiration time
+
+		uint64_t size;
+		memset(rif + 0x70, 0x11, 0x28);			 // 0x70 ECDSA Signature
 		cellFsWrite(fd, rif, 0x98, &size);
 		cellFsClose(fd);
 	}
-	page_free(NULL, (void *)rif, 0x2F);
-		return 0;
+}
+
+int create_act_dat(const char *userid)
+{
+	int fd;
+	uint64_t size;
+	char full_path[120], exdata_dir[120];
+	CellFsStat stat;
+
+	DPRINTF("Creating act.dat for userID %s...\n", userid);
+
+	uint8_t timedata[0x10] = 
+	{ 
+		0x00, 0x00, 0x01, 0x2F, 0x3F, 0xFF, 0x00, 0x00, 
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+	};
+
+	const uint64_t header = 0x0000000100000002;
+
+	uint64_t accountID = (uint64_t)strtoull((const char*)account_id, NULL, 16);
+	accountID = SWAP64(accountID);
+	
+	uint8_t *actdat = malloc(0x1038);	
+
+	if(!actdat)	
+		return 1;
+	
+	memset(actdat, 0x11, 0x1038);
+	memcpy(actdat, &header, 8);
+	memcpy(actdat + 8, &accountID, 8);
+	memcpy(actdat + 0x870, timedata, 0x10);
+
+	sprintf(exdata_dir, "/dev_hdd0/home/%s/exdata", userid);
+
+	if(cellFsStat(exdata_dir, &stat) != SUCCEEDED)				
+		cellFsMkdir(exdata_dir, 0777);		
+
+	sprintf(full_path, "%s/act.dat", exdata_dir);
+
+	cellFsOpen(full_path, CELL_FS_O_WRONLY | CELL_FS_O_CREAT | CELL_FS_O_TRUNC, &fd, 0666, NULL, 0);
+	cellFsWrite(fd, actdat, 0x1038, &size);
+	cellFsClose(fd);
+
+	free(actdat);
+
+	return SUCCEEDED;
+}
+
+void make_rif(const char *path)
+{		
+	char buffer[120];	
+	int path_len = strlen(path);	
+	
+	if(!strncmp(path, "/dev_hdd0/home/", 15) && !strcmp(path + path_len - 4, ".rif"))
+	{		
+		int act_dat_found = 0;
+		CellFsStat stat;		
+		
+		DPRINTF("open_path_hook: %s (looking for rap)\n", path);
+
+		char *content_id = ALLOC_CONTENT_ID;
+		memset(content_id, 0, 0x25);
+		strncpy(content_id, strrchr(path, '/') + 1, 0x24);
+
+		char *rap_path = ALLOC_PATH_BUFFER;
+
+		uint8_t is_ps2_classic = !strncmp(content_id, "2P0001-PS2U10000_00-0000111122223333", 0x24);
+		uint8_t is_psp_launcher = !strncmp(content_id, "UP0001-PSPC66820_00-0000111122223333", 0x24);
+
+		if(!is_ps2_classic && !is_psp_launcher)
+		{
+			CellFsStat stat;
+			const char *ext = "rap";
+
+			// Support for rap and RAP extension (By aldostools)
+			for(uint8_t i = 0; i < 2; i++)
+			{
+				sprintf(rap_path, "/dev_usb000/exdata/%36s.%s", content_id, ext);
+
+				if(cellFsStat(rap_path, &stat) != SUCCEEDED) 
+					rap_path[10] = '1'; //dev_usb001
+				if(cellFsStat(rap_path, &stat) != SUCCEEDED) 
+					sprintf(rap_path, "/dev_hdd0/exdata/%36s.%s", content_id, ext);
+
+				if(cellFsStat(rap_path, &stat) != SUCCEEDED) 
+					ext = "RAP"; 
+				else 
+					break;
+			}
+		}
+
+		int fd;
+		if(is_ps2_classic || is_psp_launcher || cellFsOpen(rap_path, CELL_FS_O_RDONLY, &fd, 0666, NULL, 0) == SUCCEEDED)
+		{
+			uint64_t nread = 0;
+			uint8_t rap[0x10] = { 0xF5, 0xDE, 0xCA, 0xBB, 0x09, 0x88, 0x4F, 0xF4, 0x02, 0xD4, 0x12, 0x3C, 0x25, 0x01, 0x71, 0xD9 };
+
+			if(!is_ps2_classic && !is_psp_launcher)
+			{
+				cellFsRead(fd, rap, 0x10, &nread);
+				cellFsClose(fd);
+			}
+
+			DPRINTF("rap_path: %s output: %s\n", rap_path, path);
+
+			// Search act.dat in home dirs
+			for(int i = 1; i < 100; i++)
+			{
+				sprintf(buffer, ACTDAT_PATH, i);
+				
+				if(cellFsStat(buffer, &stat) == SUCCEEDED) 
+				{
+					//DPRINTF("Found act.dat in %08d\n", i);
+					act_dat_found = 1;
+					break;
+				}	
+			}			
+
+			char userid[8];
+			strncpy(userid, path + 15, 8);
+			userid[8] = '\0';
+
+			sprintf(buffer, ACCOUNTID_VALUE, userid);
+			
+			if(!act_dat_found && xreg_data(buffer))
+				create_act_dat(userid);	
+
+			act_dat_found = 0;
+
+			// Skip the creation of rif license if it already exists - By aldostool
+			if(skip_existing_rif && cellFsStat(path, &stat) == SUCCEEDED)			
+				return;			
+			
+			char *act_path = ALLOC_PATH_BUFFER;
+			memset(act_path, 0, 0x50);
+			strncpy(act_path, path, strrchr(path, '/') - path);
+			strcpy(act_path + strlen(act_path), "/act.dat\0");
+
+			DPRINTF("act_path: %s content_id: %s\n", act_path, content_id);
+
+			if(cellFsOpen(act_path, CELL_FS_O_RDONLY, &fd, 0666, NULL, 0) == SUCCEEDED)
+			{
+				uint8_t *act_dat = ALLOC_ACT_DAT;
+				cellFsRead(fd, act_dat, 0x20, &nread); // size: 0x1038 but only first 0x20 are used to make rif
+				cellFsClose(fd);
+
+				if(nread == 0x20)
+				{
+					char *rif_path = ALLOC_PATH_BUFFER;
+					sprintf(rif_path, "/%s", path);
+					read_act_dat_and_make_rif(rap, act_dat, content_id, rif_path);
+				}
+			}			
+		}
+	}
 }
 
 extern char umd_file;
@@ -1061,13 +1287,15 @@ LV2_HOOKED_FUNCTION_POSTCALL_2(int, open_path_hook, (char *path0, char *path1))
 			}
 			else{
 				if(cellFsStat(path0,&stat)) {
-					DPRINTF("open_path_hook=: [NG] %s\n",path0);
+					//DPRINTF("open_path_hook=: [NG] %s\n",path0);
 				}
 				else{
-					DPRINTF("open_path_hook=: [OK] %s\n",path0);
+					//DPRINTF("open_path_hook=: [OK] %s\n",path0);
 				}
 			}
 		#endif
+
+		make_rif(path0);
 
 		if (block_psp_launcher && !umd_file && !strncmp(path0, "/dev_flash/pspemu", 17))
 		{
@@ -1130,141 +1358,7 @@ LV2_HOOKED_FUNCTION_POSTCALL_2(int, open_path_hook, (char *path0, char *path1))
 				}
 			}
 		}
-		else if((!strncmp(path0,"/dev_hdd0/home/", 14)) && (strstr(path0,".rif")))
-		{
-			char content_id[0x24];
-			strncpy(content_id, strrchr(path0,'/')+1, 0x24);
-			char *buf;
-			page_allocate_auto(NULL, 0x60, 0x2F, (void *)&buf);
-			memset(buf,0,0x60);
 
-			// // Template code to detect usb/sd cards mount points
-			// // cannot use the syscalls directly though as they expect user space pointers, not kernel memory offsets
-			// // we need to reverse engineer the 2 syscalls...
-			// f_desc_t f;
-			// f.addr=(void*)MKA(get_syscall_address(0x349));
-			// f.toc=(void*)MKA(TOC);
-			// int (*sys_fs_get_mount_info_size)(uint64_t* out_length) =(void*)&f;
-			// f_desc_t f2;
-			// f2.addr=(void*)MKA(get_syscall_address(0x34A));
-			// f2.toc=(void*)MKA(TOC);
-			// int (*sys_fs_get_mount_info)(CellFsMountInformation_t* info, uint64_t buffer_length, uint64_t* written_length) =(void*)&f2;
-			// uint64_t minfo_size = 0;
-			// uint64_t mcount = 0;
-			// int path_chk = 1;
-			// int misret = sys_fs_get_mount_info_size(&minfo_size);
-			// if(misret==0) {
-				// CellFsMountInformation_t *minfo = alloc(minfo_size*sizeof(CellFsMountInformation_t),0x27);
-				// CellFsMountInformation_t *iterator;
-				// int miret = sys_fs_get_mount_info(minfo,minfo_size,&mcount);
-				// if(miret==0) {
-					// for(int i=1;i<mcount;i++) {
-						// iterator=minfo+i;
-						// if(strcmp(iterator->p_type,"CELL_FS_FAT") == 0 && strcmp(iterator->p_systype,"CELL_FS_IOS:USB_MASS_STORAGE000") == 0 && iterator->p_writable==0) {
-							// sprintf(buf,"%s/exdata/%.36s.rap",iterator->p_name,content_id);
-							// path_chk=cellFsStat(buf,&stat);
-							// if(path_chk==0) {
-								// break;
-							// }
-						// }
-
-					// }
-				// }
-				// iterator=NULL;
-				// dealloc(minfo,0x27);
-			// }
-
-			// Support for rap and RAP extension (By aldostools)
-			int path_chk;
-			const char *ext = "rap";
-			for(uint8_t retry = 0; retry < 2; retry++)
-			{
-
-				// hard coded usb path 000 & 001 should be replaced with usb mount points detection!!!
-				sprintf(buf,"/dev_usb000/exdata/%.36s.%s",content_id, ext);
-				// uncomment this to avoid hook recursivity & remappings if appropriate
-				//lock_mtx(&pgui_mtx);
-				path_chk = cellFsStat(buf,&stat);
-				if(path_chk)
-				{
-					sprintf(buf,"/dev_usb001/exdata/%.36s.%s",content_id, ext);
-					// uncomment this to avoid hook recursivity & remappings if appropriate
-					//lock_mtx(&pgui_mtx);
-					path_chk=cellFsStat(buf,&stat);
-				}
-				if(path_chk)
-				{
-					sprintf(buf,"/dev_hdd0/exdata/%.36s.%s",content_id, ext);
-					// uncomment this to avoid hook recursivity & remappings if appropriate
-					//lock_mtx(&pgui_mtx);
-					path_chk=cellFsStat(buf,&stat);
-				}
-				if(path_chk)
-					ext = "RAP";
-				else
-					break;
-			}
-
-			// TODO: Check why PSP Launchers now require a RAP since 3.2.2 / 4.90
-			uint8_t is_ps2_classic = !strncmp(content_id, "2P0001-PS2U10000_00-0000111122223333", 0x24);
-			uint8_t is_psp_launcher_c = !strncmp(content_id, "UP0001-PSPC66820_00-0000111122223333", 0x24);
-			uint8_t is_psp_launcher_m = !strncmp(content_id, "UP0001-PSPM66820_00-0000111122223333", 0x24);
-			if(path_chk == 0 || is_ps2_classic || is_psp_launcher_c || is_psp_launcher_m)
-			{
-				uint8_t rap[0x10] = {0xF5, 0xDE, 0xCA, 0xBB, 0x09, 0x88, 0x4F, 0xF4, 0x02, 0xD4, 0x12, 0x3C, 0x25, 0x01, 0x71, 0xD9};
-				uint8_t idps[0x10];
-				char *act_path;
-				page_allocate_auto(NULL, 0x60, 0x2F, (void *)&act_path);
-				memset(act_path,0,0x60);
-
-				char act_dat_name[0x10]={"/act.dat"};
-				strncpy(act_path, path0, strrchr(path0,'/')-path0);
-				strcpy(act_path+strlen(act_path),act_dat_name);
-				char output[0x60];
-				sprintf(output, "/%s",path0);
-
-				#ifdef DEBUG
-					//DPRINTF("act_path:%s content_id:%s output:%s rap_path:%s\n",act_path,content_id,output,buf);
-				#endif
-
-				uint8_t *act_dat;
-				page_allocate_auto(NULL, 0x1038, 0x2F, (void *)&act_dat);
-				int fd;
-				uint64_t nread;
-
-				if(!is_ps2_classic || is_psp_launcher_c || is_psp_launcher_m)					
-				{
-					// uncomment this to avoid hook recursivity & remappings if appropriate
-					//lock_mtx(&pgui_mtx);
-					if(cellFsOpen(buf, CELL_FS_O_RDONLY, &fd, 0, NULL, 0) == 0)
-					{
-						cellFsRead(fd, rap, 0x10, &nread);
-						cellFsClose(fd);
-					}
-				}
-				// uncomment this to avoid hook recursivity & remappings if appropriate
-				//lock_mtx(&pgui_mtx);
-				if(cellFsOpen(act_path, CELL_FS_O_RDONLY, &fd, 0, NULL, 0) == 0)
-				{
-					cellFsRead(fd, act_dat, 0x1038, &nread);
-					cellFsClose(fd);
-				}
-
-				page_free(NULL, (void *)act_path, 0x2F);
-				page_free(NULL, (void *)buf, 0x2F);
-
-				memcpy(idps,(void*)PS3MAPI_IDPS_2,0x10);
-				if(nread == 0x1038)
-				{
-					read_act_dat_and_make_rif(idps,rap,act_dat,content_id,output);
-				}
-				page_free(NULL, (void *)act_dat, 0x2F);
-			}
-			else
-			{
-				page_free(NULL, (void *)buf, 0x2F);
-			}
-		}
 		#ifdef DEBUG
 			//DPRINTF("open_path_hook=: processing path [%s]\n", path0);
 		#endif
@@ -1280,7 +1374,8 @@ LV2_HOOKED_FUNCTION_POSTCALL_2(int, open_path_hook, (char *path0, char *path1))
 				}
 			}
 		}
-		if(path && (strncmp(path,"/dev_",5) == 0 || strncmp(path,"/app_",5) == 0 || strncmp(path,"/host_",6) == 0)) {
+		if(path && (strncmp(path,"/dev_",5) == 0 || strncmp(path,"/app_",5) == 0 || strncmp(path,"/host_",6) == 0))
+		{
 			/*if (path && ((strcmp(path, "/dev_bdvd/PS3_UPDATE/PS3UPDAT.PUP") == 0)))  // Blocks FW update from Game discs!
 			{
 				char not_update[40];
