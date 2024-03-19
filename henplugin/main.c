@@ -783,6 +783,8 @@ static int sysLv2FsLink(const char *oldpath, const char *newpath)
 void restore_act_dat(void);
 void restore_act_dat(void)
 {
+	DPRINTF("HENPLUGIN->Begin restore_act_dat\n");
+	
 	CellFsStat stat;
 	char path1[64], path2[64];
 
@@ -797,6 +799,40 @@ void restore_act_dat(void)
 			sysLv2FsLink(path1, path2);
 		}
 	}
+	
+	DPRINTF("HENPLUGIN->Done restore_act_dat\n");
+}
+
+static int sysLv2FsMkdir(const char *path, int mode)
+{
+    system_call_2(811, (uint64_t)(uint32_t)path, (uint64_t)mode);
+    return_to_user_prog(int);
+}
+
+void create_default_dirs(void);
+void create_default_dirs(void)
+{
+	DPRINTF("HENPLUGIN->Begin checking and creating default directories under /dev_hdd0/\n");
+	
+	CellFsStat stat;
+	
+	if(cellFsStat("/dev_hdd0/BDISO",&stat)!=0){sysLv2FsMkdir((const char*)"/dev_hdd0/BDISO", 0777);}
+	if(cellFsStat("/dev_hdd0/DVDISO",&stat)!=0){sysLv2FsMkdir((const char*)"/dev_hdd0/DVDISO", 0777);}
+	if(cellFsStat("/dev_hdd0/PS2ISO",&stat)!=0){sysLv2FsMkdir((const char*)"/dev_hdd0/PS2ISO", 0777);}
+	if(cellFsStat("/dev_hdd0/PS3ISO",&stat)!=0){sysLv2FsMkdir((const char*)"/dev_hdd0/PS3ISO", 0777);}
+	if(cellFsStat("/dev_hdd0/PSPISO",&stat)!=0){sysLv2FsMkdir((const char*)"/dev_hdd0/PSPISO", 0777);}
+	if(cellFsStat("/dev_hdd0/PSXISO",&stat)!=0){sysLv2FsMkdir((const char*)"/dev_hdd0/PSXISO", 0777);}
+	if(cellFsStat("/dev_hdd0/ROMS",&stat)!=0){sysLv2FsMkdir((const char*)"/dev_hdd0/ROMS", 0777);}
+	if(cellFsStat("/dev_hdd0/exdata",&stat)!=0){sysLv2FsMkdir((const char*)"/dev_hdd0/exdata", 0777);}
+	if(cellFsStat("/dev_hdd0/music",&stat)!=0){sysLv2FsMkdir((const char*)"/dev_hdd0/music", 0777);}
+	if(cellFsStat("/dev_hdd0/packages",&stat)!=0){sysLv2FsMkdir((const char*)"/dev_hdd0/packages", 0777);}
+	if(cellFsStat("/dev_hdd0/plugins",&stat)!=0){sysLv2FsMkdir((const char*)"/dev_hdd0/plugins", 0777);}
+	if(cellFsStat("/dev_hdd0/theme",&stat)!=0){sysLv2FsMkdir((const char*)"/dev_hdd0/theme", 0777);}
+	if(cellFsStat("/dev_hdd0/updater",&stat)!=0){sysLv2FsMkdir((const char*)"/dev_hdd0/updater", 0777);}
+	if(cellFsStat("/dev_hdd0/updater/01",&stat)!=0){sysLv2FsMkdir((const char*)"/dev_hdd0/updater/01", 0777);}
+	if(cellFsStat("/dev_hdd0/video",&stat)!=0){sysLv2FsMkdir((const char*)"/dev_hdd0/video", 0777);}
+	
+	DPRINTF("HENPLUGIN->Done checking and creating default directories under /dev_hdd0/\n");
 }
 
 // Shamelessly taken and modified from webmanMOD (thanks aldostools)
@@ -929,6 +965,9 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 		package_install();
 		goto done;
 	}
+	
+	// Create default directories for BDISO, PSXISO, PS2ISO, PS3ISO, PSPISO, etc
+	create_default_dirs();
 	
 	// restore act.dat from act.bak backup
 	restore_act_dat();
