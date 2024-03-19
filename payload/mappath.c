@@ -134,7 +134,7 @@ int addMapping(const char *opath, const char *npath, uint32_t flags) {
 				}
 				else{
 					#ifdef DEBUG
-						DPRINTF("addMapping: deleting found mapping : %s\n",opath);
+						//DPRINTF("addMapping: deleting found mapping : %s\n",opath);
 					#endif
 					return deleteMapping(opath);
 				}
@@ -1114,7 +1114,9 @@ int create_act_dat(const char *userid)
 	char full_path[120], exdata_dir[120];
 	CellFsStat stat;
 
-	DPRINTF("Creating act.dat for userID %s...\n", userid);
+	#ifdef DEBUG
+		DPRINTF("Creating act.dat for userID %s...\n", userid);
+	#endif
 
 	uint8_t timedata[0x10] = 
 	{ 
@@ -1163,7 +1165,9 @@ void make_rif(const char *path)
 		int act_dat_found = 0;
 		CellFsStat stat;		
 		
-		DPRINTF("open_path_hook: %s (looking for rap)\n", path);
+		#ifdef DEBUG
+			DPRINTF("open_path_hook: %s (looking for rap)\n", path);
+		#endif
 
 		char *content_id = ALLOC_CONTENT_ID;
 		memset(content_id, 0, 0x25);
@@ -1171,6 +1175,7 @@ void make_rif(const char *path)
 
 		char *rap_path = ALLOC_PATH_BUFFER;
 
+		// TODO: Check that this ID is not used UP0001-PSPM66820_00-0000111122223333
 		uint8_t is_ps2_classic = !strncmp(content_id, "2P0001-PS2U10000_00-0000111122223333", 0x24);
 		uint8_t is_psp_launcher = !strncmp(content_id, "UP0001-PSPC66820_00-0000111122223333", 0x24);
 
@@ -1208,7 +1213,9 @@ void make_rif(const char *path)
 				cellFsClose(fd);
 			}
 
-			DPRINTF("rap_path: %s output: %s\n", rap_path, path);
+			#ifdef DEBUG
+				DPRINTF("rap_path: %s output: %s\n", rap_path, path);
+			#endif
 
 			// Search act.dat in home dirs
 			for(int i = 1; i < 100; i++)
@@ -1242,8 +1249,10 @@ void make_rif(const char *path)
 			memset(act_path, 0, 0x50);
 			strncpy(act_path, path, strrchr(path, '/') - path);
 			strcpy(act_path + strlen(act_path), "/act.dat\0");
-
-			DPRINTF("act_path: %s content_id: %s\n", act_path, content_id);
+			
+			#ifdef DEBUG
+				DPRINTF("act_path: %s content_id: %s\n", act_path, content_id);
+			#endif
 
 			if(cellFsOpen(act_path, CELL_FS_O_RDONLY, &fd, 0666, NULL, 0) == SUCCEEDED)
 			{
@@ -1287,10 +1296,10 @@ LV2_HOOKED_FUNCTION_POSTCALL_2(int, open_path_hook, (char *path0, char *path1))
 			}
 			else{
 				if(cellFsStat(path0,&stat)) {
-					//DPRINTF("open_path_hook=: [NG] %s\n",path0);
+					DPRINTF("open_path_hook=: [NG] %s\n",path0);
 				}
 				else{
-					//DPRINTF("open_path_hook=: [OK] %s\n",path0);
+					DPRINTF("open_path_hook=: [OK] %s\n",path0);
 				}
 			}
 		#endif
