@@ -182,30 +182,6 @@ typedef struct
 
 explore_plugin_interface * explore_interface;
 
-/*
-typedef struct
-{
-	int (*DoUnk0)(char *);// 1 Parameter: char * action
-} explore_plugin_act0_interface;
-explore_plugin_act0_interface * explore_act0_interface;
-*/
-
-/*
-typedef struct
-{
-	int (*DoUnk0)(int); // 1 Parameter: int (0/1)
-	int (*DoUnk1)(void); // 0 Parameter: - return int
-	int (*DoUnk2)(char *arg1); // 1 Parameter: char * 
-	int (*DoUnk3)(char *arg1); // 1 Parameter: char *
-	int (*DoUnk4)(char *arg1, wchar_t * out); // 2 Parameter: char *, wchar_t * out
-	int (*DoUnk5)(char *arg1, uint8_t *arg2); // 2 Parameter: char *, uint8_t *
-	int (*DoUnk6)(char *arg1); // 1 Parameter: char *
-	int (*DoUnk7)(char *arg1); // 1 Parameter: char *
-} xai_plugin_interface;
-
-xai_plugin_interface * xai_interface;
-*/
-
 static void * getNIDfunc(const char * vsh_module, uint32_t fnid, int offset)
 {
 	// 0x10000 = ELF
@@ -409,17 +385,6 @@ static void unload_prx_module(void)
 	{system_call_3(SC_UNLOAD_PRX_MODULE, (uint64_t)prx, 0, NULL);}
 
 }
-
-/*
-static void stop_prx_module(void)
-{
-	sys_prx_id_t prx = prx_get_module_id_by_address(stop_prx_module);
-	int *result=NULL;
-
-	{system_call_6(SC_STOP_PRX_MODULE, (uint64_t)prx, 0, NULL, (uint64_t)(uint32_t)result, 0, NULL);}
-
-}
-*/
 
 // Updated 20220613 (thanks TheRouLetteBoi)
 static void stop_prx_module(void)
@@ -911,23 +876,6 @@ static void package_install(void)
 	DPRINTF("HENPLUGIN->package_install: %s \n", pkg_path);
 	CellFsStat stat;
 	
-	/*
-	// Old method
-	if(cellFsStat(pkg_path,&stat)==0)
-	{
-		// After package starts installing, this first loop exits
-		LoadPluginById(0x16, (void *)installPKG_thread);
-		
-		DPRINTF("HENPLUGIN->IS_INSTALLING: %08X\nthread3_install_finish: %i\n",IS_INSTALLING,thread3_install_finish);
-		while (!thread3_install_finish || IS_INSTALLING)
-		{
-			DPRINTF("HENPLUGIN->IS_INSTALLING: %08X\n",IS_INSTALLING);
-			sys_timer_usleep(2000000); // check every 2 seconds
-		}
-		reboot_flag=1;
-	}
-	*/
-	
 	LoadPluginById(0x16, (void *)installPKG_thread);
 	
 	if(cellFsStat(pkg_path,&stat)==0)
@@ -1120,25 +1068,6 @@ static void henplugin_stop_thread(__attribute__((unused)) uint64_t arg)
 	sys_ppu_thread_join(thread_id, &exit_code);
 	sys_ppu_thread_exit(0);
 }
-
-/*
-int henplugin_stop()
-{
-	sys_ppu_thread_t t_id;
-	//int ret = sys_ppu_thread_create(&t_id, henplugin_stop_thread, 0, 3000, 0x2000, SYS_PPU_THREAD_CREATE_JOINABLE, STOP_THREAD_NAME);
-	int ret = sys_ppu_thread_create(&t_id, henplugin_stop_thread, 0, 0, 0x2000, SYS_PPU_THREAD_CREATE_JOINABLE, STOP_THREAD_NAME);
-
-	uint64_t exit_code;
-	if (ret == 0) sys_ppu_thread_join(t_id, &exit_code);
-
-	//sys_timer_usleep(70000);
-	unload_prx_module();
-
-	_sys_ppu_thread_exit(0);
-
-	return SYS_PRX_STOP_OK;
-}
-*/
 
 // Updated 20220613 (thanks TheRouLetteBoi)
 int henplugin_stop()
