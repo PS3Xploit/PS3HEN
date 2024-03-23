@@ -109,6 +109,38 @@ static int opd[2] = {0, 0};
 #define IS_INSTALLING_NAS	(View_Find("nas_plugin") != 0)
 #define IS_DOWNLOADING		(View_Find("download_plugin") != 0)
 
+// Debug Log to external device
+#define LOG_FILE_PATH "/dev_usb000/PS3HEN.log"
+void DLOG(const char *format, ...);
+void DLOG(const char *format, ...) {
+    CellFsStat stat;
+    CellFsErrno fsErr;
+    uint64_t written;
+    int fd;
+    char buffer[256];
+
+    fsErr = cellFsStat("/dev_usb000/", &stat);
+    if (fsErr != CELL_FS_SUCCEEDED) {
+        DPRINTF("HENPLUGIN->USB device not found: 0x%08x\n", fsErr);
+        return;
+    }
+
+    fsErr = cellFsOpen(LOG_FILE_PATH, CELL_FS_O_WRONLY | CELL_FS_O_CREAT | CELL_FS_O_APPEND, &fd, NULL, 0);
+    if (fsErr != CELL_FS_SUCCEEDED) {
+        DPRINTF("HENPLUGIN->Failed to open log file: 0x%08x\n", fsErr);
+        return;
+    }
+
+    va_list args;
+    va_start(args, format);
+    vsnprintf(buffer, sizeof(buffer), format, args);
+    va_end(args);
+
+    cellFsWrite(fd, buffer, strlen(buffer), &written);
+
+    cellFsClose(fd);
+}
+
 // Play RCO Sound
 extern void paf_B93AFE7E(uint32_t plugin, const char *sound, float arg1, int arg2);
 #define PlayRCOSound paf_B93AFE7E
