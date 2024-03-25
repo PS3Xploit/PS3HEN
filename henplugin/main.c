@@ -221,47 +221,45 @@ static void * getNIDfunc(const char * vsh_module, uint32_t fnid, int offset)
 }*/
 
 // LED Control (thanks aldostools)
-#define SC_SYS_CONTROL_LED				(386)
-#define LED_GREEN			1
-#define LED_RED				2
-#define LED_YELLOW			2 //RED+GREEN (RED alias due green is already on)
-#define LED_OFF			0
-#define LED_ON			1
-#define LED_BLINK_FAST		2
-#define LED_BLINK_SLOW		3
-static void led(uint64_t color, uint64_t mode)
-{
-	system_call_2(SC_SYS_CONTROL_LED, (uint64_t)color, (uint64_t)mode);
+#define SC_SYS_CONTROL_LED     386
+#define LED_GREEN              1
+#define LED_RED                2
+#define LED_YELLOW             2 //RED+GREEN (RED alias due green is already on)
+#define LED_OFF                0
+#define LED_ON                 1
+#define LED_BLINK_FAST         2
+#define LED_BLINK_SLOW         3
+
+static void led(uint64_t color, uint64_t mode);
+static void led(uint64_t color, uint64_t mode) {
+    system_call_2(SC_SYS_CONTROL_LED, color, mode);
 }
 
-// Some LED Presets
-void set_led(const char* preset);
-void set_led(const char* preset)
-{
-	DPRINTF("HENPLUGIN->set_led->preset: %s\n",preset);
-	
-	if(strcmp(preset, "install_start") == 0)
-	{
-		DPRINTF("HENPLUGIN->set_led->install_start\n");
-		led(LED_RED, LED_OFF);
-		led(LED_GREEN, LED_OFF);
-		led(LED_YELLOW, LED_BLINK_FAST);
-		led(LED_GREEN, LED_BLINK_FAST);
-	}
-	else if(strcmp(preset, "install_success") == 0)
-	{
-		DPRINTF("HENPLUGIN->set_led->install_success\n");
-		led(LED_RED, LED_OFF);
-		led(LED_GREEN, LED_OFF);
-		led(LED_GREEN, LED_ON);
-	}
-	else if(strcmp(preset, "install_failed") == 0)
-	{
-		DPRINTF("HENPLUGIN->set_led->install_failed\n");
-		led(LED_RED, LED_OFF);
-		led(LED_GREEN, LED_OFF);
-		led(LED_RED, LED_BLINK_FAST);
-	}
+// Resets all LEDs to OFF
+static void reset_leds(void);
+static void reset_leds(void) {
+    led(LED_RED, LED_OFF);
+    led(LED_GREEN, LED_OFF);
+}
+
+static void set_led(const char* preset);
+static void set_led(const char* preset) {
+    DPRINTF("HENPLUGIN->set_led->preset: %s\n", preset);
+    reset_leds();  // Turn off all LEDs initially
+
+    if (strcmp(preset, "install_start") == 0) {
+        DPRINTF("HENPLUGIN->set_led->install_start\n");
+        led(LED_GREEN, LED_BLINK_FAST);
+    } else if (strcmp(preset, "install_success") == 0) {
+        DPRINTF("HENPLUGIN->set_led->install_success\n");
+        led(LED_GREEN, LED_ON);
+    } else if (strcmp(preset, "install_failed") == 0) {
+        DPRINTF("HENPLUGIN->set_led->install_failed\n");
+        led(LED_RED, LED_BLINK_FAST);
+    } else if (strcmp(preset, "off") == 0) {
+        DPRINTF("HENPLUGIN->set_led->off\n");
+        reset_leds();
+    }
 }
 
 // Reboot PS3
@@ -943,8 +941,8 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 	if(cellFsStat("/dev_usb000/HEN_UPD.pkg",&stat)==0)
 	{
 		usb_emergency_update=1; // Set USB Emergency Update Flag so when the package_install function runs, it will check it differently
+		set_led("install_start");
 		play_rco_sound("snd_trophy");
-		//set_led("install_start");
 		DPRINTF("HENPLUGIN->Installing Emergency Package From USB\n");
 		memset(pkg_path,0,256);
 		strcpy(pkg_path,"/dev_usb000/HEN_UPD.pkg");
@@ -999,7 +997,7 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 	
 	if((do_install_hen!=0) || (do_update==1))
 	{
-		//set_led("install_start");
+		set_led("install_start");
 		close_browser_plugins();
 		
 		// Check for Webman-MOD and use PS3HEN-WMM Package Link
@@ -1045,7 +1043,8 @@ done:
 	done=1;
 	
 	if(reboot_flag==1)
-	{
+	{	
+		set_led("install_success");
 		play_rco_sound("snd_trophy");
 		
 		char reboot_txt[0x80];
