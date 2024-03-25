@@ -705,98 +705,68 @@ int hen_updater(void)
 	return 0;
 }
 
+// Toggles can be accessed by HFW Tools menu
+// Clear Browser and PSN Cache (thanks xfrcc for original idea)
+// Clear PSN cache (thanks LuanTeles)
 void clear_web_cache_check(void);
-void clear_web_cache_check(void)
-{
-	// Clear WebBrowser cache (thanks xfrcc)
-	// Toggles can be accessed by HFW Tools menu
-	CellFsStat stat;
-	
-	char msg[0x80];
-	int cleared_history = 0;
-	int cleared_auth_cache = 0;
-	int cleared_cookie = 0;
-	int cleared_ci = 0;
-	int cleared_mi = 0;
-	int cleared_ptl = 0;
-	int cleared_total = 0;
-	
-	char path1[0x40];
-	sprintf(path1, "/dev_hdd0/home/%08i/webbrowser/history.xml", xsetting_CC56EB2D()->GetCurrentUserNumber());
+void clear_web_cache_check(void) {
+    DPRINTF("HENPLUGIN->Clear Web Cache Check Started\n");
+    int userNumber = xsetting_CC56EB2D()->GetCurrentUserNumber();
+    CellFsStat stat;
+    int cleared_total = 0;
+    const char* paths[] = {
+        "/dev_hdd0/home/%08i/webbrowser/history.xml",
+        "/dev_hdd0/home/%08i/http/auth_cache.dat",
+        "/dev_hdd0/home/%08i/http/cookie.dat",
+        "/dev_hdd0/home/%08i/community/CI.TMP",
+        "/dev_hdd0/home/%08i/community/MI.TMP",
+        "/dev_hdd0/home/%08i/community/PTL.TMP"
+    };
+    const char* toggles[] = {
+        "/dev_hdd0/hen/toggles/clear_web_history.on",
+        "/dev_hdd0/hen/toggles/clear_web_auth_cache.on",
+        "/dev_hdd0/hen/toggles/clear_web_cookie.on",
+        "/dev_hdd0/hen/toggles/clear_ci.on",
+        "/dev_hdd0/hen/toggles/clear_mi.on",
+        "/dev_hdd0/hen/toggles/clear_ptl.on"
+    };
 
-	char path2[0x40];
-	sprintf(path2, "/dev_hdd0/home/%08i/http/auth_cache.dat", xsetting_CC56EB2D()->GetCurrentUserNumber());
+    char msg[0x400];
+    int msg_length = 0;
 
-	char path3[0x40];
-	sprintf(path3, "/dev_hdd0/home/%08i/http/cookie.dat", xsetting_CC56EB2D()->GetCurrentUserNumber());
-	
-	// Clear PSN cache (thanks LuanTeles)
-	char path4[0x40];
-	sprintf(path4, "/dev_hdd0/home/%08i/community/CI.TMP", xsetting_CC56EB2D()->GetCurrentUserNumber());
+    for (int i = 0; i < 6; i++) {
+        char path[0x80];
+        snprintf(path, sizeof(path), paths[i], userNumber);
+        if (cellFsStat(path, &stat) == 0 && cellFsStat(toggles[i], &stat) == 0) {
+            //DPRINTF("HENPLUGIN->path: %s\n", paths[i]);
+            DPRINTF("HENPLUGIN->Toggle Activated: %s\n", toggles[i]);
+            cellFsUnlink(path);
+            
+            // Extract only the filename from the path
+            const char* filename = strrchr(path, '/');
+            if (filename != NULL) {
+                filename++; // Move past the '/'
+            } else {
+                filename = path; // Use the whole path if '/' is not found
+            }
 
-	char path5[0x40];
-	sprintf(path5, "/dev_hdd0/home/%08i/community/MI.TMP", xsetting_CC56EB2D()->GetCurrentUserNumber());
+            int item_length = snprintf(msg + msg_length, sizeof(msg) - msg_length, "Cleared %s\n", filename);
+            //DPRINTF("HENPLUGIN->msg: %s\n", msg);
+            if (item_length < 0 || (size_t)msg_length + item_length >= sizeof(msg)) {
+                DPRINTF("HENPLUGIN->Error: Message buffer overflow\n");
+                break;
+            }
+            msg_length += item_length;
+            cleared_total++;
+        }
+    }
 
-	char path6[0x40];
-	sprintf(path6, "/dev_hdd0/home/%08i/community/PTL.TMP", xsetting_CC56EB2D()->GetCurrentUserNumber());
-
-	if(cellFsStat(path1,&stat)==0 && cellFsStat("/dev_hdd0/hen/toggles/clear_web_history.on",&stat)==0)
-	{
-		DPRINTF("HENPLUGIN->Toggle Activated: clear_web_history\n");
-		cellFsUnlink(path1);
-		cleared_history = 1;
-		cleared_total++;
-	}
-	
-	if(cellFsStat(path2,&stat)==0 && cellFsStat("/dev_hdd0/hen/toggles/clear_web_auth_cache.on",&stat)==0)
-	{
-		DPRINTF("HENPLUGIN->Toggle Activated: clear_web_auth_cache\n");
-		cellFsUnlink(path2);
-		cleared_auth_cache = 1;
-		cleared_total++;
-	}
-	
-	if(cellFsStat(path3,&stat)==0 && cellFsStat("/dev_hdd0/hen/toggles/clear_web_cookie.on",&stat)==0)
-	{
-		DPRINTF("HENPLUGIN->Toggle Activated: clear_web_cookie\n");
-		cellFsUnlink(path3);
-		cleared_cookie = 1;
-		cleared_total++;
-	}
-	
-	if(cellFsStat(path4,&stat)==0 && cellFsStat("/dev_hdd0/hen/toggles/clear_ci.on",&stat)==0)
-	{
-		DPRINTF("HENPLUGIN->Toggle Activated: CI\n");
-		cellFsUnlink(path4);
-		cleared_ci = 1;
-		cleared_total++;
-	}
-	
-	if(cellFsStat(path5,&stat)==0 && cellFsStat("/dev_hdd0/hen/toggles/clear_mi.on",&stat)==0)
-	{		
-		DPRINTF("HENPLUGIN->Toggle Activated: MI\n");
-		cellFsUnlink(path5);
-		cleared_mi = 1;
-		cleared_total++;
-	}
-	
-	if(cellFsStat(path6,&stat)==0 && cellFsStat("/dev_hdd0/hen/toggles/clear_ptl.on",&stat)==0)
-	{		
-		DPRINTF("HENPLUGIN->Toggle Activated: PTL\n");
-		cellFsUnlink(path6);
-		cleared_ptl = 1;
-		cleared_total++;
-	}
-	
-	if(cleared_total>0)
-	{
-		sprintf(msg, "Clear Web Cache\nHistory[%i] / Auth Cache[%i] / Cookie[%i]\nCI[%i] / MI[%i] / PTL[%i]", cleared_history, cleared_auth_cache, cleared_cookie, cleared_ci, cleared_mi, cleared_ptl);
-		show_msg((char*)msg);
-	}
-	else
-	{
-		//DPRINTF("HENPLUGIN->No Clear Web Cache Toggles Activated\n");
-	}
+    if (cleared_total > 0) {
+        DPRINTF("HENPLUGIN->Clear Web Cache Check Finished\n");
+        show_msg(msg);
+    } else {
+        DPRINTF("HENPLUGIN->No Clear Web Cache Toggles Activated\n");
+    }
 }
 
 void set_build_type(void);
