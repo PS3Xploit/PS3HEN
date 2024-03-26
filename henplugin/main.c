@@ -941,13 +941,15 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 	if(cellFsStat("/dev_usb000/HEN_UPD.pkg",&stat)==0)
 	{
 		usb_emergency_update=1; // Set USB Emergency Update Flag so when the package_install function runs, it will check it differently
-		set_led("install_start");
+		//set_led("install_start");
 		play_rco_sound("snd_trophy");
 		DPRINTF("HENPLUGIN->Installing Emergency Package From USB\n");
 		memset(pkg_path,0,256);
 		strcpy(pkg_path,"/dev_usb000/HEN_UPD.pkg");
 		close_browser_plugins();
 		package_install();
+		//sys_timer_usleep(20000000);// wait 20 seconds to allow package to finish
+		//set_led("install_success");
 		goto done;
 	}
 	
