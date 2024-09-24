@@ -259,6 +259,7 @@
 #define SYS_CELLFSSTAT						    					808 /* Added */
 #define SYS_CELLFSFSTAT						    					809 /* Added */
 #define SYS_CELLFSMKDIR						    					811 /* Added */
+#define SYS_CELLFSRENAME					    					812 /* Added */
 #define SYS_CELLFSUNLINK					    					814 /* Added */
 #define SYS_CELLFSUTIME						    					815 /* Added */
 #define SYS_CELLFSLSEEK						    					818 /* Added */

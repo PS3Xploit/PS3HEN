@@ -94,6 +94,15 @@ LV2_EXPORT int cellFsUtime(const char *path, CellFsUtimbuf *timep);
 
 #ifdef io_sub_rtoc_entry_1
 
+LV2_EXPORT int cellFsRename_internal(void *structure, const char *from, const char *to, uint64_t unk);
+
+static INLINE int cellFsRename(const char *from, const char *to)
+{
+	uint64_t *structure = (uint64_t *) *(uint64_t *)MKA(TOC+io_rtoc_entry_1);
+	structure = (uint64_t *)structure[io_sub_rtoc_entry_1];
+	return cellFsRename_internal(structure, from, to, 0);
+}
+
 static INLINE int cellFsUnlink(const char *path)
 {
 	uint64_t *structure = (uint64_t *) *(uint64_t *)MKA(TOC+io_rtoc_entry_1);

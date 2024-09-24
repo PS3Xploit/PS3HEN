@@ -14,6 +14,7 @@ LV2_FUNCTION(cellFsUtilMount, cellFsUtilMount_symbol)
 LV2_FUNCTION3(cellFsUtilMount_h, cellFsUtilMount_symbol) /* We need to call this but it is hooked */
 LV2_FUNCTION(cellFsUtilUmount, cellFsUtilUmount_symbol)
 LV2_FUNCTION(cellFsUtilNewfs, cellFsUtilNewfs_symbol)
+LV2_FUNCTION(cellFsRename_internal, cellFsRename_internal_symbol)
 
 LV2_FUNCTION(get_path_by_fd, get_path_by_fd_symbol)
 
