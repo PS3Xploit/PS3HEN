@@ -1293,9 +1293,12 @@ void is_hen_being_installed(void)
 			//DPRINTF("PAYLOAD->read_bytes value: %08X\n", (unsigned int)*read_bytes);
 		#endif
 		
-		// Delete Boot Plugins Text Files
-		cellFsUnlink("/dev_hdd0/boot_plugins.txt");
-		cellFsUnlink("/dev_hdd0/boot_plugins_kernel.txt");
+		// Rename Boot Plugins Text Files Temporarily
+		#ifdef DEBUG
+			DPRINTF("PAYLOAD->Temporarily Disabling Boot Plugin Files\n");
+		#endif
+		cellFsRename("/dev_hdd0/boot_plugins.txt", "/dev_hdd0/boot_plugins.hen");
+		cellFsRename("/dev_hdd0/boot_plugins_kernel.txt", "/dev_hdd0/boot_plugins_kernel.hen");
 		
 		// Create temp file for henplugin to read, to show message
 		cellFsOpen("/dev_hdd0/tmp/installer.active", CELL_FS_O_CREAT | CELL_FS_O_RDWR, &fd, 0777, NULL, 0);
@@ -1386,7 +1389,7 @@ int main(void)
 	memset((void *)MKA(0x7e0000),0,0x100);
 	memset((void *)MKA(0x7f0000),0,0x1000);
 	
-	// Check if HEN is being installed and if true, remove boot_plugins.txt
+	// Check if HEN is being installed and if true, rename boot_plugins.txt
 	is_hen_being_installed();
 	
 	if(boot_plugins_disabled==0)
