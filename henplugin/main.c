@@ -91,6 +91,7 @@ int is_wmm_installed = 0;
 int is_hen_installing = 0;
 int use_wmm_pkg = 0;
 int usb_emergency_update = 0;
+int hen_restore = 0;
 
 extern int vshmain_87BB0001(int param);
 int (*vshtask_notify)(int, const char *) = NULL;
@@ -811,6 +812,12 @@ static int sysLv2FsMkdir(const char *path, int mode)
     return_to_user_prog(int);
 }
 
+static int sysLv2FsRename(const char *from, const char *to)
+{
+    system_call_2(812, (uint64_t)(uint32_t)from, (uint64_t)(uint32_t)to);
+    return_to_user_prog(int);
+}
+
 // Create default directories if they do not exist (thanks LuanTeles)
 void create_default_dirs(void);
 void create_default_dirs(void) {
@@ -961,6 +968,10 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 	do_install_hen=(cellFsStat("/dev_flash/vsh/resource/explore/icon/hen_enable.png",&stat));
 	//DPRINTF("HENPLUGIN->do_install_hen: %x\n",do_install_hen);
 	
+	// Default restore option check for use if HDD formatted game folder missing (3.3.1+)
+	hen_restore=(cellFsStat("/dev_hdd0/game/PS3XPLOIT/USRDIR/hen.installed",&stat));
+	DPRINTF("HENPLUGIN->hen_restore: %x\n",hen_restore);
+	
 	// Check for webMAN-MOD
 	if((cellFsStat("/dev_hdd0/plugins/webftp_server.sprx",&stat)==0) || (cellFsStat("/dev_hdd0/plugins/webftp_server_lite.sprx",&stat)==0))
 	{
@@ -975,14 +986,7 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 		is_hen_installing=1;
 		//play_rco_sound("snd_trophy");
 		char msg_boot_plugins[0x80];
-		if(is_wmm_installed==1)
-		{
-			sprintf(msg_boot_plugins, "Boot Plugins Text Have Been Deleted!\nUpdate webMAN-MOD from PKG Manager after reboot.");
-		}
-		else
-		{
-			sprintf(msg_boot_plugins, "Boot Plugins Text Have Been Deleted!\nIf you have plugins, these files need updated");
-		}
+		sprintf(msg_boot_plugins, "Boot Plugins Text Have Been\nTemporarily Disabled Until Next Reboot!");
 		show_msg((char *)msg_boot_plugins);
 		cellFsUnlink("/dev_hdd0/tmp/installer.active");
 	}
@@ -995,7 +999,7 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 	cellFsUnlink("/dev_hdd0/Latest_HEN_Installer_signed.pkg");
 	cellFsUnlink("/dev_hdd0/Latest_HEN_Installer_WMM_signed.pkg");
 	
-	if((do_install_hen!=0) || (do_update==1))
+	if((do_install_hen!=0) || (do_update==1) || hen_restore!=0)
 	{
 		set_led("install_start");
 		close_browser_plugins();
@@ -1037,13 +1041,23 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 	}
 	
 done:
-	DPRINTF("HENPLUGIN->Exiting main thread!\n");	
+	// Restore boot_plugins files
+	DPRINTF("HENPLUGIN->Restoring boot plugin files\n");
+	sysLv2FsRename("/dev_hdd0/boot_plugins.hen", "/dev_hdd0/boot_plugins.txt");
+	sysLv2FsRename("/dev_hdd0/boot_plugins_kernel.hen", "/dev_hdd0/boot_plugins_kernel.txt");
 	
+	DPRINTF("HENPLUGIN->Removing temp files\n");
 	cellFsUnlink("/dev_hdd0/theme/PS3HEN.p3t");// Removing temp HEN installer
+	cellFsUnlink("/dev_hdd0/HENplugin.sprx");// Removing temp HEN Plugin SPRX
+	
 	done=1;
+	
+	DPRINTF("HENPLUGIN->Done! Preparing to exit thread\n");	
 	
 	if(reboot_flag==1)
 	{	
+		DPRINTF("HENPLUGIN->Reboot flag is active\n");
+		
 		set_led("install_success");
 		play_rco_sound("snd_trophy");
 		
@@ -1055,6 +1069,8 @@ done:
 	}
 	
 	clear_web_cache_check();// Clear WebBrowser cache check (thanks xfrcc)
+	
+	DPRINTF("HENPLUGIN->Exiting main thread!\n");	
 	
 	sys_ppu_thread_exit(0);
 }
