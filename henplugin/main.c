@@ -943,19 +943,33 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 	CellFsStat stat;
 
 	// Emergency USB HEN Installer
-	if(cellFsStat("/dev_usb000/HEN_UPD.pkg",&stat)==0)
-	{
-		usb_emergency_update=1; // Set USB Emergency Update Flag so when the package_install function runs, it will check it differently
-		//set_led("install_start");
-		play_rco_sound("snd_trophy");
-		DPRINTF("HENPLUGIN->Installing Emergency Package From USB\n");
-		memset(pkg_path,0,256);
-		strcpy(pkg_path,"/dev_usb000/HEN_UPD.pkg");
-		close_browser_plugins();
-		package_install();
-		//sys_timer_usleep(20000000);// wait 20 seconds to allow package to finish
-		//set_led("install_success");
-		goto done;
+	for (int i = 0; i < 8; i++) {
+		char usb_path[32];
+		snprintf(usb_path, sizeof(usb_path), "/dev_usb00%d/HEN_UPD.pkg", i);
+
+		// Check if the package exists on the current USB path
+		if (cellFsStat(usb_path, &stat) == 0) {
+			DPRINTF("HENPLUGIN->Checking for emergency installer on %s\n", usb_path);
+			
+			usb_emergency_update = 1;  // Set USB Emergency Update Flag
+			//set_led("install_start");
+			play_rco_sound("snd_trophy");
+			DPRINTF("HENPLUGIN->Installing Emergency Package From %s\n", usb_path);
+			
+			// Set pkg_path to the found USB path
+			memset(pkg_path, 0, 256);
+			strcpy(pkg_path, usb_path);
+			
+			close_browser_plugins();
+			package_install();
+			
+			//sys_timer_usleep(20000000); // wait 20 seconds to allow package to finish
+			//set_led("install_success");
+			
+			goto done;
+		} else {
+			DPRINTF("HENPLUGIN->Checking for emergency installer on %s\n", usb_path);
+		}
 	}
 	
 	// Create default directories for BDISO, PSXISO, PS2ISO, PS3ISO, PSPISO, etc
