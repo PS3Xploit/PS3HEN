@@ -771,9 +771,31 @@ void clear_web_cache_check(void) {
 void set_build_type(void);
 void set_build_type(void)
 {
-	CellFsStat stat;
-	if((cellFsStat("/dev_hdd0/hen/toggles/dev_build_type.on",&stat)==0) || (cellFsStat("/dev_usb000/dev_build_type.on",&stat)==0) || (cellFsStat("/dev_usb001/dev_build_type.on",&stat)==0)){build_type=DEV;}
-	DPRINTF("HENPLUGIN->Setting build_type to %i\n", build_type);
+    CellFsStat stat;
+
+    // Check the internal HDD path first
+    if (cellFsStat("/dev_hdd0/hen/toggles/dev_build_type.on", &stat) == 0) {
+        build_type = DEV;
+        DPRINTF("HENPLUGIN->Found dev_build_type.on at /dev_hdd0/hen/toggles/\n");
+    } else {
+        DPRINTF("HENPLUGIN->Checking for dev_build_type.on at /dev_hdd0/hen/toggles/\n");
+
+        // Loop through USB paths 000 to 007
+        for (int i = 0; i < 8; i++) {
+            char usb_path[32];
+            snprintf(usb_path, sizeof(usb_path), "/dev_usb00%d/dev_build_type.on", i);
+            
+            if (cellFsStat(usb_path, &stat) == 0) {
+                build_type = DEV;
+                DPRINTF("HENPLUGIN->Found dev_build_type.on at %s\n", usb_path);
+                break;
+            } else {
+                DPRINTF("HENPLUGIN->Checking for dev_build_type.on at %s\n", usb_path);
+            }
+        }
+    }
+
+    DPRINTF("HENPLUGIN->Setting build_type to %i\n", build_type);
 }
 
 static int sysLv2FsLink(const char *oldpath, const char *newpath)
