@@ -394,6 +394,7 @@
 #define cellFsOpen_symbol								0x2B2898
 #define cellFsClose_symbol								0x2B2700
 #define cellFsRead_symbol								0x2B283C
+#define cellFsMkdir_symbol 								0x2B20B4
 #define cellFsWrite_symbol								0x2B27A8
 #define cellFsLseek_symbol								0x2B1FFC
 #define cellFsStat_symbol								0x2B20B4
