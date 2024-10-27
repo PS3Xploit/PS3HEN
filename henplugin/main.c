@@ -12,12 +12,6 @@
 #include <sys/memory.h>
 #include <sys/ss_get_open_psid.h>
 
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <netdb.h>
-#include <netex/net.h>
-#include <netex/errno.h>
-
 #include <inttypes.h>
 #include <stdint.h>
 #include <stdio.h>
