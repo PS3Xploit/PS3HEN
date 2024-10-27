@@ -145,7 +145,7 @@ int addMapping(const char *opath, const char *npath, uint32_t flags) {
 				if(mapTableByteSize + sz <= MAX_TABLE_SIZE) {
 					if(nlen>=MAX_PATH) {
 						#ifdef DEBUG
-							DPRINTF("addMapping: Mapping NOT added, new_path could not be created: too long %s\n",opath);
+							//DPRINTF("addMapping: Mapping NOT added, new_path could not be created: too long %s\n",opath);
 						#endif
 						return EINVAL;
 					}
@@ -154,7 +154,7 @@ int addMapping(const char *opath, const char *npath, uint32_t flags) {
 					mapTableByteSize += sizeof(MapEntry_t);
 					if(!link) {
 						#ifdef DEBUG
-							DPRINTF("addMapping: Mapping NOT added, MapEntry_t could not be created: %s\n",opath);
+							//DPRINTF("addMapping: Mapping NOT added, MapEntry_t could not be created: %s\n",opath);
 						#endif
 						return ENOMEM;
 					}
@@ -167,7 +167,7 @@ int addMapping(const char *opath, const char *npath, uint32_t flags) {
 							dealloc(link, 0x27);
 							mapTableByteSize-=sizeof(MapEntry_t);
 							#ifdef DEBUG
-								DPRINTF("addMapping: Mapping NOT added, old_path could not be created: %s\n",opath);
+								//DPRINTF("addMapping: Mapping NOT added, old_path could not be created: %s\n",opath);
 							#endif
 							return ENOMEM;
 						}
@@ -189,7 +189,7 @@ int addMapping(const char *opath, const char *npath, uint32_t flags) {
 						dealloc(link, 0x27);
 						mapTableByteSize -= sizeof(MapEntry_t);
 						#ifdef DEBUG
-							DPRINTF("addMapping:  Mapping NOT added, new_path could not be created: %s\n",opath);
+							//DPRINTF("addMapping:  Mapping NOT added, new_path could not be created: %s\n",opath);
 						#endif
 						return ENOMEM;
 					}
@@ -231,7 +231,7 @@ int addMapping(const char *opath, const char *npath, uint32_t flags) {
 		return EAGAIN;
 	}
 	#ifdef DEBUG
-		 DPRINTF("addMapping: Mapping NOT added: bad argument\n");
+		 //DPRINTF("addMapping: Mapping NOT added: bad argument\n");
 	#endif
 	return EINVAL;
 }
@@ -373,7 +373,7 @@ static bool patchAllMappingStartingWith(const char *opath, char* dst) {
 		if(opath && dst)
 			DPRINTF("patchAllMappingStartingWith=: %s -> %s\n", opath, dst);
 		else
-			DPRINTF("patchAllMappingStartingWith=: null argument\n");
+			//DPRINTF("patchAllMappingStartingWith=: null argument\n");
 	#endif
 	//if list is empty
 	if(head == NULL || opath == NULL) {
@@ -421,12 +421,12 @@ static bool deleteAllMappings(uint32_t flags) {
 		next = curr->next;
 		if((!flags || curr->flags & flags) && !(curr->flags & FLAG_PROTECT)) {
 			#ifdef DEBUG
-				DPRINTF("deleteAllMappings=: deleting %s\n",curr->oldpath);
+				//DPRINTF("deleteAllMappings=: deleting %s\n",curr->oldpath);
 			#endif
 			if(strcmp(curr->oldpath, "/dev_bdvd") == 0) {
 				condition_apphome = false;
 				#ifdef DEBUG
-					DPRINTF("deleteAllMappings: removed %s condition_apphome set to false\n",curr->oldpath);
+					//DPRINTF("deleteAllMappings: removed %s condition_apphome set to false\n",curr->oldpath);
 				#endif
 			}
 			if(curr == head) {
@@ -469,7 +469,7 @@ static int deleteMapping(const char *opath) {
 		if(opath)
 			DPRINTF("deleteMapping=: %s\n",opath);
 		else
-			DPRINTF("deleteMapping=: null argument\n");
+			//DPRINTF("deleteMapping=: null argument\n");
 	#endif
 	//if list is empty
 	if(head && opath && (strncmp(opath,"/dev_",5) == 0 || strncmp(opath,"/app_",5) == 0 || strncmp(opath,"/host_",6) == 0))
@@ -529,16 +529,16 @@ static int init_mtx(mutex_t* mtx, uint32_t attr_protocol, uint32_t attr_recursiv
 		#ifdef DEBUG
 			if(ret)
 			{
-				DPRINTF("init_mtx=: mutex creation error %x\n",ret);
+				//DPRINTF("init_mtx=: mutex creation error %x\n",ret);
 			}
 			else
 			{
-				DPRINTF("init_mtx=: mutex 0x%8lx created\n", (uint64_t)*mtx);
+				//DPRINTF("init_mtx=: mutex 0x%8lx created\n", (uint64_t)*mtx);
 			}
 		#endif
 	}
 	#ifdef DEBUG
-		DPRINTF("init_mtx=: return %x \n", ret);
+		//DPRINTF("init_mtx=: return %x \n", ret);
 	#endif
 	return ret;
 }
