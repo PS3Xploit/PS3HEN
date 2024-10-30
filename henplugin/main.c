@@ -824,13 +824,13 @@ void restore_act_dat(void)
 
 static int sysLv2FsMkdir(const char *path, int mode)
 {
-    system_call_2(811, (uint64_t)(uint32_t)path, (uint64_t)mode);
+    system_call_2(811, (uint64_t)(uintptr_t)path, (uint64_t)mode);
     return_to_user_prog(int);
 }
 
 static int sysLv2FsRename(const char *from, const char *to)
 {
-    system_call_2(812, (uint64_t)(uint32_t)from, (uint64_t)(uint32_t)to);
+    system_call_2(812, (uint64_t)(uintptr_t)from, (uint64_t)(uintptr_t)to);
     return_to_user_prog(int);
 }
 
