@@ -1009,7 +1009,7 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 		DPRINTF("HENPLUGIN->WMM Detected\n");
 	}
 	
-	// Display message about the removal of boot plugins
+	// Display message about the temporary disabling of boot plugins
 	// Created from payload if HEN is installing, so plugins cannot be loaded
 	if(cellFsStat("/dev_hdd0/tmp/installer.active",&stat)==0)
 	{
@@ -1025,7 +1025,7 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 	//DPRINTF("HENPLUGIN->Checking do_update: %i\n",do_update);
 	
 	// Removing temp installer packages so old ones can't be installed
-	DPRINTF("HENPLUGIN->Removing Temp Installer Packages\n");
+	DPRINTF("HENPLUGIN->Removing any leftover temp installer packages\n");
 	cellFsUnlink("/dev_hdd0/Latest_HEN_Installer_signed.pkg");
 	cellFsUnlink("/dev_hdd0/Latest_HEN_Installer_WMM_signed.pkg");
 	
