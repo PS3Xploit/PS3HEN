@@ -1071,16 +1071,20 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 	}
 	
 done:
-	// Restore boot_plugins files
-	DPRINTF("HENPLUGIN->Restoring boot plugin files\n");
-	if(cellFsStat("/dev_hdd0/boot_plugins.hen",&stat)==0)
-	{
-		sysLv2FsRename("/dev_hdd0/boot_plugins.hen", "/dev_hdd0/boot_plugins.txt");
-	}
 
-	if(cellFsStat("/dev_hdd0/boot_plugins_kernel.hen",&stat)==0)
+	// Restore boot_plugins files
+	if(is_hen_installing==1)
 	{
-		sysLv2FsRename("/dev_hdd0/boot_plugins_kernel.hen", "/dev_hdd0/boot_plugins_kernel.txt");
+		DPRINTF("HENPLUGIN->Restoring boot plugin files\n");
+		if(cellFsStat("/dev_hdd0/boot_plugins.hen",&stat)==0)
+		{
+			sysLv2FsRename("/dev_hdd0/boot_plugins.hen", "/dev_hdd0/boot_plugins.txt");
+		}
+
+		if(cellFsStat("/dev_hdd0/boot_plugins_kernel.hen",&stat)==0)
+		{
+			sysLv2FsRename("/dev_hdd0/boot_plugins_kernel.hen", "/dev_hdd0/boot_plugins_kernel.txt");
+		}
 	}
 	
 	DPRINTF("HENPLUGIN->Removing temp files\n");
