@@ -209,11 +209,32 @@ static void * getNIDfunc(const char * vsh_module, uint32_t fnid, int offset)
 	return 0;
 }
 
+// LV2 Syscalls
+static int sysLv2FsLink(const char *oldpath, const char *newpath)
+{
+    system_call_2(810, (uint64_t)(uint32_t)oldpath, (uint64_t)(uint32_t)newpath);
+    return_to_user_prog(int);
+}
+
+static int sysLv2FsMkdir(const char *path, int mode)
+{
+    system_call_2(811, (uint64_t)(uintptr_t)path, (uint64_t)mode);
+    return_to_user_prog(int);
+}
+
+static int sysLv2FsRename(const char *from, const char *to)
+{
+    system_call_2(812, (uint64_t)(uintptr_t)from, (uint64_t)(uintptr_t)to);
+    return_to_user_prog(int);
+}
+
+
 /*static int sys_timer_sleep(uint64_t sleep_time)
 {
 	system_call_1(0x8e,sleep_time);
 	return (int)p1;
 }*/
+
 
 // LED Control (thanks aldostools)
 #define SC_SYS_CONTROL_LED     386
@@ -792,12 +813,6 @@ void set_build_type(void)
     DPRINTF("HENPLUGIN->Setting build_type to %i\n", build_type);
 }
 
-static int sysLv2FsLink(const char *oldpath, const char *newpath)
-{
-    system_call_2(810, (uint64_t)(uint32_t)oldpath, (uint64_t)(uint32_t)newpath);
-    return_to_user_prog(int);
-}
-
 // Restore act.dat (thanks bucanero)
 void restore_act_dat(void);
 void restore_act_dat(void)
@@ -820,18 +835,6 @@ void restore_act_dat(void)
 	}
 	
 	DPRINTF("HENPLUGIN->Done restore_act_dat\n");
-}
-
-static int sysLv2FsMkdir(const char *path, int mode)
-{
-    system_call_2(811, (uint64_t)(uintptr_t)path, (uint64_t)mode);
-    return_to_user_prog(int);
-}
-
-static int sysLv2FsRename(const char *from, const char *to)
-{
-    system_call_2(812, (uint64_t)(uintptr_t)from, (uint64_t)(uintptr_t)to);
-    return_to_user_prog(int);
 }
 
 // Create default directories if they do not exist (thanks LuanTeles)
