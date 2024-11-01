@@ -1280,7 +1280,7 @@ static void check_combo_buttons(void)
 	timer_usleep(20000);
 }
 
-// Check if HEN is being installed and if true, remove boot_plugins.txt
+// Check if HEN is being installed and if true, rename boot_plugins.txt
 void is_hen_being_installed(void)
 {
 	int fd;
