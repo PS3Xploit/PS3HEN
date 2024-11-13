@@ -793,8 +793,6 @@ void set_build_type(void)
         build_type = DEV;
         DPRINTF("HENPLUGIN->Found dev_build_type.on at /dev_hdd0/hen/toggles/\n");
     } else {
-        DPRINTF("HENPLUGIN->Checking for dev_build_type.on at /dev_hdd0/hen/toggles/\n");
-
         // Loop through USB paths 000 to 007
         for (int i = 0; i < 8; i++) {
             char usb_path[32];
