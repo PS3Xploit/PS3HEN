@@ -52,6 +52,7 @@
 #define DEV 1
 
 int build_type = RELEASE;
+int is_open_beta = 0;// Set to 0 for release
 
 int Socket;
 struct hostent *Host;
@@ -934,16 +935,27 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 	View_Find = getNIDfunc("paf", 0xF21655F3, 0);
 	plugin_GetInterface = getNIDfunc("paf", 0x23AFB290, 0);
 	int view = View_Find("explore_plugin");
+	
+	// Welcome message
 	system_call_1(8, SYSCALL8_OPCODE_HEN_REV); hen_version = (int)p1;
-	char henver[0x30];
-	if(build_type==DEV)
+	char henver[0x40];
+	
+	if(is_open_beta)
 	{
-		sprintf(henver, "Welcome to PS3HEN %X.%X.%X\nDeveloper Mode", hen_version>>8, (hen_version & 0xF0)>>4, (hen_version&0xF));
+		sprintf(henver, "Welcome to PS3HEN %X.%X.%X\nOpen Beta", hen_version>>8, (hen_version & 0xF0)>>4, (hen_version&0xF));
 	}
 	else
 	{
-		sprintf(henver, "Welcome to PS3HEN %X.%X.%X", hen_version>>8, (hen_version & 0xF0)>>4, (hen_version&0xF));
+		if(build_type==DEV)
+		{
+			sprintf(henver, "Welcome to PS3HEN %X.%X.%X\nDeveloper Mode", hen_version>>8, (hen_version & 0xF0)>>4, (hen_version&0xF));
+		}
+		else
+		{
+			sprintf(henver, "Welcome to PS3HEN %X.%X.%X", hen_version>>8, (hen_version & 0xF0)>>4, (hen_version&0xF));
+		}
 	}
+	
 	//DPRINTF("HENPLUGIN->hen_version: %x\n",hen_version);
 	show_msg((char *)henver);
 
