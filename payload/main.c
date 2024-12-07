@@ -33,7 +33,7 @@
 //#include "laboratory.h"
 #include "ps3mapi_core.h"
 #include "qa.h"
-//#include "homebrew_blocker.h"
+#include "homebrew_blocker.h"
 #include "make_rif.h"
 
 // Format of version:

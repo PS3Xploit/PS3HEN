@@ -939,4 +939,6 @@ int ps3mapi_unload_vsh_plugin(char* name);
 void unhook_all_modules(void);
 int ps3mapi_get_vsh_plugin_info(unsigned int slot, char *name, char *filename);
 
+int read_text_line(int fd, char *line, unsigned int size, int *eof);
+
 #endif /* __MODULESPATCH_H__ */

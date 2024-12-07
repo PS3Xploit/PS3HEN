@@ -14,7 +14,7 @@
 #include "modulespatch.h"
 #include "syscall8.h"
 #include "ps3mapi_core.h"
-//#include "homebrew_blocker.h"
+#include "homebrew_blocker.h"
 #include "make_rif.h"
 
 typedef struct MapEntry {
@@ -795,120 +795,6 @@ int sys_map_paths(char *paths[], char *new_paths[], uint32_t num)
 	}
 	return ret;
 }
-//////////////////////////////////////////////////////////////////////////////////////
-// KW - HOMEBREW BLOCKER SUPPORT CODE TO USE IN open_path_hook()
-//
-// Functions, global vars and directives are here to improve code readability
-// Le funzionalità, le variabili globali e le direttive sono qui per migliorare la lettura del codice
-//
-// declaration for read_text_line() which is defined in modulespatch.c after removal of the "static" declaration.
-// la dechiarazione per read_text_line() viene definita in modulepatch.c soltanto dopo aver rimosso la dichiarazione "static"
-int read_text_line(int fd, char *line, unsigned int size, int *eof);
-
-#define BLACKLIST_FILENAME "/dev_hdd0/tmp/blacklist.cfg"
-#define WHITELIST_FILENAME "/dev_hdd0/tmp/whitelist.cfg"
-#define MAX_LIST_ENTRIES 30 // Maximum elements for noth the custom blacklist and whitelist.
-
-static int __initialized_lists = 0; // Are the lists initialized ?
-static int __blacklist_entries = 0; // Module global var to hold the current blacklist entries.
-static char *__blacklist;
-static int __whitelist_entries = 0; // Module global var to hold the current whitelist entries.
-static char *__whitelist;
-
-
-//
-// init_list()
-//
-// inits a list.
-// returns the number of elements read from file
-char line[0x10];
-
-static int init_list(char *list, char *path, int maxentries)
-{
-	int loaded, f;
-	// uncomment this to avoid hook recursivity & remappings if appropriate
-	//lock_mtx(&pgui_mtx);
-	if (cellFsOpen(path, CELL_FS_O_RDONLY, &f, 0, NULL, 0) != 0)
-		return 0; // failed to open
-
-	loaded = 0;
-
-	while (loaded < maxentries)
-	{
-		int eof;
-		if (read_text_line(f, line, sizeof(line), &eof) > 0)
-		if (strlen(line) >=9) // avoid copying empty lines
-		{
-			strncpy(list + (9*loaded), line, 9); // copy only the first 9 chars - if it has less than 9, it will fail future checks. should correct in file.
-			loaded++;
-		}
-
-		if (eof)
-			break;
-	}
-	cellFsClose(f);
-	return loaded;
-}
-
-
-//
-// listed()
-//
-// tests if a char gameid[9] is in the blacklist or whitelist
-// initialize the both lists, if not yet initialized;
-// receives the list to test blacklist (1) or whitelist (0), and the gameid
-// to initialize the lists, tries to read them from file BLACKLIST_FILENAME and WHITELIST_FILENAME
-//
-// prova se un gameid[9] è in blacklist o whitelist
-// inizializza entrambi gli elenchi, se non ancora inizializzati;
-// riceve l'elenco per testare la blacklist (1) o la whitelist (0) e il gameid
-// per inizializzare gli elenchi, prova a leggerli dal file BLACKLIST_FILENAME e WHITELIST_FILENAME
-
-static int listed(int blacklist, char *gameid)
-	{
-		char *list;
-		int i, elements;
-		if (!__initialized_lists)
-		{
-			__blacklist=(char*)alloc(9*MAX_LIST_ENTRIES,0x27);
-			__whitelist=(char*)alloc(9*MAX_LIST_ENTRIES,0x27);
-			__blacklist_entries = init_list(__blacklist, BLACKLIST_FILENAME, MAX_LIST_ENTRIES);
-			__whitelist_entries = init_list(__whitelist, WHITELIST_FILENAME, MAX_LIST_ENTRIES);
-			__initialized_lists = 1;
-		}
-
-		if (blacklist)
-		{
-			list = __blacklist;
-			elements = __blacklist_entries;
-		}
-		else
-		{
-			list = __whitelist;
-			elements = __whitelist_entries;
-		}
-
-		for (i = 0; i < elements; i++)
-		if (!strncmp(list+(9*i),gameid, 9))
-			return 1; // gameid is in the list
-
-		// if it got here, it is not in the list. return 0
-		return 0;
-	}
-
-static uint8_t libft2d_access = 0;
-
-// BEGIN KW & AV block access to homebrews when syscalls are disabled
-// After the core tests it will test first if the gameid is in whitelist.cfg (superseeds previous tests)
-// In the it will test if the gameid is in blacklist.cfg (superseeds all previous tests)
-// ** WARNING ** This syscall disablement test assumes that the syscall table entry 6 (peek) was replaced by the original value (equals syscall 0 entry) as done by PSNPatch
-// ** WARNING ** If only a partial disablement was made, this assumption WILL FAIL !!!
-//
-// Iniziato da KW & AV blocca l'accesso a homebrews quando le syscalls sono disabilitati
-// Dopo i test di base, verificherà innanzitutto se il gameid è in whitelist.cfg (test superiori precedenti)
-// Nel verificherà se il gameid è in blacklist.cfg (sostituisce tutti i test precedenti)
-// ** AVVERTENZA ** Questo test di disabilitazione delle syscall, presuppone che la voce di tabella syscall 6 (peek) sia stata sostituita dal valore originale (equivale alla voce syscall 0) come fatto da PSNPatch
-// ** AVVERTENZA ** Se è stata effettuata solo una disattivazione parziale, questa assunzione AVRA' ESITO NEGATIVO !!!
 
 void aescbc128_decrypt(unsigned char *key, unsigned char *iv, unsigned char *in, unsigned char *out, int len)
 {
@@ -918,8 +804,7 @@ void aescbc128_decrypt(unsigned char *key, unsigned char *iv, unsigned char *in,
 }
 
 static unsigned char no_exists[] = {"/fail"};
-extern char umd_file;
-static uint8_t block_psp_launcher = 0;
+static uint8_t libft2d_access = 0;
 
 LV2_HOOKED_FUNCTION_POSTCALL_2(int, open_path_hook, (char *path0, char *path1))
 {
@@ -952,6 +837,8 @@ LV2_HOOKED_FUNCTION_POSTCALL_2(int, open_path_hook, (char *path0, char *path1))
 		#endif
 
 		make_rif(path0);
+		//restore_syscalls(path0);
+		//check_signin(path0);
 
 		if (block_psp_launcher && !umd_file && !strncmp(path0, "/dev_flash/pspemu", 17))
 		{
@@ -960,54 +847,8 @@ LV2_HOOKED_FUNCTION_POSTCALL_2(int, open_path_hook, (char *path0, char *path1))
 			return 0;
 		}
 
-		if (!strncmp(path0, "/dev_hdd0/game/", 15))
-		{
-			char *gameid = path0 + 15;
-
-			// block PSP Launchers if PSP umd was not set
-			if (!umd_file && (!strncmp(gameid, "PSPC66820/USRDIR", 16) || !strncmp(gameid, "PSPM66820/USRDIR", 16)))
-			{
-				block_psp_launcher = 1;
-			}
-
-			// syscalls are disabled and an EBOOT.BIN is being called from hdd. Let's test it.
-			int syscalls_disabled = ((*(uint64_t *)MKA(syscall_table_symbol + 8 * 6)) == (*(uint64_t *)MKA(syscall_table_symbol)));
-
-			if (syscalls_disabled && strstr(path0 + 15, "/EBOOT.BIN"))
-			{
-				// flag "whitelist" id's
-				int allow =
-					!strncmp(gameid, "NP", 2) ||
-					!strncmp(gameid, "BL", 2) ||
-					!strncmp(gameid, "BC", 2) ||
-					!strncmp(gameid, "KOEI3", 5) ||
-					!strncmp(gameid, "KTGS3", 5) ||
-					!strncmp(gameid, "MRTC0", 5) ||
-					!strncmp(gameid, "ASIA0", 5) ||
-					!strncmp(gameid, "_DEL_", 5) || // Fix data corruption if you uninstall game/game update/homebrew with syscall disabled # Alexander's
-					!strncmp(gameid, "_INST_", 6) || // 80010006 error fix when trying to install a game update with syscall disabled. # Joonie's, Alexander's, Aldo's
-					!strncmp(gameid, "GUST0", 5) ;
-
-				// flag some "blacklist" id's
-				if (
-					!strncmp(gameid, "BLES806", 7) || // Multiman and assorted tools are in the format BLES806**
-					!strncmp(gameid, "BLJS10018", 9) || // PSNPatch Stealth (older versions were already detected as non-NP/BC/BL)
-					!strncmp(gameid, "BLES08890", 9) || // PSNope by user
-					!strncmp(gameid, "BLES13408", 9) || // FCEU NES Emulator
-					!strncmp(gameid, "BLES01337", 9) || // Awesome File Manager
-					!strncmp(gameid, "BLND00001", 9) || // dev_blind
-					!strncmp(gameid, "NPEA90124", 9) || // SEN Enabler
-					!strncmp(gameid, "NP0", 3)			// NP0APOLLO / NP00PKGI3
-					) allow = 0;
-
-				// test whitelist.cfg and blacklist.cfg
-				if (listed(0, gameid)) // whitelist.cfg test
-					allow = 1;
-				if (listed(1, gameid)) // blacklist.cfg test
-					allow = 0;
-
-				// let's now block homebrews if the "allow" flag is false
-				if (!allow)
+		// Let's now block homebrews if the "allow" flag is false
+		if(!block_homebrew(path0))
 				{
 					set_patched_func_param(1, (uint64_t)no_exists);
 					return 0;
