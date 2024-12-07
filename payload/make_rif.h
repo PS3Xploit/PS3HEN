@@ -20,6 +20,6 @@ uint8_t make_rif_buf[0x20 + 0x28 + 0x50 + 0x20 + 0x28]; // ACT_DAT[0x20] + CONTE
 
 int create_act_dat(const char *userid);
 void make_rif(const char *path);
-//uint8_t* read_rap_bin(const char* bin_file_path, const char* content_id);
+uint8_t* read_rap_bin(const char* bin_file_path, const char* content_id);
 
 #endif /* __MAKE_RIF_H__ */

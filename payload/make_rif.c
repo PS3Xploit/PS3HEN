@@ -250,6 +250,100 @@ int create_act_dat(const char *userid)
 	return SUCCEEDED;
 }
 
+uint8_t* read_rap_bin(const char* bin_file_path, const char* content_id) {
+	
+	#ifdef DEBUG
+		DPRINTF("PAYLOAD->read_rap_bin\n");
+	#endif
+	
+	#define CELL_FS_SEEK_CUR 1
+    
+    int fd;
+    int ret = cellFsOpen(bin_file_path, CELL_FS_O_RDONLY, &fd, 0, NULL, 0);
+    if (ret != CELL_FS_SUCCEEDED) {
+		#ifdef DEBUG
+			DPRINTF("PAYLOAD->read_rap_bin->Failed to open rap.bin\n");
+		#endif
+        return NULL;
+    }
+
+    uint64_t read_size;
+    uint8_t magic_number[4];
+    char temp_content_id[36];
+    uint8_t* rap_value = malloc(0x10);
+    
+    if (!rap_value) {
+        cellFsClose(fd);
+		#ifdef DEBUG
+			DPRINTF("PAYLOAD->read_rap_bin->Failed to allocate memory for RAP value\n");
+		#endif
+        return NULL;
+    }
+
+    while (1) {
+        // Read magic number from rap.bin
+        ret = cellFsRead(fd, magic_number, 4, &read_size);
+        if (ret != CELL_FS_SUCCEEDED || read_size != 4) {
+			#ifdef DEBUG
+				DPRINTF("PAYLOAD->read_rap_bin->End of file or read error (magic number)\n");
+			#endif
+            break;
+        }
+
+        // Verify the magic number
+        if (magic_number[0] != 0xFA || magic_number[1] != 0xF0 || 
+            magic_number[2] != 0xFA || magic_number[3] != 0xF0) {
+			#ifdef DEBUG
+				DPRINTF("PAYLOAD->read_rap_bin->Invalid magic number, skipping entry\n");
+			#endif
+            cellFsLseek(fd, 36 + 12 + 0x10, CELL_FS_SEEK_CUR, &read_size); // Skip invalid entry
+            continue;
+        }
+
+        // Skip 12 bytes of padding
+        cellFsLseek(fd, 12, CELL_FS_SEEK_CUR, &read_size);
+
+        // Read content_id from rap.bin
+        ret = cellFsRead(fd, temp_content_id, 36, &read_size);
+        if (ret != CELL_FS_SUCCEEDED || read_size != 36) {
+			#ifdef DEBUG
+				DPRINTF("PAYLOAD->read_rap_bin->End of file or read error (content ID)\n");
+			#endif
+            break;
+        }
+
+        // Compare with content_id
+        if (strncmp(temp_content_id, content_id, 36) == 0) {
+            // Skip next 12 bytes of padding
+            cellFsLseek(fd, 12, CELL_FS_SEEK_CUR, &read_size);
+
+            // Read the RAP value if content_id matches
+            ret = cellFsRead(fd, rap_value, 0x10, &read_size);
+            if (ret == CELL_FS_SUCCEEDED && read_size == 0x10) {
+                cellFsClose(fd);
+				#ifdef DEBUG
+					DPRINTF("PAYLOAD->read_rap_bin->Successfully read RAP value\n");
+				#endif
+                return rap_value;
+            }
+			#ifdef DEBUG
+				DPRINTF("PAYLOAD->read_rap_bin->Failed to read RAP value\n");
+			#endif
+            break;
+        } else {
+            // Skip the next 12 bytes of padding and the RAP value if content_id does not match
+            cellFsLseek(fd, 12 + 0x10, CELL_FS_SEEK_CUR, &read_size);
+        }
+    }
+
+    free(rap_value);
+    cellFsClose(fd);
+	#ifdef DEBUG
+		DPRINTF("PAYLOAD->read_rap_bin->content_id not found or error occurred\n");
+	#endif
+    return NULL; // content_id not found or error occurred
+}
+
 void make_rif(const char *path)
 {		
 	char buffer[120];	
@@ -273,11 +367,59 @@ void make_rif(const char *path)
 		uint8_t is_ps2_classic = !strncmp(content_id, "2P0001-PS2U10000_00-0000111122223333", 0x24);
 		uint8_t is_psp_launcher = !strncmp(content_id, "UP0001-PSPC66820_00-0000111122223333", 0x24);
 
+		int found_rap_in_bin = 0;
+		uint8_t rap[0x10];
+		
+		// Static cache variables
+		static char cached_content_id[36] = {0};
+		static uint8_t cached_rap[0x10] = {0};
+		static int cache_valid = 0;
+		
 		if(!is_ps2_classic && !is_psp_launcher)
 		{
 			CellFsStat stat;
 			const char *ext = "rap";
+			
+			// Check cache first
+            if (cache_valid && strncmp(cached_content_id, content_id, 36) == 0)
+            {
+                memcpy(rap, cached_rap, 0x10);
+                found_rap_in_bin = 1;
+                #ifdef DEBUG
+                    DPRINTF("PAYLOAD->make_rif-> Using cached RAP value for content_id: %s\n", content_id);
+                #endif
+            }
+            else
+			{
+				// Try to read RAP from rap.bin
+				uint8_t* rap_value = read_rap_bin("/dev_hdd0/game/PS3XPLOIT/USRDIR/rap.bin", content_id);
 
+				if (rap_value != NULL) {
+					char buf[0x100];
+					char *ptr = buf;
+					int offset = 0;
+
+					#ifdef DEBUG
+						// Iterate over each byte of rap_value and convert it to hex format
+						for (int i = 0; i < 0x10; i++) {
+							offset += sprintf(ptr + offset, "%02X ", rap_value[i]);
+						}
+
+						DPRINTF("PAYLOAD->make_rif->rap_value: %s\n", buf);
+					#endif
+
+					memcpy(rap, rap_value, 0x10);
+					free(rap_value);
+					
+					// Update cache
+					strncpy(cached_content_id, content_id, 36);
+					memcpy(cached_rap, rap, 0x10);
+					cache_valid = 1;
+					
+					found_rap_in_bin = 1;
+				}
+			}
+			
 			// Support for rap and RAP extension (By aldostools)
 			for(uint8_t i = 0; i < 2; i++)
 			{
@@ -296,20 +438,28 @@ void make_rif(const char *path)
 		}
 
 		int fd;
-		if(is_ps2_classic || is_psp_launcher || cellFsOpen(rap_path, CELL_FS_O_RDONLY, &fd, 0666, NULL, 0) == SUCCEEDED)
+		if(found_rap_in_bin || is_ps2_classic || is_psp_launcher || cellFsOpen(rap_path, CELL_FS_O_RDONLY, &fd, 0666, NULL, 0) == SUCCEEDED)
 		{
 			uint64_t nread = 0;
-			uint8_t rap[0x10] = { 0xF5, 0xDE, 0xCA, 0xBB, 0x09, 0x88, 0x4F, 0xF4, 0x02, 0xD4, 0x12, 0x3C, 0x25, 0x01, 0x71, 0xD9 };
-
-			if(!is_ps2_classic && !is_psp_launcher)
-			{
+			
+			if (found_rap_in_bin) {
+				// rap already has the value copied from rap_value
+				#ifdef DEBUG
+					DPRINTF("PAYLOAD->make_rif->found_rap_in_bin\n");
+				#endif
+			} else if (!is_ps2_classic && !is_psp_launcher) {
+				#ifdef DEBUG
+					DPRINTF("PAYLOAD->make_rif->rap_path: %s output: %s\n", rap_path, path);
+				#endif
 				cellFsRead(fd, rap, 0x10, &nread);
 				cellFsClose(fd);
+			} else {
+				#ifdef DEBUG
+					DPRINTF("PAYLOAD->make_rif->ps2_psp\n");
+				#endif
+				// Use the hardcoded values for PS2 and PSP launchers
+				memcpy(rap, (uint8_t[]){ 0xF5, 0xDE, 0xCA, 0xBB, 0x09, 0x88, 0x4F, 0xF4, 0x02, 0xD4, 0x12, 0x3C, 0x25, 0x01, 0x71, 0xD9 }, 0x10);
 			}
-
-			#ifdef DEBUG
-				DPRINTF("rap_path: %s output: %s\n", rap_path, path);
-			#endif
 
 			// Search act.dat in home dirs
 			for(int i = 1; i < 100; i++)
