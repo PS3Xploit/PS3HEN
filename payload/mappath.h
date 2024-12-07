@@ -2,6 +2,7 @@
 #define __MAPPATH_H__
 
 #include <lv2/memory.h>
+#include <lv2/synchronization.h>
 
 #define SYS_MAP_PATH	35
 //#define SYS_MAP_GAME	36
@@ -26,5 +27,11 @@ int 	sys_map_paths(char *paths[], char *new_paths[], uint32_t num);
 int 	get_map_path(uint32_t num, char *path, char *new_path);
 int 	sys_aio_copy_root(char *src, char *dst);
 void 	unhook_all_map_path(void);
+
+// Declare mutex functions as extern and global to use in homebrew_blocker
+extern mutex_t pgui_mtx;
+int init_mtx(mutex_t* mtx, uint32_t attr_protocol, uint32_t attr_recursive);
+int lock_mtx(mutex_t* mtx);
+int unlock_mtx(mutex_t* mtx);
 
 #endif /* __MAPPATH_H_ */

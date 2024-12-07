@@ -38,12 +38,22 @@ uint8_t photo_gui = 1;
 static MapEntry_t *head = NULL;
 static MapEntry_t *found = NULL;
 static mutex_t map_mtx = 0;
+static mutex_t oph_mtx = 0;
+
 #ifdef DEBUG
-static mutex_t pgui_mtx = 0;
+	mutex_t pgui_mtx = 0;
 #endif
-static int init_mtx(mutex_t* mtx, uint32_t attr_protocol, uint32_t attr_recursive);
-static int lock_mtx(mutex_t* mtx);
-static int unlock_mtx(mutex_t* mtx);
+
+/*
+// These are declared in mappath.h for external use
+#ifdef DEBUG
+	static mutex_t pgui_mtx = 0;
+#endif
+//static int init_mtx(mutex_t* mtx, uint32_t attr_protocol, uint32_t attr_recursive);
+//static int lock_mtx(mutex_t* mtx);
+//static int unlock_mtx(mutex_t* mtx);
+*/
+
 //int destroy_mtx(mutex_t* mtx);
 //int trylock_mtx(mutex_t* mtx);
 //int addMapping(const char *opath, const char *npath, uint32_t flags);
@@ -520,7 +530,8 @@ static int deleteMapping(const char *opath) {
 	return EINVAL;
 }
 
-static int init_mtx(mutex_t* mtx, uint32_t attr_protocol, uint32_t attr_recursive) {
+//static int init_mtx(mutex_t* mtx, uint32_t attr_protocol, uint32_t attr_recursive) {
+int init_mtx(mutex_t* mtx, uint32_t attr_protocol, uint32_t attr_recursive) {
 	int ret=mtx ? 0 : EINVAL;
 	if(mtx && !*mtx) {
 		ret = mutex_create(mtx, attr_protocol, attr_recursive);
@@ -541,7 +552,8 @@ static int init_mtx(mutex_t* mtx, uint32_t attr_protocol, uint32_t attr_recursiv
 	return ret;
 }
 
-static int lock_mtx(mutex_t* mtx) {
+//static int lock_mtx(mutex_t* mtx) {
+int lock_mtx(mutex_t* mtx) {
 	int ret = EINVAL;
 	if(mtx) {
 		ret = 0;
@@ -569,7 +581,8 @@ static int lock_mtx(mutex_t* mtx) {
 	return ret;
 }
 
-static int unlock_mtx(mutex_t* mtx) {
+//static int unlock_mtx(mutex_t* mtx) {
+int unlock_mtx(mutex_t* mtx) {
 	int ret= mtx ? !(*mtx) ? ESRCH : 0 : EINVAL;
 	if(!ret) {
 		ret = mutex_unlock(*mtx);
@@ -833,9 +846,11 @@ LV2_HOOKED_FUNCTION_POSTCALL_2(int, open_path_hook, (char *path0, char *path1))
 				else{
 					DPRINTF("open_path_hook=: [OK] %s\n",path0);
 				}
+				unlock_mtx(&pgui_mtx);
 			}
 		#endif
-
+		
+		lock_mtx(&oph_mtx);
 		make_rif(path0);
 		//restore_syscalls(path0);
 		//check_signin(path0);
@@ -844,6 +859,7 @@ LV2_HOOKED_FUNCTION_POSTCALL_2(int, open_path_hook, (char *path0, char *path1))
 		{
 			block_psp_launcher = 0;
 			set_patched_func_param(1, (uint64_t)no_exists);
+			unlock_mtx(&oph_mtx);
 			return 0;
 		}
 
@@ -851,11 +867,10 @@ LV2_HOOKED_FUNCTION_POSTCALL_2(int, open_path_hook, (char *path0, char *path1))
 		if(!block_homebrew(path0))
 				{
 					set_patched_func_param(1, (uint64_t)no_exists);
+			unlock_mtx(&oph_mtx);
 					return 0;
 				}
-			}
-		}
-
+		
 		#ifdef DEBUG
 			//DPRINTF("open_path_hook=: processing path [%s]\n", path0);
 		#endif
@@ -933,6 +948,7 @@ LV2_HOOKED_FUNCTION_POSTCALL_2(int, open_path_hook, (char *path0, char *path1))
 			}
 		}
 	}
+	unlock_mtx(&oph_mtx);
 	return 0;
 }
 
