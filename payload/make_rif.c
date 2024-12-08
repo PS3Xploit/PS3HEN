@@ -381,43 +381,48 @@ void make_rif(const char *path)
 			CellFsStat stat;
 			const char *ext = "rap";
 			
-			// Check cache first
-            if (cache_valid && strncmp(cached_content_id, content_id, 36) == 0)
-            {
-                memcpy(rap, cached_rap, 0x10);
-                found_rap_in_bin = 1;
-                #ifdef DEBUG
-                    DPRINTF("PAYLOAD->make_rif-> Using cached RAP value for content_id: %s\n", content_id);
-                #endif
-            }
-            else
+			if(cellFsStat("/dev_hdd0/hen/toggles/rap_bin.on",&stat)==0)
 			{
-				// Try to read RAP from rap.bin
-				uint8_t* rap_value = read_rap_bin("/dev_hdd0/game/PS3XPLOIT/USRDIR/rap.bin", content_id);
-
-				if (rap_value != NULL) {
-					char buf[0x100];
-					char *ptr = buf;
-					int offset = 0;
-
-					#ifdef DEBUG
-						// Iterate over each byte of rap_value and convert it to hex format
-						for (int i = 0; i < 0x10; i++) {
-							offset += sprintf(ptr + offset, "%02X ", rap_value[i]);
-						}
-
-						DPRINTF("PAYLOAD->make_rif->rap_value: %s\n", buf);
-					#endif
-
-					memcpy(rap, rap_value, 0x10);
-					free(rap_value);
-					
-					// Update cache
-					strncpy(cached_content_id, content_id, 36);
-					memcpy(cached_rap, rap, 0x10);
-					cache_valid = 1;
-					
+				// Check cache first
+				if (cache_valid && strncmp(cached_content_id, content_id, 36) == 0)
+				{
+					memcpy(rap, cached_rap, 0x10);
 					found_rap_in_bin = 1;
+					#ifdef DEBUG
+						DPRINTF("PAYLOAD->make_rif-> Using cached RAP value for content_id: %s\n", content_id);
+					#endif
+				}
+				else
+				{
+					// Try to read RAP from rap.bin
+					uint8_t* rap_value = read_rap_bin("/dev_hdd0/game/PS3XPLOIT/USRDIR/rap.bin", content_id);
+
+					if (rap_value != NULL) {
+						/*
+						char buf[0x100];
+						char *ptr = buf;
+						int offset = 0;
+						
+						#ifdef DEBUG
+							// Iterate over each byte of rap_value and convert it to hex format
+							for (int i = 0; i < 0x10; i++) {
+								offset += sprintf(ptr + offset, "%02X ", rap_value[i]);
+							}
+
+							DPRINTF("PAYLOAD->make_rif->rap_value: %s\n", buf);
+						#endif
+						*/
+
+						memcpy(rap, rap_value, 0x10);
+						free(rap_value);
+						
+						// Update cache
+						strncpy(cached_content_id, content_id, 36);
+						memcpy(cached_rap, rap, 0x10);
+						cache_valid = 1;
+						
+						found_rap_in_bin = 1;
+					}
 				}
 			}
 			
