@@ -135,15 +135,15 @@ int addMapping(const char *opath, const char *npath, uint32_t flags) {
 					curr->newpath[nlen] = 0;
 					curr->newpath_len = nlen;
 					curr->flags = (curr->flags&FLAG_COPY) | (flags&(~FLAG_COPY));
-					#ifdef DEBUG
-						//DPRINTF("addMapping: existing mapping path found, new_path updated : %s\n",opath);
-					#endif
+					/*#ifdef DEBUG
+						DPRINTF("addMapping: existing mapping path found, new_path updated : %s\n",opath);
+					#endif*/
 					return 0;
 				}
 				else{
-					#ifdef DEBUG
-						//DPRINTF("addMapping: deleting found mapping : %s\n",opath);
-					#endif
+					/*#ifdef DEBUG
+						DPRINTF("addMapping: deleting found mapping : %s\n",opath);
+					#endif*/
 					return deleteMapping(opath);
 				}
 			}
@@ -152,18 +152,18 @@ int addMapping(const char *opath, const char *npath, uint32_t flags) {
 				sz += sizeof(MapEntry_t) + MAX_PATH;
 				if(mapTableByteSize + sz <= MAX_TABLE_SIZE) {
 					if(nlen>=MAX_PATH) {
-						#ifdef DEBUG
-							//DPRINTF("addMapping: Mapping NOT added, new_path could not be created: too long %s\n",opath);
-						#endif
+						/*#ifdef DEBUG
+							DPRINTF("addMapping: Mapping NOT added, new_path could not be created: too long %s\n",opath);
+						#endif*/
 						return EINVAL;
 					}
 					//create a link
 					MapEntry_t *link = (MapEntry_t*) alloc(sizeof(MapEntry_t),0x27);
 					mapTableByteSize += sizeof(MapEntry_t);
 					if(!link) {
-						#ifdef DEBUG
-							//DPRINTF("addMapping: Mapping NOT added, MapEntry_t could not be created: %s\n",opath);
-						#endif
+						/*#ifdef DEBUG
+							DPRINTF("addMapping: Mapping NOT added, MapEntry_t could not be created: %s\n",opath);
+						#endif*/
 						return ENOMEM;
 					}
 					link->flags = flags;
@@ -174,9 +174,9 @@ int addMapping(const char *opath, const char *npath, uint32_t flags) {
 						if(!link->oldpath) {
 							dealloc(link, 0x27);
 							mapTableByteSize-=sizeof(MapEntry_t);
-							#ifdef DEBUG
-								//DPRINTF("addMapping: Mapping NOT added, old_path could not be created: %s\n",opath);
-							#endif
+							/*#ifdef DEBUG
+								DPRINTF("addMapping: Mapping NOT added, old_path could not be created: %s\n",opath);
+							#endif*/
 							return ENOMEM;
 						}
 						strncpy(link->oldpath, opath, olen + 1);
@@ -196,9 +196,9 @@ int addMapping(const char *opath, const char *npath, uint32_t flags) {
 						}
 						dealloc(link, 0x27);
 						mapTableByteSize -= sizeof(MapEntry_t);
-						#ifdef DEBUG
-							//DPRINTF("addMapping:  Mapping NOT added, new_path could not be created: %s\n",opath);
-						#endif
+						/*#ifdef DEBUG
+							DPRINTF("addMapping:  Mapping NOT added, new_path could not be created: %s\n",opath);
+						#endif*/
 						return ENOMEM;
 					}
 					strncpy(link->newpath, npath, link->newpath_len+1);
@@ -233,14 +233,14 @@ int addMapping(const char *opath, const char *npath, uint32_t flags) {
 		return 0;
 	}
 	if(mtable_full) {
-		#ifdef DEBUG
-			// DPRINTF("addMapping: Mapping NOT added: Mapping Table already full\n");
-		#endif
+		/*#ifdef DEBUG
+			DPRINTF("addMapping: Mapping NOT added: Mapping Table already full\n");
+		#endif*/
 		return EAGAIN;
 	}
-	#ifdef DEBUG
-		 //DPRINTF("addMapping: Mapping NOT added: bad argument\n");
-	#endif
+	/*#ifdef DEBUG
+		 DPRINTF("addMapping: Mapping NOT added: bad argument\n");
+	#endif*/
 	return EINVAL;
 }
 
@@ -377,12 +377,12 @@ static MapEntry_t* findMapping(const char *opath) {
 }
 //find a link with given key
 static bool patchAllMappingStartingWith(const char *opath, char* dst) {
-	#ifdef DEBUG
+	/*#ifdef DEBUG
 		if(opath && dst)
 			DPRINTF("patchAllMappingStartingWith=: %s -> %s\n", opath, dst);
 		else
-			//DPRINTF("patchAllMappingStartingWith=: null argument\n");
-	#endif
+			DPRINTF("patchAllMappingStartingWith=: null argument\n");
+	#endif*/
 	//if list is empty
 	if(head == NULL || opath == NULL) {
 		return false;
@@ -428,14 +428,14 @@ static bool deleteAllMappings(uint32_t flags) {
 		//store curr->next
 		next = curr->next;
 		if((!flags || curr->flags & flags) && !(curr->flags & FLAG_PROTECT)) {
-			#ifdef DEBUG
-				//DPRINTF("deleteAllMappings=: deleting %s\n",curr->oldpath);
-			#endif
+			/*#ifdef DEBUG
+				DPRINTF("deleteAllMappings=: deleting %s\n",curr->oldpath);
+			#endif*/
 			if(strcmp(curr->oldpath, "/dev_bdvd") == 0) {
 				condition_apphome = false;
-				#ifdef DEBUG
-					//DPRINTF("deleteAllMappings: removed %s condition_apphome set to false\n",curr->oldpath);
-				#endif
+				/*#ifdef DEBUG
+					DPRINTF("deleteAllMappings: removed %s condition_apphome set to false\n",curr->oldpath);
+				#endif*/
 			}
 			if(curr == head) {
 				//change first to point to next link
@@ -473,12 +473,12 @@ static bool deleteAllMappings(uint32_t flags) {
 }
 //delete a link with given key
 static int deleteMapping(const char *opath) {
-		#ifdef DEBUG
+	/*#ifdef DEBUG
 		if(opath)
 			DPRINTF("deleteMapping=: %s\n",opath);
 		else
-			//DPRINTF("deleteMapping=: null argument\n");
-	#endif
+			DPRINTF("deleteMapping=: null argument\n");
+	#endif*/
 	//if list is empty
 	if(head && opath && (strncmp(opath,"/dev_",5) == 0 || strncmp(opath,"/app_",5) == 0 || strncmp(opath,"/host_",6) == 0))
 	{
@@ -535,20 +535,20 @@ int init_mtx(mutex_t* mtx, uint32_t attr_protocol, uint32_t attr_recursive) {
 	int ret=mtx ? 0 : EINVAL;
 	if(mtx && !*mtx) {
 		ret = mutex_create(mtx, attr_protocol, attr_recursive);
-		#ifdef DEBUG
+		/*#ifdef DEBUG
 			if(ret)
 			{
-				//DPRINTF("init_mtx=: mutex creation error %x\n",ret);
+				DPRINTF("init_mtx=: mutex creation error %x\n",ret);
 			}
 			else
 			{
-				//DPRINTF("init_mtx=: mutex 0x%8lx created\n", (uint64_t)*mtx);
+				DPRINTF("init_mtx=: mutex 0x%8lx created\n", (uint64_t)*mtx);
 			}
-		#endif
+		#endif*/
 	}
-	#ifdef DEBUG
-		//DPRINTF("init_mtx=: return %x \n", ret);
-	#endif
+	/*#ifdef DEBUG
+		DPRINTF("init_mtx=: return %x \n", ret);
+	#endif*/
 	return ret;
 }
 
@@ -563,7 +563,7 @@ int lock_mtx(mutex_t* mtx) {
 		}
 		if(!ret) {
 			ret = mutex_lock(*mtx, 0);
-			#ifdef DEBUG
+			/*#ifdef DEBUG
 				if(ret)
 				{
 					//DPRINTF("lock_mtx=: mutex 0x%8lx lock error %x\n", (uint64_t)*mtx, ret);
@@ -572,12 +572,12 @@ int lock_mtx(mutex_t* mtx) {
 				{
 					//DPRINTF("lock_mtx=: mutex 0x%8lx locked\n", (uint64_t)*mtx);
 				}
-			#endif
+			#endif*/
 		}
 	}
-	#ifdef DEBUG
+	/*#ifdef DEBUG
 		//DPRINTF("lock_mtx=: return %x \n", ret);
-	#endif
+	#endif*/
 	return ret;
 }
 
@@ -586,20 +586,20 @@ int unlock_mtx(mutex_t* mtx) {
 	int ret= mtx ? !(*mtx) ? ESRCH : 0 : EINVAL;
 	if(!ret) {
 		ret = mutex_unlock(*mtx);
-		#ifdef DEBUG
+		/*#ifdef DEBUG
 			if(ret)
 			{
-				//DPRINTF("unlock_mtx=: mutex 0x%8lx unlock error %x\n", (uint64_t)*mtx, ret);
+				DPRINTF("unlock_mtx=: mutex 0x%8lx unlock error %x\n", (uint64_t)*mtx, ret);
 			}
 			else
 			{
-				//DPRINTF("unlock_mtx=: mutex 0x%8lx unlocked\n", (uint64_t)map_mtx);
+				DPRINTF("unlock_mtx=: mutex 0x%8lx unlocked\n", (uint64_t)map_mtx);
 			}
-		#endif
+		#endif*/
 	}
-	#ifdef DEBUG
-		//DPRINTF("unlock_mtx=: return %x \n", ret);
-	#endif
+	/*#ifdef DEBUG
+		DPRINTF("unlock_mtx=: return %x \n", ret);
+	#endif*/
 	return ret;
 }
 
