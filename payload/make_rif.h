@@ -14,12 +14,16 @@
 #define ALLOC_PATH_BUFFER	(char*)(make_rif_buf + 0x20 + 0x28)
 #define ALLOC_RIF_BUFFER 	(uint8_t*)(make_rif_buf + 0x20 + 0x28)
 
+#define MAGIC_SIZE		4
+#define CONTENTID_SIZE	36
+#define PADDING_SIZE	12
+#define KEY_SIZE		0x10
+#define ACC_SIZE		0x10
+
 extern uint8_t skip_existing_rif;
 
 uint8_t make_rif_buf[0x20 + 0x28 + 0x50 + 0x20 + 0x28]; // ACT_DAT[0x20] + CONTENT_ID[0x28] + RAP_PATH[0x50] + RIF_BUFFER[0x20] (rif_buffer reuse rap_path + 0x20 = 0x70) + 0x28(signaturs)
 
-int create_act_dat(const char *userid);
 void make_rif(const char *path);
-uint8_t* read_rap_bin(const char* bin_file_path, const char* content_id);
 
 #endif /* __MAKE_RIF_H__ */
