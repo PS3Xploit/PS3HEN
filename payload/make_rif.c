@@ -516,7 +516,7 @@ void make_rif(const char *path)
 					char *rif_path = ALLOC_PATH_BUFFER;
 					sprintf(rif_path, "/%s", path);
 
-					char rap_key[KEY_SIZE];
+					uint8_t rap_key[KEY_SIZE];
 					memcpy(rap_key, rap, KEY_SIZE);
 
 					read_act_dat_and_make_rif(rap_key, act_dat, content_id, rif_path);
