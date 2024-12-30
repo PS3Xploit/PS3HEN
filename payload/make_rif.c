@@ -398,14 +398,13 @@ void make_rif(const char *path)
 				if(found_rap_in_bin)
 				{
 					strncpy(cached_content_id, content_id, CONTENTID_SIZE);
-				}
-
-				if (found_rap_in_bin) {
-					char buf[0x100];
-					char *ptr = buf;
-					int offset = 0;
-
+					
+					/*
 					#ifdef DEBUG
+						char buf[0x100];
+						char *ptr = buf;
+						int offset = 0;
+
 						// Iterate over each byte of rap_value and convert it to hex format
 						for (int i = 0; i < KEY_SIZE; i++) {
 							offset += sprintf(ptr + offset, "%02X ", rap[i]);
@@ -413,6 +412,7 @@ void make_rif(const char *path)
 
 						DPRINTF("PAYLOAD->make_rif->rap_value: %s\n", buf);
 					#endif
+					*/
 				}
 			}
 
