@@ -264,7 +264,7 @@ static int create_act_dat(const char *userid)
 	return SUCCEEDED;
 }
 
-// Better implementation by EvilNat used with small changes
+// Originally by esc0rtd3w, with modified optimizations by Evilnat, and performance tweaks by aldostools
 static int read_rap_bin(const char* bin_file_path, const char* content_id, uint8_t *rap_value) {
 	
     int fd;
@@ -302,7 +302,6 @@ static int read_rap_bin(const char* bin_file_path, const char* content_id, uint8
     return 0;
 }
 
-// Use this make_rif function to use new functionality to read from rap.bin files
 void make_rif(const char *path)
 {
 	if(!strncmp(path, "/dev_hdd0/home/", 15) && !strcmp(path + strlen(path) - 4, ".rif"))
@@ -487,123 +486,3 @@ void make_rif(const char *path)
 		}
 	}
 }
-
-/*
-// Use this make_rif function to use original functionality and not read from rap.bin files
-void make_rif(const char *path)
-{
-	char buffer[120];
-	int path_len = strlen(path);
-
-	if(!strncmp(path, "/dev_hdd0/home/", 15) && !strcmp(path + path_len - 4, ".rif"))
-	{
-		int act_dat_found = 0;
-		CellFsStat stat;
-
-		#ifdef DEBUG
-			DPRINTF("open_path_hook: %s (looking for rap)\n", path);
-		#endif
-
-		char *content_id = ALLOC_CONTENT_ID;
-		memset(content_id, 0, 0x25);
-		strncpy(content_id, strrchr(path, '/') + 1, 0x24);
-
-		char *rap_path = ALLOC_PATH_BUFFER;
-
-		uint8_t is_ps2_classic = !strncmp(content_id, "2P0001-PS2U10000_00-0000111122223333", 0x24);
-		uint8_t is_psp_launcher = !strncmp(content_id, "UP0001-PSPC66820_00-0000111122223333", 0x24);
-
-		if(!is_ps2_classic && !is_psp_launcher)
-		{
-			CellFsStat stat;
-			const char *ext = "rap";
-
-			// Support for rap and RAP extension (By aldostools)
-			for(uint8_t i = 0; i < 2; i++)
-			{
-				sprintf(rap_path, "/dev_usb000/exdata/%36s.%s", content_id, ext);
-
-				if(cellFsStat(rap_path, &stat) != CELL_FS_SUCCEEDED)
-					rap_path[10] = '1'; //dev_usb001
-				if(cellFsStat(rap_path, &stat) != CELL_FS_SUCCEEDED)
-					sprintf(rap_path, "/dev_hdd0/exdata/%36s.%s", content_id, ext);
-
-				if(cellFsStat(rap_path, &stat) != CELL_FS_SUCCEEDED)
-					ext = "RAP";
-				else
-					break;
-			}
-		}
-
-		int fd;
-		if(is_ps2_classic || is_psp_launcher || cellFsOpen(rap_path, CELL_FS_O_RDONLY, &fd, 0666, NULL, 0) == CELL_FS_SUCCEEDED)
-		{
-			uint64_t nread = 0;
-			uint8_t rap[0x10] = { 0xF5, 0xDE, 0xCA, 0xBB, 0x09, 0x88, 0x4F, 0xF4, 0x02, 0xD4, 0x12, 0x3C, 0x25, 0x01, 0x71, 0xD9 };
-
-			if(!is_ps2_classic && !is_psp_launcher)
-			{
-				cellFsRead(fd, rap, 0x10, &nread);
-				cellFsClose(fd);
-			}
-
-			#ifdef DEBUG
-				DPRINTF("rap_path: %s output: %s\n", rap_path, path);
-			#endif
-
-			// Search act.dat in home dirs
-			for(int i = 1; i < 100; i++)
-			{
-				sprintf(buffer, ACTDAT_PATH, i);
-
-				if(cellFsStat(buffer, &stat) == CELL_FS_SUCCEEDED)
-				{
-					#ifdef DEBUG
-						//DPRINTF("Found act.dat in %08d\n", i);
-					#endif
-					act_dat_found = 1;
-					break;
-				}
-			}
-
-			char userid[8];
-			strncpy(userid, path + 15, 8);
-			userid[8] = '\0';
-
-			sprintf(buffer, ACCOUNTID_VALUE, userid);
-
-			if(!act_dat_found && xreg_data(buffer))
-				create_act_dat(userid);
-
-			act_dat_found = 0;
-
-			// Skip the creation of rif license if it already exists - By aldostool
-			if(skip_existing_rif && cellFsStat(path, &stat) == CELL_FS_SUCCEEDED)
-				return;
-
-			char *act_path = ALLOC_PATH_BUFFER;
-			memset(act_path, 0, 0x50);
-			strncpy(act_path, path, strrchr(path, '/') - path);
-			strcpy(act_path + strlen(act_path), "/act.dat\0");
-
-			#ifdef DEBUG
-				DPRINTF("act_path: %s content_id: %s\n", act_path, content_id);
-			#endif
-
-			if(cellFsOpen(act_path, CELL_FS_O_RDONLY, &fd, 0666, NULL, 0) == CELL_FS_SUCCEEDED)
-			{
-				uint8_t *act_dat = ALLOC_ACT_DAT;
-				cellFsRead(fd, act_dat, 0x20, &nread); // size: 0x1038 but only first 0x20 are used to make rif
-				cellFsClose(fd);
-
-				if(nread == 0x20)
-				{
-					char *rif_path = ALLOC_PATH_BUFFER;
-					sprintf(rif_path, "/%s", path);
-					read_act_dat_and_make_rif(rap, act_dat, content_id, rif_path);
-				}
-			}
-		}
-	}
-}
-*/
