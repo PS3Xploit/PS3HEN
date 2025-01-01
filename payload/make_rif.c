@@ -264,87 +264,42 @@ static int create_act_dat(const char *userid)
 	return SUCCEEDED;
 }
 
+// Better implementation by EvilNat used with small changes
 static int read_rap_bin(const char* bin_file_path, const char* content_id, uint8_t *rap_value) {
+	
+    int fd;
+    int ret = cellFsOpen(bin_file_path, CELL_FS_O_RDONLY, &fd, 0, NULL, 0);
+    if (ret != CELL_FS_SUCCEEDED) {
+        #ifdef DEBUG
+            DPRINTF("PAYLOAD->read_rap_bin->Failed to open %s\n", bin_file_path);
+        #endif
+        return 0;
+    }
 
-	#ifdef DEBUG
-		DPRINTF("PAYLOAD->read_rap_bin\n");
-	#endif
+    uint8_t buffer[0x50];
+    const uint32_t MAGIC_NUMBER = 0xFAF0FAF0;
+    uint64_t read_size;
 
-	#define CELL_FS_SEEK_CUR 1
+    while (cellFsRead(fd, buffer, sizeof(buffer), &read_size) == CELL_FS_SUCCEEDED && read_size == sizeof(buffer)) {
+        if (*(uint32_t*)buffer != MAGIC_NUMBER) {
+            continue;
+        }
 
-	int fd;
-	int ret = cellFsOpen(bin_file_path, CELL_FS_O_RDONLY, &fd, 0, NULL, 0);
-	if (ret != CELL_FS_SUCCEEDED) {
-		#ifdef DEBUG
-			DPRINTF("PAYLOAD->read_rap_bin->Failed to open rap.bin\n");
-		#endif
-		return 0;
-	}
+        if (memcmp(buffer + 0x10, content_id, CONTENTID_SIZE) == 0) {
+            memcpy(rap_value, buffer + 0x40, KEY_SIZE);
+            cellFsClose(fd);
+            #ifdef DEBUG
+                DPRINTF("PAYLOAD->read_rap_bin->Found RAP for content_id: %s\n", content_id);
+            #endif
+            return 1;
+        }
+    }
 
-	uint64_t read_size;
-	uint32_t magic_number;
-	char temp_content_id[CONTENTID_SIZE];
-
-	while (1) {
-		// Read magic number from rap.bin
-		ret = cellFsRead(fd, (void *)&magic_number, MAGIC_SIZE, &read_size);
-		if (ret != CELL_FS_SUCCEEDED || read_size != MAGIC_SIZE) {
-			#ifdef DEBUG
-				DPRINTF("PAYLOAD->read_rap_bin->End of file or read error (magic number)\n");
-			#endif
-			break;
-		}
-
-		// Verify the magic number
-		if (magic_number != 0xFAF0FAF0) {
-			#ifdef DEBUG
-				DPRINTF("PAYLOAD->read_rap_bin->Invalid magic number, skipping entry\n");
-			#endif
-			cellFsLseek(fd, CONTENTID_SIZE + PADDING_SIZE + KEY_SIZE, CELL_FS_SEEK_CUR, &read_size); // Skip invalid entry
-			continue;
-		}
-
-		// Skip 12 bytes of padding
-		cellFsLseek(fd, PADDING_SIZE, CELL_FS_SEEK_CUR, &read_size);
-
-		// Read content_id from rap.bin
-		ret = cellFsRead(fd, temp_content_id, CONTENTID_SIZE, &read_size);
-		if (ret != CELL_FS_SUCCEEDED || read_size != CONTENTID_SIZE) {
-			#ifdef DEBUG
-				DPRINTF("PAYLOAD->read_rap_bin->End of file or read error (content ID)\n");
-			#endif
-			break;
-		}
-
-		// Compare with content_id
-		if (strncmp(temp_content_id, content_id, CONTENTID_SIZE) == SUCCEEDED) {
-			// Skip next 12 bytes of padding
-			cellFsLseek(fd, PADDING_SIZE, CELL_FS_SEEK_CUR, &read_size);
-
-			// Read the RAP value if content_id matches
-			ret = cellFsRead(fd, rap_value, KEY_SIZE, &read_size);
-			if (ret == CELL_FS_SUCCEEDED && read_size == KEY_SIZE) {
-				cellFsClose(fd);
-				#ifdef DEBUG
-					DPRINTF("PAYLOAD->read_rap_bin->Successfully read RAP value\n");
-				#endif
-				return 1;
-			}
-			#ifdef DEBUG
-				DPRINTF("PAYLOAD->read_rap_bin->Failed to read RAP value\n");
-			#endif
-			break;
-		} else {
-			// Skip the next 12 bytes of padding and the RAP value if content_id does not match
-			cellFsLseek(fd, PADDING_SIZE + KEY_SIZE, CELL_FS_SEEK_CUR, &read_size);
-		}
-	}
-
-	cellFsClose(fd);
-	#ifdef DEBUG
-		DPRINTF("PAYLOAD->read_rap_bin->content_id not found or error occurred\n");
-	#endif
-	return 0; // content_id not found or error occurred
+    cellFsClose(fd);
+    #ifdef DEBUG
+        DPRINTF("PAYLOAD->read_rap_bin->Content ID %s not found\n", content_id);
+    #endif
+    return 0;
 }
 
 // Use this make_rif function to use new functionality to read from rap.bin files
@@ -358,9 +313,11 @@ void make_rif(const char *path)
 			DPRINTF("open_path_hook: %s (looking for rap)\n", path);
 		#endif
 
+		/*
 		// Skip the creation of rif license if it already exists - By aldostool
 		if(skip_existing_rif && cellFsStat(path, &stat) == CELL_FS_SUCCEEDED)
 			return;
+		*/
 
 		char *content_id = ALLOC_CONTENT_ID;
 		memset(content_id, 0, 0x25);
@@ -369,9 +326,14 @@ void make_rif(const char *path)
 		char *rap_path = ALLOC_PATH_BUFFER;
 
 		uint8_t is_pslauncher = !strncmp(content_id, "2P0001-PS2U10000_00-0000111122223333", CONTENTID_SIZE) ||	// is_ps2_classic
-								!strncmp(content_id, "UP0001-PSPC66820_00-0000111122223333", CONTENTID_SIZE);		// is_psp_launcher
+								!strncmp(content_id, "UP0001-PSPC66820_00-0000111122223333", CONTENTID_SIZE);	// is_psp_launcher
 
-		// Static cache variables
+		// 8 digit user id
+		char userid[8];
+		strncpy(userid, path + 15, 8);
+		userid[8] = '\0';		
+		
+		// ContentID and RAP cached values
 		static char cached_content_id[CONTENTID_SIZE] = {0};
 		static uint8_t cached_rap[KEY_SIZE] = {0};
 
