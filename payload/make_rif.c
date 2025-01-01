@@ -311,9 +311,12 @@ void make_rif(const char *path)
 								!strncmp(content_id, "UP0001-PSPC66820_00-0000111122223333", CONTENTID_SIZE);	// is_psp_launcher
 
 		// 8 digit user id
-		char userid[8];
-		strncpy(userid, path + 15, 8);
-		userid[8] = '\0';		
+		char userid[9];
+		memcpy(userid, path + 15, 8);
+		userid[8] = '\0';
+		/*#ifdef DEBUG
+			DPRINTF("userid: [%s]\n", userid);
+		#endif*/
 		
 		char rap_bin_dir_home[120];
 		sprintf(rap_bin_dir_home, "/dev_hdd0/home/%s/exdata/rap.bin", userid);
