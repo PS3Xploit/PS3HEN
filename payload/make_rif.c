@@ -315,6 +315,9 @@ void make_rif(const char *path)
 		strncpy(userid, path + 15, 8);
 		userid[8] = '\0';		
 		
+		char rap_bin_dir_home[120];
+		sprintf(rap_bin_dir_home, "/dev_hdd0/home/%s/exdata/rap.bin", userid);
+		
 		// ContentID and RAP cached values
 		static char cached_content_id[CONTENTID_SIZE] = {0};
 		static uint8_t cached_rap[KEY_SIZE] = {0};
@@ -336,8 +339,9 @@ void make_rif(const char *path)
 			else
 			{
 				// Try to read RAP from rap.bin
-				found_rap_in_bin = read_rap_bin("/dev_hdd0/game/PS3XPLOIT/USRDIR/rap.bin", content_id, rap);
+				found_rap_in_bin = read_rap_bin("/dev_hdd0/game/PS3XPLOIT/USRDIR/rap.bin", content_id, rap);// PS3HEN default path
 
+				if(!found_rap_in_bin) found_rap_in_bin = read_rap_bin(rap_bin_dir_home, content_id, rap);// COBRA default path
 				if(!found_rap_in_bin) found_rap_in_bin = read_rap_bin("/dev_hdd0/exdata/rap.bin", content_id, rap);
 				if(!found_rap_in_bin) found_rap_in_bin = read_rap_bin("/dev_usb000/exdata/rap.bin", content_id, rap);
 				if(!found_rap_in_bin) found_rap_in_bin = read_rap_bin("/dev_usb001/exdata/rap.bin", content_id, rap);
