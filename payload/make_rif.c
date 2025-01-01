@@ -30,18 +30,18 @@ uint32_t userID;
 uint8_t skip_existing_rif = 0;
 uint8_t account_id[ACC_SIZE];
 
-static int xreg_data(char *value)
+static int xreg_data(const char *value)
 {
 	int fd, result = -1;
 	uint16_t offset = 0;
 	uint64_t read, seek;
 
-	if(cellFsOpen(XREGISTRY_FILE, CELL_FS_O_RDWR, &fd, 0666, NULL, 0) != CELL_FS_SUCCEEDED)
-		return result;
-
 	char *buffer = malloc(0x2A);
 
 	if(!buffer)
+		return result;
+
+	if(cellFsOpen(XREGISTRY_FILE, CELL_FS_O_RDWR, &fd, 0666, NULL, 0) != CELL_FS_SUCCEEDED)
 		return result;
 
 	// Get offset
@@ -54,40 +54,26 @@ static int xreg_data(char *value)
 		if(strcmp(buffer, value) == SUCCEEDED)
 		{
 			offset = i - 0x15;
-			uint8_t *data = NULL;
+			uint8_t data[0x17];
 
 			// Search value from value table
 			for(int i = 0x10000; i < 0x15000; i++)
 			{
-				data = (uint8_t *) malloc(0x17);
-
-				if(!data)
-				{
-					free(buffer);
-					return result;
-				}
-
 				cellFsLseek(fd, i, SEEK_SET, &seek);
 				cellFsRead(fd, data, 0x17, &read);
 
 				// Found value
 				if (memcmp(data, &offset, 2) == SUCCEEDED && data[4] == 0x00 && data[5] == 0x11 && data[6] == 0x02)
 				{
-					result = 0;
-
 					memcpy(&account_id, data + 7, ACC_SIZE);
 
-					if(memcmp(data + 7, empty, ACC_SIZE) != SUCCEEDED)
-						result = 1;
+					result = (memcmp(data + 7, empty, ACC_SIZE) != SUCCEEDED); // 0 = empty account id, 1 = not empty
 
-					free(data);
 					free(buffer);
 					cellFsClose(fd);
 
 					return result;
 				}
-
-				free(data);
 			}
 		}
 	}
@@ -277,15 +263,12 @@ static int read_rap_bin(const char* bin_file_path, const char* content_id, uint8
     }
 
     uint8_t buffer[0x50];
+	uint8_t  *buffer_content_id = buffer + 0x10;
     const uint32_t MAGIC_NUMBER = 0xFAF0FAF0;
     uint64_t read_size;
 
     while (cellFsRead(fd, buffer, sizeof(buffer), &read_size) == CELL_FS_SUCCEEDED && read_size == sizeof(buffer)) {
-        if (*(uint32_t*)buffer != MAGIC_NUMBER) {
-            continue;
-        }
-
-        if (memcmp(buffer + 0x10, content_id, CONTENTID_SIZE) == 0) {
+		if (memcmp(buffer_content_id, content_id, CONTENTID_SIZE) == 0 && (*(uint32_t*)buffer == MAGIC_NUMBER)) {
             memcpy(rap_value, buffer + 0x40, KEY_SIZE);
             cellFsClose(fd);
             #ifdef DEBUG
@@ -354,6 +337,10 @@ void make_rif(const char *path)
 			{
 				// Try to read RAP from rap.bin
 				found_rap_in_bin = read_rap_bin("/dev_hdd0/game/PS3XPLOIT/USRDIR/rap.bin", content_id, rap);
+
+				if(!found_rap_in_bin) found_rap_in_bin = read_rap_bin("/dev_hdd0/exdata/rap.bin", content_id, rap);
+				if(!found_rap_in_bin) found_rap_in_bin = read_rap_bin("/dev_usb000/exdata/rap.bin", content_id, rap);
+				if(!found_rap_in_bin) found_rap_in_bin = read_rap_bin("/dev_usb001/exdata/rap.bin", content_id, rap);
 
 				// cache content_id for current value in cached_rap
 				if(found_rap_in_bin)
