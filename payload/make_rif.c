@@ -302,17 +302,6 @@ void make_rif(const char *path)
 
 		uint8_t is_pslauncher = !strncmp(content_id, "2P0001-PS2U10000_00-0000111122223333", CONTENTID_SIZE) ||	// is_ps2_classic
 								!strncmp(content_id, "UP0001-PSPC66820_00-0000111122223333", CONTENTID_SIZE);	// is_psp_launcher
-
-		// 8 digit user id
-		char userid[9];
-		memcpy(userid, path + 15, 8);
-		userid[8] = '\0';
-		/*#ifdef DEBUG
-			DPRINTF("userid: [%s]\n", userid);
-		#endif*/
-		
-		//char rap_bin_dir_home[120];
-		//sprintf(rap_bin_dir_home, "/dev_hdd0/home/%s/exdata/rap.bin", userid);
 		
 		// ContentID and RAP cached values
 		static char cached_content_id[CONTENTID_SIZE] = {0};
@@ -337,7 +326,6 @@ void make_rif(const char *path)
 				// Try to read RAP from rap.bin
 				found_rap_in_bin = read_rap_bin("/dev_hdd0/game/PS3XPLOIT/USRDIR/rap.bin", content_id, rap);// PS3HEN default path
 
-				//if(!found_rap_in_bin) found_rap_in_bin = read_rap_bin(rap_bin_dir_home, content_id, rap);// COBRA default path
 				if(!found_rap_in_bin) found_rap_in_bin = read_rap_bin("/dev_hdd0/exdata/rap.bin", content_id, rap);
 				if(!found_rap_in_bin) found_rap_in_bin = read_rap_bin("/dev_usb000/exdata/rap.bin", content_id, rap);
 				if(!found_rap_in_bin) found_rap_in_bin = read_rap_bin("/dev_usb001/exdata/rap.bin", content_id, rap);
@@ -439,10 +427,9 @@ void make_rif(const char *path)
 				}
 
 				//create a fake act.dat for the current user
-				char userid[8];
-				strncpy(userid, path + 15, 8);
+				char userid[9];
+				memcpy(userid, path + 15, 8);
 				userid[8] = '\0';
-
 				sprintf(buffer, ACCOUNTID_VALUE, userid);
 
 				if(xreg_data(buffer))
