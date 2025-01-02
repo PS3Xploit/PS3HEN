@@ -26,7 +26,6 @@ static unsigned char RAP_E1[] =   { 0xA9, 0x3E, 0x1F, 0xD6, 0x7C, 0x55, 0xA3, 0x
 static unsigned char RAP_E2[] =   { 0x67, 0xD4, 0x5D, 0xA3, 0x29, 0x6D, 0x00, 0x6A, 0x4E, 0x7C, 0x53, 0x7B, 0xF5, 0x53, 0x8C, 0x74 };
 //static unsigned char no_exists[] = {"/fail"};
 
-uint32_t userID;
 uint8_t skip_existing_rif = 0;
 uint8_t account_id[ACC_SIZE];
 
@@ -295,12 +294,6 @@ void make_rif(const char *path)
 			DPRINTF("open_path_hook: %s (looking for rap)\n", path);
 		#endif
 
-		/*
-		// Skip the creation of rif license if it already exists - By aldostool
-		if(skip_existing_rif && cellFsStat(path, &stat) == CELL_FS_SUCCEEDED)
-			return;
-		*/
-
 		char *content_id = ALLOC_CONTENT_ID;
 		memset(content_id, 0, 0x25);
 		strncpy(content_id, strrchr(path, '/') + 1, CONTENTID_SIZE);
@@ -318,8 +311,8 @@ void make_rif(const char *path)
 			DPRINTF("userid: [%s]\n", userid);
 		#endif*/
 		
-		char rap_bin_dir_home[120];
-		sprintf(rap_bin_dir_home, "/dev_hdd0/home/%s/exdata/rap.bin", userid);
+		//char rap_bin_dir_home[120];
+		//sprintf(rap_bin_dir_home, "/dev_hdd0/home/%s/exdata/rap.bin", userid);
 		
 		// ContentID and RAP cached values
 		static char cached_content_id[CONTENTID_SIZE] = {0};
@@ -344,7 +337,7 @@ void make_rif(const char *path)
 				// Try to read RAP from rap.bin
 				found_rap_in_bin = read_rap_bin("/dev_hdd0/game/PS3XPLOIT/USRDIR/rap.bin", content_id, rap);// PS3HEN default path
 
-				if(!found_rap_in_bin) found_rap_in_bin = read_rap_bin(rap_bin_dir_home, content_id, rap);// COBRA default path
+				//if(!found_rap_in_bin) found_rap_in_bin = read_rap_bin(rap_bin_dir_home, content_id, rap);// COBRA default path
 				if(!found_rap_in_bin) found_rap_in_bin = read_rap_bin("/dev_hdd0/exdata/rap.bin", content_id, rap);
 				if(!found_rap_in_bin) found_rap_in_bin = read_rap_bin("/dev_usb000/exdata/rap.bin", content_id, rap);
 				if(!found_rap_in_bin) found_rap_in_bin = read_rap_bin("/dev_usb001/exdata/rap.bin", content_id, rap);
@@ -471,9 +464,15 @@ void make_rif(const char *path)
 					char *rif_path = ALLOC_PATH_BUFFER;
 					sprintf(rif_path, "/%s", path);
 
+					// Skip the creation of rif license if it already exists - By aldostools
+					if(skip_existing_rif && cellFsStat(rif_path, &stat) == SUCCEEDED)
+					{
+						//DPRINTF("license already exists, omitting...);
+						return;
+					}
+
 					uint8_t rap_key[KEY_SIZE];
 					memcpy(rap_key, rap, KEY_SIZE);
-
 					read_act_dat_and_make_rif(rap_key, act_dat, content_id, rif_path);
 				}
 			}
