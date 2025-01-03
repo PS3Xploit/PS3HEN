@@ -454,7 +454,9 @@ void make_rif(const char *path)
 					// Skip the creation of rif license if it already exists - By aldostools
 					if(skip_existing_rif && cellFsStat(rif_path, &stat) == SUCCEEDED)
 					{
-						//DPRINTF("license already exists, omitting...);
+						/* #ifdef DEBUG
+							DPRINTF("license already exists, omitting...);
+						#endif */
 						return;
 					}
 
