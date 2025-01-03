@@ -256,7 +256,7 @@ static int read_rap_bin(const char* bin_file_path, const char* content_id, uint8
     int ret = cellFsOpen(bin_file_path, CELL_FS_O_RDONLY, &fd, 0, NULL, 0);
     if (ret != CELL_FS_SUCCEEDED) {
         #ifdef DEBUG
-            DPRINTF("PAYLOAD->read_rap_bin->Failed to open %s\n", bin_file_path);
+            DPRINTF("read_rap_bin->%s not found\n", bin_file_path);
         #endif
         return 0;
     }
@@ -271,7 +271,7 @@ static int read_rap_bin(const char* bin_file_path, const char* content_id, uint8
             memcpy(rap_value, buffer + 0x40, KEY_SIZE);
             cellFsClose(fd);
             #ifdef DEBUG
-                DPRINTF("PAYLOAD->read_rap_bin->Found RAP for content_id: %s\n", content_id);
+                DPRINTF("read_rap_bin->Found RAP for content_id: %s\n", content_id);
             #endif
             return 1;
         }
@@ -279,7 +279,7 @@ static int read_rap_bin(const char* bin_file_path, const char* content_id, uint8
 
     cellFsClose(fd);
     #ifdef DEBUG
-        DPRINTF("PAYLOAD->read_rap_bin->Content ID %s not found\n", content_id);
+        DPRINTF("read_rap_bin->Content ID %s not found\n", content_id);
     #endif
     return 0;
 }
@@ -318,7 +318,7 @@ void make_rif(const char *path)
 				//memcpy(rap, cached_rap, KEY_SIZE); // "rap" already has the value from cached_rap
 				found_rap_in_bin = 1;
 				#ifdef DEBUG
-					DPRINTF("PAYLOAD->make_rif-> Using cached RAP value for content_id: %s\n", content_id);
+					DPRINTF("Using cached RAP value for content_id: %s\n", content_id);
 				#endif
 			}
 			else
@@ -346,7 +346,7 @@ void make_rif(const char *path)
 							offset += sprintf(ptr + offset, "%02X ", rap[i]);
 						}
 
-						DPRINTF("PAYLOAD->make_rif->rap_value: %s\n", buf);
+						DPRINTF("rap_value: %s\n", buf);
 					#endif
 					*/
 				}
@@ -382,17 +382,17 @@ void make_rif(const char *path)
 			if (found_rap_in_bin) {
 				// rap already has the value copied from cached_rap
 				#ifdef DEBUG
-					DPRINTF("PAYLOAD->make_rif->found_rap_in_bin\n");
+					DPRINTF("found_rap_in_bin\n");
 				#endif
 			} else if (is_pslauncher) {
 				#ifdef DEBUG
-					DPRINTF("PAYLOAD->make_rif->ps2_psp\n");
+					DPRINTF("is_pslauncher\n");
 				#endif
 				// Use the hardcoded values for PS2 and PSP launchers
 				memcpy(rap, (uint8_t[]){ 0xF5, 0xDE, 0xCA, 0xBB, 0x09, 0x88, 0x4F, 0xF4, 0x02, 0xD4, 0x12, 0x3C, 0x25, 0x01, 0x71, 0xD9 }, KEY_SIZE);
 			} else {
 				#ifdef DEBUG
-					DPRINTF("PAYLOAD->make_rif->rap_path: %s output: %s\n", rap_path, path);
+					DPRINTF("rap_path: %s output: %s\n", rap_path, path);
 				#endif
 				cellFsRead(fd, rap, KEY_SIZE, &nread); // cached_rap
 				cellFsClose(fd);
