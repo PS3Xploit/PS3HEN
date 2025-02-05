@@ -61,6 +61,7 @@ LV2_EXPORT int unlock_prx_mutex(void);
 // Custom functions / helpers
 // Name must be 30 characters at least!
 int prx_get_module_name_by_address(process_t process, void *addr, char *name);
+//int prx_start_modules(sys_prx_id_t id, process_t process, uint64_t flags, uint64_t arg);
 int prx_start_module_with_thread(sys_prx_id_t id, process_t process, uint64_t flags, uint64_t arg);
 int prx_stop_module_with_thread(sys_prx_id_t id, process_t process, uint64_t flags, uint64_t arg);
 
