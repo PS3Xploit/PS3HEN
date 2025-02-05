@@ -54,7 +54,8 @@ int main(int argc, char **argv)
 		{
 			if(buffer.st_size>0x1fff8)
 			{
-				printf("stage2 too big!EXITING!\n");
+				//printf("stage2 too big!EXITING!\n");
+				printf("stage2 is too big by 0x%lX bytes! EXITING!\n", (uint64_t)(buffer.st_size - 0x1fff8));
 				return -1;
 			}
 			uint8_t *stage2_buf=(uint8_t *)malloc(0x1fff8);
