@@ -139,9 +139,9 @@ static void read_act_dat_and_make_rif(uint8_t *rap, uint8_t *act_dat, const char
 {
 	int fd;
 
-	#ifdef DEBUG
+	/* #ifdef DEBUG
 		DPRINTF("Creating %s\n", rif_path);
-	#endif
+	#endif */
 
 	if(cellFsOpen(rif_path, CELL_FS_O_WRONLY | CELL_FS_O_CREAT | CELL_FS_O_TRUNC, &fd, 0666, NULL, 0) == CELL_FS_SUCCEEDED)
 	{
@@ -189,9 +189,9 @@ static void read_act_dat_and_make_rif(uint8_t *rap, uint8_t *act_dat, const char
 		cellFsWrite(fd, rif, 0x98, &size);
 		cellFsClose(fd);
 		
-		#ifdef DEBUG
+		/* #ifdef DEBUG
 			DPRINTF("created: %s\n", rif_path);
-		#endif
+		#endif */
 	}
 }
 
@@ -202,9 +202,9 @@ static int create_act_dat(const char *userid)
 	char full_path[120], exdata_dir[120];
 	CellFsStat stat;
 
-	#ifdef DEBUG
+	/* #ifdef DEBUG
 		DPRINTF("Creating act.dat for userID %s...\n", userid);
-	#endif
+	#endif */
 
 	uint8_t timedata[0x10] =
 	{
@@ -239,9 +239,9 @@ static int create_act_dat(const char *userid)
 		cellFsWrite(fd, actdat, 0x1038, &size);
 		cellFsClose(fd);
 
-		#ifdef DEBUG
+		/* #ifdef DEBUG
 			DPRINTF("created: %s\n", full_path);
-		#endif
+		#endif */
 	}
 
 	free(actdat);
@@ -255,9 +255,9 @@ static int read_rap_bin(const char* bin_file_path, const char* content_id, uint8
     int fd;
     int ret = cellFsOpen(bin_file_path, CELL_FS_O_RDONLY, &fd, 0, NULL, 0);
     if (ret != CELL_FS_SUCCEEDED) {
-        #ifdef DEBUG
+        /* #ifdef DEBUG
             DPRINTF("read_rap_bin->%s not found\n", bin_file_path);
-        #endif
+        #endif */
         return 0;
     }
 
@@ -270,17 +270,17 @@ static int read_rap_bin(const char* bin_file_path, const char* content_id, uint8
 		if (memcmp(buffer_content_id, content_id, CONTENTID_SIZE) == 0 && (*(uint32_t*)buffer == MAGIC_NUMBER)) {
             memcpy(rap_value, buffer + 0x40, KEY_SIZE);
             cellFsClose(fd);
-            #ifdef DEBUG
+            /* #ifdef DEBUG
                 DPRINTF("read_rap_bin->Found RAP for content_id: %s\n", content_id);
-            #endif
+            #endif */
             return 1;
         }
     }
 
     cellFsClose(fd);
-    #ifdef DEBUG
+    /* #ifdef DEBUG
         DPRINTF("read_rap_bin->Content ID %s not found\n", content_id);
-    #endif
+    #endif */
     return 0;
 }
 
@@ -317,9 +317,9 @@ void make_rif(const char *path)
 			{
 				//memcpy(rap, cached_rap, KEY_SIZE); // "rap" already has the value from cached_rap
 				found_rap_in_bin = 1;
-				#ifdef DEBUG
+				/* #ifdef DEBUG
 					DPRINTF("Using cached RAP value for content_id: %s\n", content_id);
-				#endif
+				#endif */
 			}
 			else
 			{
@@ -381,13 +381,13 @@ void make_rif(const char *path)
 
 			if (found_rap_in_bin) {
 				// rap already has the value copied from cached_rap
-				#ifdef DEBUG
+				/* #ifdef DEBUG
 					DPRINTF("found_rap_in_bin\n");
-				#endif
+				#endif */
 			} else if (is_pslauncher) {
-				#ifdef DEBUG
+				/* #ifdef DEBUG
 					DPRINTF("is_pslauncher\n");
-				#endif
+				#endif */
 				// Use the hardcoded values for PS2 and PSP launchers
 				memcpy(rap, (uint8_t[]){ 0xF5, 0xDE, 0xCA, 0xBB, 0x09, 0x88, 0x4F, 0xF4, 0x02, 0xD4, 0x12, 0x3C, 0x25, 0x01, 0x71, 0xD9 }, KEY_SIZE);
 			} else {
@@ -419,9 +419,9 @@ void make_rif(const char *path)
 
 					if(cellFsStat(buffer, &stat) == CELL_FS_SUCCEEDED)
 					{
-						#ifdef DEBUG
+						/* #ifdef DEBUG
 							DPRINTF("Exit make_rif(): Found act.dat in %08d\n", i);
-						#endif
+						#endif */
 						return; // exit make_rif() -> the act.dat from another user account will be used
 					}
 				}
@@ -436,9 +436,9 @@ void make_rif(const char *path)
 					create_act_dat(userid);
 			}
 
-			#ifdef DEBUG
+			/* #ifdef DEBUG
 				DPRINTF("act_path: %s content_id: %s\n", act_path, content_id);
-			#endif
+			#endif */
 
 			if(cellFsOpen(act_path, CELL_FS_O_RDONLY, &fd, 0666, NULL, 0) == CELL_FS_SUCCEEDED)
 			{

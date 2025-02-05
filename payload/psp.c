@@ -267,10 +267,10 @@ int sys_psp_set_umdfile(char *file, char *id, int prometheus)
 	condition_psp_iso = 1;
 	condition_psp_prometheus = prometheus;
 	
-#ifdef DEBUG
-	if (prometheus)	
-		DPRINTF("Using prometheus patch.\n");	
-#endif
+	/* #ifdef DEBUG
+		if (prometheus)	
+			DPRINTF("Using prometheus patch.\n");	
+	#endif */
 
 	return 0;
 }
