@@ -12,6 +12,7 @@ clean:
 	rm -f *.o *.elf *.self *.489 *.bin *.map ../lv1/src/*.o ../debug/src/*.o ../lv2/src/*.o
 	rm -f *.o *.elf *.self *.490 *.bin *.map ../lv1/src/*.o ../debug/src/*.o ../lv2/src/*.o
 	rm -f *.o *.elf *.self *.491 *.bin *.map ../lv1/src/*.o ../debug/src/*.o ../lv2/src/*.o
+	rm -f *.o *.elf *.self *.492 *.bin *.map ../lv1/src/*.o ../debug/src/*.o ../lv2/src/*.o
 
 all:
 	rm -f *.o *.elf *.self *.480 *.bin *.480C *.480D *.map ../lv1/src/*.o ../debug/src/*.o ../lv2/src/*.o
@@ -69,3 +70,7 @@ all:
 	rm -f *.o *.elf *.self *.491 *.bin *.491C *.map ../lv1/src/*.o ../debug/src/*.o ../lv2/src/*.o
 	make -f Makefile_491C --no-print-directory 
 	rm -f *.o *.bin *.elf *.491 *.491c *.map ../lv1/src/*.o ../debug/src/*.o ../lv2/src/*.o
+
+	rm -f *.o *.elf *.self *.492 *.bin *.492C *.map ../lv1/src/*.o ../debug/src/*.o ../lv2/src/*.o
+	make -f Makefile_492C --no-print-directory 
+	rm -f *.o *.bin *.elf *.492 *.492c *.map ../lv1/src/*.o ../debug/src/*.o ../lv2/src/*.o

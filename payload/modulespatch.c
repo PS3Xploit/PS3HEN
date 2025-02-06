@@ -578,7 +578,7 @@ void remove_pokes()
 	}
 }*/
 
-#if defined(FIRMWARE_4_80) || defined(FIRMWARE_4_81) || defined(FIRMWARE_4_82) || defined(FIRMWARE_4_83) || defined(FIRMWARE_4_84) || defined(FIRMWARE_4_85) || defined(FIRMWARE_4_86) || defined(FIRMWARE_4_87) || defined(FIRMWARE_4_88) || defined(FIRMWARE_4_89) || defined(FIRMWARE_4_90) || defined(FIRMWARE_4_91)
+#if defined(FIRMWARE_4_80) || defined(FIRMWARE_4_81) || defined(FIRMWARE_4_82) || defined(FIRMWARE_4_83) || defined(FIRMWARE_4_84) || defined(FIRMWARE_4_85) || defined(FIRMWARE_4_86) || defined(FIRMWARE_4_87) || defined(FIRMWARE_4_88) || defined(FIRMWARE_4_89) || defined(FIRMWARE_4_90) || defined(FIRMWARE_4_91) || defined(FIRMWARE_4_92)
 	/*LV2_PATCHED_FUNCTION(int, vtable_ioctl,(uint64_t socket, uint64_t unk_11,uint64_t flags, void *kmem, uint64_t unk_0,uint64_t unk, uint64_t function_ptr, uint64_t unk2))
 	{
 	//	f_desc_t f;
@@ -721,7 +721,7 @@ LV2_PATCHED_FUNCTION(int, modules_patching, (uint64_t *arg1, uint32_t *arg2))
 
 	// +4.30 -> 0x13 (exact firmware since it happens is unknown)
 	// 3.55 -> 0x29
-	#if defined(FIRMWARE_4_80) || defined(FIRMWARE_4_81) || defined(FIRMWARE_4_82) || defined(FIRMWARE_4_83) || defined(FIRMWARE_4_84) || defined(FIRMWARE_4_85) || defined(FIRMWARE_4_86) || defined(FIRMWARE_4_87) || defined(FIRMWARE_4_88) || defined(FIRMWARE_4_89) || defined(FIRMWARE_4_90) || defined(FIRMWARE_4_91) || defined(FIRMWARE_4_82DEX) || defined(FIRMWARE_4_84DEX)
+	#if defined(FIRMWARE_4_80) || defined(FIRMWARE_4_81) || defined(FIRMWARE_4_82) || defined(FIRMWARE_4_83) || defined(FIRMWARE_4_84) || defined(FIRMWARE_4_85) || defined(FIRMWARE_4_86) || defined(FIRMWARE_4_87) || defined(FIRMWARE_4_88) || defined(FIRMWARE_4_89) || defined(FIRMWARE_4_90) || defined(FIRMWARE_4_91) || defined(FIRMWARE_4_92) || defined(FIRMWARE_4_82DEX) || defined(FIRMWARE_4_84DEX)
 		if ((p[0x30/4] >> 16) == 0x13)
 	#endif
 	{
@@ -825,7 +825,7 @@ LV2_PATCHED_FUNCTION(int, modules_patching, (uint64_t *arg1, uint32_t *arg2))
 	{
 		uint64_t hash = 0;
 
-	#if defined(FIRMWARE_4_80) || defined(FIRMWARE_4_81) || defined(FIRMWARE_4_82) || defined(FIRMWARE_4_83) || defined(FIRMWARE_4_84) || defined(FIRMWARE_4_85) || defined(FIRMWARE_4_86) || defined(FIRMWARE_4_87) || defined(FIRMWARE_4_88) || defined(FIRMWARE_4_89) || defined(FIRMWARE_4_90) || defined(FIRMWARE_4_91)
+	#if defined(FIRMWARE_4_80) || defined(FIRMWARE_4_81) || defined(FIRMWARE_4_82) || defined(FIRMWARE_4_83) || defined(FIRMWARE_4_84) || defined(FIRMWARE_4_85) || defined(FIRMWARE_4_86) || defined(FIRMWARE_4_87) || defined(FIRMWARE_4_88) || defined(FIRMWARE_4_89) || defined(FIRMWARE_4_90) || defined(FIRMWARE_4_91) || defined(FIRMWARE_4_92)
 		for (int i = 0; i < 0x100; i++)
 		{
 			hash ^= buf[i];
@@ -959,7 +959,7 @@ LV2_PATCHED_FUNCTION(int, modules_patching, (uint64_t *arg1, uint32_t *arg2))
 	return 0;
 }
 
-#if defined (FIRMWARE_4_80) || defined (FIRMWARE_4_81) || defined (FIRMWARE_4_82) || defined (FIRMWARE_4_83) || defined (FIRMWARE_4_84) || defined(FIRMWARE_4_85) || defined(FIRMWARE_4_86) || defined(FIRMWARE_4_87) || defined(FIRMWARE_4_88) || defined(FIRMWARE_4_89) || defined(FIRMWARE_4_90) || defined(FIRMWARE_4_91)
+#if defined (FIRMWARE_4_80) || defined (FIRMWARE_4_81) || defined (FIRMWARE_4_82) || defined (FIRMWARE_4_83) || defined (FIRMWARE_4_84) || defined(FIRMWARE_4_85) || defined(FIRMWARE_4_86) || defined(FIRMWARE_4_87) || defined(FIRMWARE_4_88) || defined(FIRMWARE_4_89) || defined(FIRMWARE_4_90) || defined(FIRMWARE_4_91) || defined(FIRMWARE_4_92)
 	LV2_HOOKED_FUNCTION_COND_POSTCALL_2(int, pre_modules_verification, (uint32_t *ret, uint32_t error))
 	{
 	/*
@@ -1419,7 +1419,7 @@ void modules_patch_init(void)
 	hook_function_with_postcall(map_process_memory_symbol, pre_map_process_memory, 7);
 	do_patch32(MKA(decrypt_func_symbol+0x40),0x60000000);
 	
-	#if defined(FIRMWARE_4_80) || defined(FIRMWARE_4_81) || defined(FIRMWARE_4_82) || defined(FIRMWARE_4_83) || defined(FIRMWARE_4_84) || defined(FIRMWARE_4_85) || defined(FIRMWARE_4_86) || defined(FIRMWARE_4_87) || defined(FIRMWARE_4_88) || defined(FIRMWARE_4_89) || defined(FIRMWARE_4_90) || defined(FIRMWARE_4_91)
+	#if defined(FIRMWARE_4_80) || defined(FIRMWARE_4_81) || defined(FIRMWARE_4_82) || defined(FIRMWARE_4_83) || defined(FIRMWARE_4_84) || defined(FIRMWARE_4_85) || defined(FIRMWARE_4_86) || defined(FIRMWARE_4_87) || defined(FIRMWARE_4_88) || defined(FIRMWARE_4_89) || defined(FIRMWARE_4_90) || defined(FIRMWARE_4_91) || defined(FIRMWARE_4_92)
 		//patch_call(0x123f38, ioctl_patched);
 	#endif
 }
@@ -1427,7 +1427,7 @@ void modules_patch_init(void)
 void unhook_all_modules(void)
 {
 	suspend_intr();
-	#if defined(FIRMWARE_4_80) || defined(FIRMWARE_4_81) || defined(FIRMWARE_4_82) || defined(FIRMWARE_4_83) || defined(FIRMWARE_4_84) || defined(FIRMWARE_4_85) || defined(FIRMWARE_4_86) || defined(FIRMWARE_4_87) || defined(FIRMWARE_4_88) || defined(FIRMWARE_4_89) || defined(FIRMWARE_4_90) || defined(FIRMWARE_4_91)
+	#if defined(FIRMWARE_4_80) || defined(FIRMWARE_4_81) || defined(FIRMWARE_4_82) || defined(FIRMWARE_4_83) || defined(FIRMWARE_4_84) || defined(FIRMWARE_4_85) || defined(FIRMWARE_4_86) || defined(FIRMWARE_4_87) || defined(FIRMWARE_4_88) || defined(FIRMWARE_4_89) || defined(FIRMWARE_4_90) || defined(FIRMWARE_4_91) || defined(FIRMWARE_4_92)
 		*(uint32_t *)MKA(patch_func2_offset)=0x4BFDABC1;
 		
 	#elif defined(FIRMWARE_4_82DEX) || defined(FIRMWARE_4_84DEX)
@@ -1440,7 +1440,7 @@ void unhook_all_modules(void)
 	unhook_function_with_cond_postcall(modules_verification_symbol, pre_modules_verification, 2);
 	unhook_function_with_postcall(map_process_memory_symbol, pre_map_process_memory, 7);
 	
-	#if defined(FIRMWARE_4_80) || defined(FIRMWARE_4_81) || defined(FIRMWARE_4_82) || defined(FIRMWARE_4_83) || defined(FIRMWARE_4_84) || defined(FIRMWARE_4_85) || defined(FIRMWARE_4_86) || defined(FIRMWARE_4_87) || defined(FIRMWARE_4_88) || defined(FIRMWARE_4_89) || defined(FIRMWARE_4_90) || defined(FIRMWARE_4_91)
+	#if defined(FIRMWARE_4_80) || defined(FIRMWARE_4_81) || defined(FIRMWARE_4_82) || defined(FIRMWARE_4_83) || defined(FIRMWARE_4_84) || defined(FIRMWARE_4_85) || defined(FIRMWARE_4_86) || defined(FIRMWARE_4_87) || defined(FIRMWARE_4_88) || defined(FIRMWARE_4_89) || defined(FIRMWARE_4_90) || defined(FIRMWARE_4_91) || defined(FIRMWARE_4_92)
 		//do_patch32(MKA(0x123f38), 0xE97C0018);
 	#endif
 	resume_intr();
