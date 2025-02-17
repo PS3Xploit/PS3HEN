@@ -255,9 +255,9 @@ static int read_rap_bin(const char* bin_file_path, const char* content_id, uint8
     int fd;
     int ret = cellFsOpen(bin_file_path, CELL_FS_O_RDONLY, &fd, 0, NULL, 0);
     if (ret != CELL_FS_SUCCEEDED) {
-        /* #ifdef DEBUG
+        #ifdef DEBUG
             DPRINTF("read_rap_bin->%s not found\n", bin_file_path);
-        #endif */
+        #endif
         return 0;
     }
 
@@ -270,17 +270,17 @@ static int read_rap_bin(const char* bin_file_path, const char* content_id, uint8
 		if (memcmp(buffer_content_id, content_id, CONTENTID_SIZE) == 0 && (*(uint32_t*)buffer == MAGIC_NUMBER)) {
             memcpy(rap_value, buffer + 0x40, KEY_SIZE);
             cellFsClose(fd);
-            /* #ifdef DEBUG
+            #ifdef DEBUG
                 DPRINTF("read_rap_bin->Found RAP for content_id: %s\n", content_id);
-            #endif */
+            #endif
             return 1;
         }
     }
 
     cellFsClose(fd);
-    /* #ifdef DEBUG
+    #ifdef DEBUG
         DPRINTF("read_rap_bin->Content ID %s not found\n", content_id);
-    #endif */
+    #endif
     return 0;
 }
 
