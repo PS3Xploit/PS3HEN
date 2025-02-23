@@ -1,0 +1,220 @@
+HTML Version Update Only
+
+
+**************************************************************
+--------------------------------------------------------------
+PS3HEN/html/han_flash_mount_blind.html
+
+1) Add new firmware version here if offsets are the same, or if different, add just new version by itself
+
+if((fwv==="4.86")||(fwv==="4.87")||(fwv==="4.88")||(fwv==="4.89")||(fwv==="4.91")||(fwv==="4.92")){
+var toc_addr=7296344,default_vsh_pub_toc=7263660,vsh_opd_patch=617820,vsh_opd_addr=7256944,vsh_toc_addr_screenshot=7473196,vsh_ps3xploit_key_toc=7371292,toc_entry1_addr=7185360,toc_entry2_addr=7494888,toc_entry3_addr=7185352,toc_entry4_addr=7602176,toc_entry5_addr=7255752,toc_entry6_addr=0,gadget1_addr=620036,gadget2_addr=6332644,gadget3_addr=872540,gadget4_addr=2267192,gadget5_addr=1227548,gadget6_addr=6380764,gadget7_addr=131024,gadget8_addr=131072,gadget9_addr=170760,gadget10_addr=6479908,gadget11_addr=5874864,gadget12_addr=820812,gadget13_addr=4777384,gadget14_addr=4769696,gadget15_addr=4758664,gadget_mod1_addr=6352856,gadget_mod2_addr=80756,gadget_mod3_addr=757248,gadget_mod4a_addr=890500,gadget_mod4b_addr=4376440,gadget_mod4c_addr=346864,gadget_mod5_addr=4339932,gadget_mod6_addr=134144,gadget_mod7_addr=108204,gadget_mod8_addr=2862264,gadget_mod9_addr=68384,gadget_mod10_addr=1857428,gadget_mod11_addr=1618244,gadget_mod12_addr=6500860,gadget_mod13_addr=3369072,gadget_mod14_addr=6502656,gadget_mod15_addr=3788856,gadget_mod16_addr=5206828,ipf1_addr=7256952,ipf2_addr=5272436;}
+
+
+--------------------------------------------------------------
+
+--------------------------------------------------------------
+PS3HEN/html/han_flash_mount_rewrite.html
+
+1) Add new firmware version here if offsets are the same, or if different, add just new version by itself
+
+if((fwv==="4.86")||(fwv==="4.87")||(fwv==="4.88")||(fwv==="4.89")||(fwv==="4.91")||(fwv==="4.92")){
+var toc_addr=7296344,default_vsh_pub_toc=7263660,vsh_opd_patch=617820,vsh_opd_addr=7256944,vsh_toc_addr_screenshot=7473196,vsh_ps3xploit_key_toc=7371292,toc_entry1_addr=7185360,toc_entry2_addr=7494888,toc_entry3_addr=7185352,toc_entry4_addr=7602176,toc_entry5_addr=7255752,toc_entry6_addr=0,gadget1_addr=620036,gadget2_addr=6332644,gadget3_addr=872540,gadget4_addr=2267192,gadget5_addr=1227548,gadget6_addr=6380764,gadget7_addr=131024,gadget8_addr=131072,gadget9_addr=170760,gadget10_addr=6479908,gadget11_addr=5874864,gadget12_addr=820812,gadget13_addr=4777384,gadget14_addr=4769696,gadget15_addr=4758664,gadget_mod1_addr=6352856,gadget_mod2_addr=80756,gadget_mod3_addr=757248,gadget_mod4a_addr=890500,gadget_mod4b_addr=4376440,gadget_mod4c_addr=346864,gadget_mod5_addr=4339932,gadget_mod6_addr=134144,gadget_mod7_addr=108204,gadget_mod8_addr=2862264,gadget_mod9_addr=68384,gadget_mod10_addr=1857428,gadget_mod11_addr=1618244,gadget_mod12_addr=6500860,gadget_mod13_addr=3369072,gadget_mod14_addr=6502656,gadget_mod15_addr=3788856,gadget_mod16_addr=5206828,ipf1_addr=7256952,ipf2_addr=5272436;}
+
+--------------------------------------------------------------
+
+--------------------------------------------------------------
+PS3HEN/html/ps3hen_enabler_flash.html
+
+1) Add new firmware version here if offsets are the same, or if different, add just new version by itself
+
+if ((fwv==="4.86") || (fwv==="4.87") || (fwv==="4.88") || (fwv==="4.89") || (fwv==="4.91") || (fwv==="4.92")) {
+        (toc_addr = 7296344),
+          (gadget1_addr = 620036),
+          (gadget8_addr = 131072),
+          (gadget_mod1_addr = 6352856),
+          (gadget_mod2_addr = 80756),
+          (gadget_mod3_addr = 757248),
+          (gadget_mod4a_addr = 890500),
+          (gadget_mod4b_addr = 4376440),
+          (gadget_mod4c_addr = 346864),
+          (gadget_mod7_addr = 108204),
+          (gadget_mod8_addr = 2862264),
+          (gadget_mod9_addr = 68384),
+          (gadget_mod12_addr = 6500860),
+          (gadget_mod15_addr = 3788856);
+      }
+
+--------------------------------------------------------------
+
+--------------------------------------------------------------
+PS3HEN/html/ps3hen_enabler_usb000.html
+
+1) Add new firmware version here if offsets are the same, or if different, add just new version by itself
+
+if ((fwv==="4.86") || (fwv==="4.87") || (fwv==="4.88") || (fwv==="4.89") || (fwv==="4.91") || (fwv==="4.92")) {
+        (toc_addr = 7296344),
+          (gadget1_addr = 620036),
+          (gadget8_addr = 131072),
+          (gadget_mod1_addr = 6352856),
+          (gadget_mod2_addr = 80756),
+          (gadget_mod3_addr = 757248),
+          (gadget_mod4a_addr = 890500),
+          (gadget_mod4b_addr = 4376440),
+          (gadget_mod4c_addr = 346864),
+          (gadget_mod7_addr = 108204),
+          (gadget_mod8_addr = 2862264),
+          (gadget_mod9_addr = 68384),
+          (gadget_mod12_addr = 6500860),
+          (gadget_mod15_addr = 3788856);
+      }
+
+
+--------------------------------------------------------------
+
+--------------------------------------------------------------
+PS3HEN/html/hen_installer/index.html
+
+1) Add new firmware version here for display purposes
+
+<h3>Supports CEX 4.80 - 4.82 / DEX 4.82 - 4.84 / CEX 4.83 - 4.92 HFW Firmware</h3>
+
+--------------------------------------------------------------
+
+--------------------------------------------------------------
+PS3HEN/html/hen_installer/ps3hen_v100.js
+
+1) Copy another closest version offsets and rename "_491" to "_492"
+
+//CEX 4.92
+var toc_addr_492 = 0x6F5558;
+var default_vsh_pub_toc_492=0x6ED5AC;
+var vsh_opd_patch_492=0x96D5C;
+var vsh_opd_addr_492=0x6EBB70;
+var vsh_toc_addr_screenshot_492=0x72082C;// Updated From 4.83/4.84/4.85
+var vsh_ps3hen_key_toc_492=0x707A1C;// Updated From 4.83/4.84/4.85
+var toc_entry1_addr_492=0x6DA3D0;
+var toc_entry2_addr_492=0x725CE8;//idps Updated From 4.83/4.84/4.85 Double-check 4.92
+var toc_entry3_addr_492=0x6DA3C8;
+var toc_entry4_addr_492=0x740000;
+var toc_entry5_addr_492=0x6EB6C8;
+var toc_entry6_addr_492=0x0;
+var gadget1_addr_492=0x097604;
+var gadget2_addr_492=0x60A0E4;
+var gadget3_addr_492=0x0D505C;
+var gadget4_addr_492=0x229838;
+var gadget5_addr_492=0x12BB1C;
+var gadget6_addr_492=0x615CDC;//malloc
+var gadget7_addr_492=0x01FFD0;//memset
+var gadget8_addr_492=0x020000;//memcpy
+var gadget9_addr_492=0x029B08;
+var gadget10_addr_492=0x62E024;
+var gadget11_addr_492=0x59A4B0;// sprintf
+var gadget12_addr_492=0x0C864C;
+var gadget13_addr_492=0x48E5A8;//free
+var gadget14_addr_492=0x48C7A0;
+var gadget15_addr_492=0x489C88;
+var gadget_mod1_addr_492=0x60EFD8;
+var gadget_mod2_addr_492=0x013B74;
+var gadget_mod3_addr_492=0x0B8E00;
+var gadget_mod4a_addr_492=0x0D9684;
+var gadget_mod4b_addr_492=0x42C778;
+var gadget_mod4c_addr_492=0x054AF0; //load r5 word
+var gadget_mod5_addr_492=0x4238DC;
+var gadget_mod6_addr_492=0x020C00;
+var gadget_mod7_addr_492=0x01A6AC;
+var gadget_mod8_addr_492=0x2BACB8;// graceful exit
+var gadget_mod9_addr_492=0x010B20;
+var gadget_mod10_addr_492=0x1C5794;
+var gadget_mod11_addr_492=0x18B144;
+var gadget_mod12_addr_492=0x6331FC; //validation gadget
+var gadget_mod13_addr_492=0x336870; //store_r3 gadget
+var gadget_mod14_addr_492=0x633900; //load r3 dword
+var gadget_mod15_addr_492=0x39D038; //load r3 word
+var gadget_mod16_addr_492=0x4F732C; //set toc
+
+
+2) Copy another closest version funtion and rename "_491" to "_492"
+
+function loadcex_492()
+{
+	toc_addr = toc_addr_492;
+	vsh_opd_addr=vsh_opd_addr_492;
+	vsh_opd_patch=vsh_opd_patch_492;
+	vsh_toc_addr_screenshot=vsh_toc_addr_screenshot_492;
+	vsh_ps3hen_key_toc=vsh_ps3hen_key_toc_492;
+	default_vsh_pub_toc=default_vsh_pub_toc_492;
+	toc_entry1_addr=toc_entry1_addr_492;
+	toc_entry2_addr=toc_entry2_addr_492;
+	toc_entry3_addr=toc_entry3_addr_492;
+	toc_entry4_addr=toc_entry4_addr_492;
+	toc_entry5_addr=toc_entry5_addr_492;
+	toc_entry6_addr=toc_entry6_addr_492;
+	gadget1_addr=gadget1_addr_492;
+	gadget2_addr=gadget2_addr_492;
+	gadget3_addr=gadget3_addr_492;
+	gadget4_addr=gadget4_addr_492;
+	gadget5_addr=gadget5_addr_492;
+	gadget6_addr=gadget6_addr_492;
+	gadget7_addr=gadget7_addr_492;
+	gadget8_addr=gadget8_addr_492;
+	gadget9_addr=gadget9_addr_492;
+	gadget10_addr=gadget10_addr_492;
+	gadget11_addr=gadget11_addr_492;
+	gadget12_addr=gadget12_addr_492;
+	gadget13_addr=gadget13_addr_492;
+	gadget14_addr=gadget14_addr_492;
+	gadget15_addr=gadget15_addr_492;
+	gadget_mod1_addr=gadget_mod1_addr_492;
+	gadget_mod2_addr=gadget_mod2_addr_492;
+	gadget_mod3_addr=gadget_mod3_addr_492;
+	gadget_mod4a_addr=gadget_mod4a_addr_492;
+	gadget_mod4b_addr=gadget_mod4b_addr_492;
+	gadget_mod4c_addr=gadget_mod4c_addr_492;
+	gadget_mod5_addr=gadget_mod5_addr_492;
+	gadget_mod6_addr=gadget_mod6_addr_492;
+	gadget_mod7_addr=gadget_mod7_addr_492;
+	gadget_mod8_addr=gadget_mod8_addr_492;
+	gadget_mod9_addr=gadget_mod9_addr_492;
+	gadget_mod10_addr=gadget_mod10_addr_492;
+	gadget_mod11_addr=gadget_mod11_addr_492;
+	gadget_mod12_addr=gadget_mod12_addr_492;
+	gadget_mod13_addr=gadget_mod13_addr_492;
+	gadget_mod14_addr=gadget_mod14_addr_492;
+	gadget_mod15_addr=gadget_mod15_addr_492;
+	gadget_mod16_addr=gadget_mod16_addr_492;
+}
+
+3) Add entries here, including commented ones with updated version numbers
+
+
+			
+		case "4.92":
+			//if(document.getElementById('dex').checked===true){loaddex_492();}//alert("calling loaddex_492");
+			//else {loadcex_492();}
+			//loadcex_492();
+			//disable_trigger();
+			break;
+
+4) Add version number to this array for firmware compatibility check
+
+var fwCompat = ["4.00","4.10","4.11","4.20","4.21","4.25","4.30","4.31","4.40","4.41","4.45","4.46","4.50","4.53","4.55","4.60","4.65","4.66","4.70","4.75","4.76","4.78","4.80","4.81","4.82","4.83","4.84","4.85","4.86","4.87","4.88","4.89","4.90","4.91","4.92"];
+
+5) Add case entry and update index number and firmware number for loadcex()
+
+
+					
+				case fwCompat[34]:
+					//alert(msgHFW);
+//					initDEX();
+					loadcex_492();
+					break;
+
+6) Update the alert
+
+alert('Your PS3 is not on FW 4.80 - 4.92! Your current running FW version is ' + fwVersion + ', which is not compatible with PS3HEN. All features have been disabled');
+--------------------------------------------------------------
+
+
+Use the same exact process for auto, and offline builds, for html and js files
+
