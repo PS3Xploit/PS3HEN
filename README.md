@@ -1,4 +1,4 @@
-# PS3HEN 3.3.0
+# PS3HEN 3.4.0
 
 MultiFW support has been added.
 [Supported Firmwares]
@@ -17,6 +17,7 @@ MultiFW support has been added.
 * CEX HFW 4.89.1 (thanks littlebalup)
 * CEX HFW 4.90.1 (thanks Joonie)
 * CEX HFW 4.91.1 (thanks Joonie)
+* CEX HFW 4.92.1 (thanks Joonie)
 
 ** CFWs can be used for testing, but not recommended to use**<br>
 
@@ -25,6 +26,33 @@ MultiFW support has been added.
 
 Changelog<br>
 -----------<br>
+
+# 3.4.0<br>
+# HEN Global Changes<br>
+  - Added support for 4.92 CEX firmware (HFW) (thanks Joonie)<br>
+# HEN Plugin Changes<br>
+  - Added HEN restore functionality for new package that supports HEN surviving an HDD reformat (thanks LuanTeles)<br>
+  - Added create_default_dirs function for creating standard folders if missing on dev_hdd0 (thanks LuanTeles)<br>
+  - Added DLOG function for output to usb000 (Developers Only)<br>
+  - Added cleaning PSN files (thanks LuanTeles)<br>
+  - Cleaned up clear_web_cache_check function (browser and PSN files)<br>
+  - Updated functions for LED presets<br>
+  - Updated set_build_type function to check USB ports 000 - 007 (For Developer Mode)<br>
+  - Updated emergency installer to check USB ports 000 - 007 (HEN_UPD.pkg from USB)<br>
+# Payload Changes<br>
+  - Now renaming boot plugin files temporarily, instead of deleting them if WMM is found during installation<br>
+  - Updated cellFsMkdir_symbol offsets<br>
+  - Added cellFsRename_symbol<br>
+  - Added support for rap.bin. It looks for /dev_hdd0/game/PS3XPLOIT/USRDIR/rap.bin when the make_rif function runs. Also supports default COBRA paths<br>
+  - Changes made to make_rif functionality for better performance (thanks aldostools)<br>
+  - Implemented optimized read rap.bin functionality (thanks Evilnat)<br>
+# Resource Changes<br>
+  - Added new custom coldboot RAF files for release, debug, usb, and DEX (thanks Charles_n_town)<br>
+  - Using PS3XPLOIT game directory to add HEN install status to GAMEDATA db, for surviving HDD format (Hidden from XMB) (thanks LuanTeles)<br>
+  - Fixed seg_mcutility entry in category_game.xml (Fixes issue with PS1/PS2 virtual memory card menu item (thanks LuanTeles)<br>
+  - Added PS Home link installer/launcher under PSN category (thanks DeViL303)<br>
+<br>
+<br>
 
 # 3.3.0<br>
 # HEN Global Changes<br>
