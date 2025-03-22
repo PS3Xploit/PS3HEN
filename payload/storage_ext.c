@@ -1027,11 +1027,11 @@ uint32_t find_file_sector(uint8_t *buf, char *file)
 
 int bnet_ioctl(int socket,uint32_t flags, void* buffer);
 	
-#if defined(FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX)
+/* #if defined(FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX)
 	int sys_fs_open(const char *path, int flags, int *fd, uint64_t mode, const void *arg, uint64_t size);
 	int sys_fs_read(int fd, void *buf, uint64_t nbytes, uint64_t *nread);
 	int sys_fs_close(int fd);
-#endif
+#endif */
 
 void debug_install(void);
 void debug_uninstall(void);
@@ -1077,11 +1077,11 @@ int enable_patches()
 		map_path_patches(0);
 		storage_ext_patches();
 		
-		#if defined(FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX)
+		/* #if defined(FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX)
 			hook_function_with_precall(get_syscall_address(801),sys_fs_open,6);
 			hook_function_with_precall(get_syscall_address(802),sys_fs_read,4);
 			hook_function_with_precall(get_syscall_address(804),sys_fs_close,1);
-		#endif
+		#endif */
 		
 		hook_function_with_cond_postcall(get_syscall_address(724),bnet_ioctl,3);
 		
@@ -1136,11 +1136,11 @@ int disable_patches()
 	unhook_all_region();
 	unhook_all_map_path();
 	
-	#if defined(FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX)
+	/* #if defined(FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX)
 		unhook_function_with_precall(get_syscall_address(801),sys_fs_open,6);
 		unhook_function_with_precall(get_syscall_address(802),sys_fs_read,4);
 		unhook_function_with_precall(get_syscall_address(804),sys_fs_close,1);
-	#endif
+	#endif */
 	
 	unhook_function_with_cond_postcall(get_syscall_address(724),bnet_ioctl,3);
 	//remove_pokes();

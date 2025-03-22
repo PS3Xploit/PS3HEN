@@ -32,7 +32,7 @@
 #include "sm_ext.h"
 //#include "laboratory.h"
 #include "ps3mapi_core.h"
-#include "qa.h"
+//#include "qa.h"
 #include "homebrew_blocker.h"
 #include "make_rif.h"
 
@@ -200,16 +200,16 @@ LV2_HOOKED_FUNCTION_COND_POSTCALL_3(int,bnet_ioctl,(int socket,uint32_t flags, v
 		return DO_POSTCALL;
 }
 
-#if defined(FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX)
+/* #if defined(FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX)
 	LV2_HOOKED_FUNCTION_PRECALL_SUCCESS_6(int,sys_fs_open,(const char *path, int flags, int *fd, uint64_t mode, const void *arg, uint64_t size))
 	{
-	/*	if(!strstr(get_process_name(get_current_process_critical()),"vsh"))
-		{
-			rif_fd=0;
-			act_fd=0;
-			misc_fd=0;
-			return 0;
-		}*/
+	//	if(!strstr(get_process_name(get_current_process_critical()),"vsh"))
+	//	{
+	//		rif_fd=0;
+	//		act_fd=0;
+	//		misc_fd=0;
+	//		return 0;
+	//	}
 		int path_len=strlen(path);
 		if(strstr(path,".rif"))
 		{
@@ -227,7 +227,7 @@ LV2_HOOKED_FUNCTION_COND_POSTCALL_3(int,bnet_ioctl,(int socket,uint32_t flags, v
 		}
 		return 0;
 	}
-#endif
+#endif */
 
 int sha1(uint8_t *buf, uint64_t size, uint8_t *out)
 {
@@ -376,7 +376,7 @@ LV2_HOOKED_FUNCTION_COND_POSTCALL_3(int,read_eeprom_by_offset,(uint32_t offset, 
 	return DO_POSTCALL;
 }
 
-#if defined(FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX)
+/* #if defined(FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX)
 	LV2_HOOKED_FUNCTION_PRECALL_SUCCESS_4(int,sys_fs_read,(int fd, void *buf, uint64_t nbytes, uint64_t *nread))
 	{
 		if(rif_fd==fd)
@@ -459,7 +459,7 @@ LV2_HOOKED_FUNCTION_COND_POSTCALL_3(int,read_eeprom_by_offset,(uint32_t offset, 
 		}
 		return 0;
 	}
-#endif
+#endif */
 
 int unload_plugin_kernel(uint64_t residence)
 {
@@ -1203,9 +1203,9 @@ LV2_SYSCALL2(int, sm_get_fan_policy_sc,(uint8_t id, uint8_t *st, uint8_t *policy
 static INLINE void apply_kernel_patches(void)
 {
     /// Adding HEN patches on init for stability /// -- START
-	#if defined (FIRMWARE_4_82DEX) ||  defined (FIRMWARE_4_84DEX)
+	/*#if defined (FIRMWARE_4_82DEX) ||  defined (FIRMWARE_4_84DEX)
 		do_patch(MKA(vsh_patch),0x386000014E800020);
-	#endif
+	#endif*/
 	
 	//do_patch32(MKA(patch_data1_offset), 0x01000000);
 	do_patch32(MKA(module_sdk_version_patch_offset), NOP);
@@ -1226,16 +1226,16 @@ static INLINE void apply_kernel_patches(void)
 	*(uint64_t *)MKA(ECDSA_FLAG)=0;
 	
 	/// Adding HEN patches on init for stability ///	 -- END
-	#if defined(FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX)
+	/*#if defined(FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX)
 		hook_function_with_precall(get_syscall_address(801),sys_fs_open,6);
-	#endif
+	#endif*/
 	
 	hook_function_with_cond_postcall(get_syscall_address(724),bnet_ioctl,3);
 	
-	#if defined(FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX)
+	/*#if defined(FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX)
 		hook_function_with_precall(get_syscall_address(804),sys_fs_close,1);
 		hook_function_with_precall(get_syscall_address(802),sys_fs_read,4);
-	#endif
+	#endif*/
 	
 	#if defined (FIRMWARE_4_80) || defined (FIRMWARE_4_81) || defined (FIRMWARE_4_82) || defined (FIRMWARE_4_83) || defined (FIRMWARE_4_84) || defined (FIRMWARE_4_85) || defined (FIRMWARE_4_86) || defined (FIRMWARE_4_87) || defined (FIRMWARE_4_88) || defined (FIRMWARE_4_89) || defined (FIRMWARE_4_90) || defined (FIRMWARE_4_91) || defined (FIRMWARE_4_92)
 		hook_function_with_cond_postcall(um_if_get_token_symbol,um_if_get_token,5);
@@ -1352,11 +1352,11 @@ int main(void)
 	#endif
 
 	//poke_count=0;
-	#if defined(FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX)
+	/*#if defined(FIRMWARE_4_82DEX) || defined (FIRMWARE_4_84DEX)
 		ecdsa_set_curve();
 		ecdsa_set_pub();
 		ecdsa_set_priv();
-	#endif
+	#endif*/
 		
 	// Cleanup Old and Temp HEN Files
 	cleanup_files();
