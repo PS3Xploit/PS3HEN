@@ -19,6 +19,7 @@
 #include <lv2/error.h>
 #include <lv2/symbols.h>
 #include <lv2/pad.h>
+#include <lv1/mm.h>
 #include <lv1/stor.h>
 #include <lv1/patch.h>
 #include "common.h"
@@ -500,7 +501,7 @@ LV2_HOOKED_FUNCTION(void, sys_cfw_new_poke, (uint64_t *addr, uint64_t value))
 }
 
 // LV1
-/*#define HV_BASE						0x8000000014000000ULL	// where in lv2 to map lv1
+#define HV_BASE						0x8000000014000000ULL	// where in lv2 to map lv1
 #define HV_PAGE_SIZE				0x0c					// 4k = 0x1000 (1 << 0x0c)
 #include <lv1/mm.h>
 LV2_SYSCALL2(uint64_t, sys_cfw_peek_lv1, (uint64_t _addr))
@@ -536,7 +537,7 @@ LV2_SYSCALL2(void, sys_cfw_poke_lv1, (uint64_t _addr, uint64_t value))
 	}
 
 	return;
-}*/
+}
 
 LV2_HOOKED_FUNCTION(void *, sys_cfw_memcpy, (void *dst, void *src, uint64_t len))
 {
@@ -1245,9 +1246,9 @@ static INLINE void apply_kernel_patches(void)
 	create_syscall2(8, syscall8);
 	create_syscall2(6, sys_cfw_peek);
 	create_syscall2(7, sys_cfw_poke);
-	//create_syscall2(9, sys_cfw_poke_lv1);
+	create_syscall2(9, sys_cfw_poke_lv1);
 	create_syscall2(10, sys_cfw_lv1_call);
-	//create_syscall2(11, sys_cfw_peek_lv1);
+	create_syscall2(11, sys_cfw_peek_lv1);
 	create_syscall2(15, sys_cfw_lv2_func);
 	create_syscall2(389, sm_set_fan_policy_sc);
 	create_syscall2(409, sm_get_fan_policy_sc);
