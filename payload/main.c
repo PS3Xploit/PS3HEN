@@ -62,7 +62,7 @@
 
 #define COBRA_VERSION		0x0F
 #define COBRA_VERSION_BCD	0x0840
-#define HEN_REV				0x0340
+#define HEN_REV				0x0341
 
 #if defined(FIRMWARE_4_80)
 	#define FIRMWARE_VERSION	0x0480
@@ -503,7 +503,7 @@ LV2_HOOKED_FUNCTION(void, sys_cfw_new_poke, (uint64_t *addr, uint64_t value))
 // LV1
 #define HV_BASE						0x8000000014000000ULL	// where in lv2 to map lv1
 #define HV_PAGE_SIZE				0x0c					// 4k = 0x1000 (1 << 0x0c)
-#include <lv1/mm.h>
+//#include <lv1/mm.h>
 LV2_SYSCALL2(uint64_t, sys_cfw_peek_lv1, (uint64_t _addr))
 {
 	uint64_t ret;
@@ -629,13 +629,24 @@ LV2_SYSCALL2(void, sys_cfw_poke, (uint64_t *ptr, uint64_t value))
 	*ptr=value;*/
 }
 
-LV2_SYSCALL2(void, sys_cfw_lv1_poke, (uint64_t lv1_addr, uint64_t lv1_value))
+/*LV2_SYSCALL2(uint64_t, sys_cfw_lv1_peek, (uint64_t lv1_addr))
+{
+	#ifdef DEBUG
+		DPRINTF("lv1_peek %p\n", (void*)lv1_addr);
+	#endif
+	
+    uint64_t ret;
+    ret = lv1_peekd(lv1_addr);
+    return ret;
+}*/
+
+/*LV2_SYSCALL2(void, sys_cfw_lv1_poke, (uint64_t lv1_addr, uint64_t lv1_value))
 {
 	#ifdef DEBUG
 		DPRINTF("LV1 poke %p %016lx\n", (void*)lv1_addr, lv1_value);
 	#endif
 	lv1_poked(lv1_addr, lv1_value);
-}
+}*/
 
 LV2_SYSCALL2(void, sys_cfw_lv1_call, (uint64_t a1, uint64_t a2, uint64_t a3, uint64_t a4, uint64_t a5, uint64_t a6, uint64_t a7, uint64_t num))
 {
@@ -1247,8 +1258,10 @@ static INLINE void apply_kernel_patches(void)
 	create_syscall2(6, sys_cfw_peek);
 	create_syscall2(7, sys_cfw_poke);
 	create_syscall2(9, sys_cfw_poke_lv1);
+	//create_syscall2(9, sys_cfw_lv1_poke);
 	create_syscall2(10, sys_cfw_lv1_call);
 	create_syscall2(11, sys_cfw_peek_lv1);
+	//create_syscall2(11, sys_cfw_lv1_peek);
 	create_syscall2(15, sys_cfw_lv2_func);
 	create_syscall2(389, sm_set_fan_policy_sc);
 	create_syscall2(409, sm_get_fan_policy_sc);
