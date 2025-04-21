@@ -712,6 +712,13 @@ LV2_SYSCALL2(int64_t, syscall8, (uint64_t function, uint64_t param1, uint64_t pa
 	#ifdef DEBUG
 		DPRINTF("Syscall 8 -> %lx\n", function);
 	#endif
+	
+	/* #ifdef DEBUG
+		if(function >= 0x8000000000000000ULL)	
+		{
+			DPRINTF("LV1 peek %lx %llux\n", function, (long long unsigned int)(lv1_peekd(function)));
+		}
+	#endif */
 
 	// -- AV: temporary disable cobra syscall (allow dumpers peek 0x1000 to 0x9800)
 	static uint8_t tmp_lv1peek = 0;
@@ -734,11 +741,11 @@ LV2_SYSCALL2(int64_t, syscall8, (uint64_t function, uint64_t param1, uint64_t pa
 			}
 		}
 
+		if(tmp_lv1peek) 		
+			return lv1_peekd(function);
 	}
 	else
 		tmp_lv1peek=0;
-	// --
-
 
 	if ((function == SYSCALL8_OPCODE_PS3MAPI) && ((int)param1 == PS3MAPI_OPCODE_REQUEST_ACCESS) && (param2 == ps3mapi_key) && (ps3mapi_access_tries < 3))
 	{
@@ -812,10 +819,12 @@ LV2_SYSCALL2(int64_t, syscall8, (uint64_t function, uint64_t param1, uint64_t pa
 					return PS3MAPI_OPCODE_SUPPORT_SC8_PEEK_POKE_OK;
 				break;
 				case PS3MAPI_OPCODE_LV1_PEEK:
-					return 0;
+					return lv1_peekd(param2);
+					//return 0;
 				break;
 				case PS3MAPI_OPCODE_LV1_POKE:
-					return 0;
+					lv1_poked(param2, param3);
+					//return 0;
 				break;
 				case PS3MAPI_OPCODE_LV2_PEEK:
 					return *(uint64_t *)param2;
