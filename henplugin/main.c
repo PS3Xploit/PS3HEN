@@ -236,6 +236,18 @@ static int sysLv2FsRename(const char *from, const char *to)
 	return (int)p1;
 }*/
 
+uint64_t lv1_peek(uint64_t addr);
+uint64_t lv1_peek(uint64_t addr)
+{
+	system_call_1(11, addr);
+	return_to_user_prog(uint64_t);
+}
+
+/*void lv1_poke(uint64_t addr, uint64_t val);
+void lv1_poke(uint64_t addr, uint64_t val)
+{
+	system_call_2(9, addr, val);
+}*/
 
 // LED Control (thanks aldostools)
 #define SC_SYS_CONTROL_LED     386
@@ -935,6 +947,18 @@ static void package_install(void)
 	}
 }
 
+static void check_badwdsd(void);
+static void check_badwdsd(void)
+{
+	// Check partial text string (Sony Cel) in LV1 that is normally inaccessible from hen
+	// TODO: find a better way later (from payload?)
+	if (lv1_peek(0x323740) == 0x536F6E792043656CULL) {
+		char msg_badwdsd[0x80];
+		sprintf(msg_badwdsd, "BadWDSD has been detected.\nYou have elevated privileges!");
+		show_msg((char *)msg_badwdsd);
+	}
+}
+
 static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 {
 	set_build_type();
@@ -975,6 +999,9 @@ static void henplugin_thread(__attribute__((unused)) uint64_t arg)
 
 	enable_ingame_screenshot();
 	reload_xmb();
+	
+	// Check for BadWDSD exploit
+	check_badwdsd();
 
 	CellFsStat stat;
 
