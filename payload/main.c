@@ -506,7 +506,7 @@ LV2_HOOKED_FUNCTION(void, sys_cfw_new_poke, (uint64_t *addr, uint64_t value))
 //#include <lv1/mm.h>
 LV2_SYSCALL2(uint64_t, sys_cfw_peek_lv1, (uint64_t _addr))
 {
-	uint64_t ret;
+	uint64_t ret = 0;
 	uint64_t mmap_lpar_addr=0;
 	uint64_t _offset = (_addr & 0xFFFFFFFFFFFFF000ULL);
 	lv1_undocumented_function_114(_offset, HV_PAGE_SIZE, 0x1000, &mmap_lpar_addr);
