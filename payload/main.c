@@ -785,7 +785,7 @@ LV2_SYSCALL2(int64_t, syscall8, (uint64_t function, uint64_t param1, uint64_t pa
 
 	// -- AV: disable cobra without reboot (use lv1 peek)
 	if(disable_cobra)
-		return 0;
+		return lv1_peekd(function);
 
 	switch (function)
 	{
@@ -820,21 +820,18 @@ LV2_SYSCALL2(int64_t, syscall8, (uint64_t function, uint64_t param1, uint64_t pa
 				break;
 				case PS3MAPI_OPCODE_LV1_PEEK:
 					return lv1_peekd(param2);
-					//return 0;
 				break;
 				case PS3MAPI_OPCODE_LV1_POKE:
 					lv1_poked(param2, param3);
-					//return 0;
+					return SUCCEEDED;
 				break;
 				case PS3MAPI_OPCODE_LV2_PEEK:
-					return *(uint64_t *)param2;
+					return lv1_peekd(param2 + 0x8000000ULL);
 				break;
+
 				case PS3MAPI_OPCODE_LV2_POKE:
-					if(param2>MKA(hash_checked_area))
-					{
-						*(uint64_t *)param2=param3;
-					}
-					return 0;
+					lv1_poked(param2 + 0x8000000ULL, param3);
+					return SUCCEEDED;
 				break;
 
 				//----------
@@ -1173,7 +1170,9 @@ LV2_SYSCALL2(int64_t, syscall8, (uint64_t function, uint64_t param1, uint64_t pa
 
 		default:
 			if (1 <= ps3mapi_partial_disable_syscall8)	return ENOSYS;
-
+			
+			 // Partial support for lv1_peek here
+			return lv1_peekd(function);
 	}
 
 	#ifdef DEBUG
