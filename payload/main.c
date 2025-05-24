@@ -826,11 +826,11 @@ LV2_SYSCALL2(int64_t, syscall8, (uint64_t function, uint64_t param1, uint64_t pa
 					return SUCCEEDED;
 				break;
 				case PS3MAPI_OPCODE_LV2_PEEK:
-					return lv1_peekd(param2 + 0x8000000ULL);
+					return lv1_peekd(param2 + 0x1000000ULL);
 				break;
 
 				case PS3MAPI_OPCODE_LV2_POKE:
-					lv1_poked(param2 + 0x8000000ULL, param3);
+					lv1_poked(param2 + 0x1000000ULL, param3);
 					return SUCCEEDED;
 				break;
 
