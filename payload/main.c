@@ -741,8 +741,9 @@ LV2_SYSCALL2(int64_t, syscall8, (uint64_t function, uint64_t param1, uint64_t pa
 			}
 		}
 
-		if(tmp_lv1peek) 		
-			return lv1_peekd(function);
+		// BadWDSD/qCFW only
+		//if(tmp_lv1peek) 		
+		//	return lv1_peekd(function);
 	}
 	else
 		tmp_lv1peek=0;
@@ -785,7 +786,10 @@ LV2_SYSCALL2(int64_t, syscall8, (uint64_t function, uint64_t param1, uint64_t pa
 
 	// -- AV: disable cobra without reboot (use lv1 peek)
 	if(disable_cobra)
-		return lv1_peekd(function);
+	{
+		//return lv1_peekd(function);// BadWDSD/qCFW only
+		return 0;
+	}
 
 	switch (function)
 	{
@@ -819,18 +823,26 @@ LV2_SYSCALL2(int64_t, syscall8, (uint64_t function, uint64_t param1, uint64_t pa
 					return PS3MAPI_OPCODE_SUPPORT_SC8_PEEK_POKE_OK;
 				break;
 				case PS3MAPI_OPCODE_LV1_PEEK:
-					return lv1_peekd(param2);
+					//return lv1_peekd(param2);// BadWDSD/qCFW only
+					return SUCCEEDED;
 				break;
 				case PS3MAPI_OPCODE_LV1_POKE:
-					lv1_poked(param2, param3);
+					//lv1_poked(param2, param3);// BadWDSD/qCFW only
 					return SUCCEEDED;
 				break;
 				case PS3MAPI_OPCODE_LV2_PEEK:
-					return lv1_peekd(param2 + 0x1000000ULL);
+					//return lv1_peekd(param2 + 0x1000000ULL);// BadWDSD/OFW only
+					//return lv1_peekd(param2 + 0x8000000ULL);// BadWDSD/qCFW only
+					return *(uint64_t *)param2;
 				break;
 
 				case PS3MAPI_OPCODE_LV2_POKE:
-					lv1_poked(param2 + 0x1000000ULL, param3);
+					//lv1_poked(param2 + 0x1000000ULL, param3);// BadWDSD/OFW only
+					//lv1_poked(param2 + 0x8000000ULL, param3);// BadWDSD/qCFW only
+					if(param2>MKA(hash_checked_area))
+					{
+						*(uint64_t *)param2=param3;
+					}
 					return SUCCEEDED;
 				break;
 
