@@ -631,6 +631,26 @@ void do_hook_all_syscalls(void)
 	set_syscall_handler(syscall_handler);
 }
 
+struct SceHeader_s
+{
+    uint32_t magic;
+    uint32_t version;
+    uint16_t attribute;
+    uint16_t category;
+    uint32_t ext_header_size;
+    uint64_t file_offset;
+    uint64_t file_size;
+};
+
+struct SceProgramIdentHeader_s
+{
+    uint64_t program_authority_id;
+    uint32_t program_vender_id;
+    uint32_t program_type;
+    uint64_t program_sceversion;
+    uint64_t padding;
+};
+
 LV2_HOOKED_FUNCTION_PRECALL_2(int, post_lv1_call_99_wrapper, (uint64_t *spu_obj, uint64_t *spu_args))
 {
 	sleep_done=1;
