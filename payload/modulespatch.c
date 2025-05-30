@@ -690,32 +690,56 @@ LV2_HOOKED_FUNCTION_PRECALL_2(int, post_lv1_call_99_wrapper, (uint64_t *spu_obj,
 			suspend_intr();
 			uint64_t state = spin_lock_irqsave();
 
-			// --- NPDRM Check --- Thanks @aomsin2526 for his finding on qCFW
+			// --- NPDRM / Retail Type Detection --- thanks to @aomsin2526
 			uint64_t self_header_addr = (uint64_t)saved_sce_hdr;
 			struct SceHeader_s *sceHeader = (struct SceHeader_s *)self_header_addr;
 
-			uint8_t isNpdrm = 0, isCustomVshModules = 0;
+			uint8_t isNpdrm = 0;
+			uint8_t isRetailNpdrm = 0;
+			uint8_t isRetailNonNpdrm = 0;
+			uint8_t isCustomVshModules = 0;
 
 			if (sceHeader->magic == 0x53434500 && sceHeader->category == 1)
 			{
 				struct SceProgramIdentHeader_s *sceProgramIdentHeader = (struct SceProgramIdentHeader_s *)(self_header_addr + 0x70);
-				isNpdrm = (sceProgramIdentHeader->program_type == 8);
-				isCustomVshModules = ((sceProgramIdentHeader->program_authority_id == 0x1070000052000001) &&
-									  (sceHeader->attribute < 0x1C));
+
+				uint64_t auth_id = sceProgramIdentHeader->program_authority_id;
+				uint64_t program_type = sceProgramIdentHeader->program_type;
+				uint16_t attribute = sceHeader->attribute;
+
+				isCustomVshModules = (auth_id == 0x1070000052000001 && attribute < 0x1C);
+				isNpdrm = (program_type == 8);
+				isRetailNpdrm = (isNpdrm && !isCustomVshModules);
+				isRetailNonNpdrm = (!isNpdrm && !isCustomVshModules);
 			}
 
-			// Set hardcoded tick values, 1.2 sec for NPDRM, and 0.63 for everything else.
-			uint64_t delay_ticks = (isNpdrm || isCustomVshModules) ? 0x5B52E80 : 0x3000000;
+			// 🕒 Delay Selection and Debug Message
+			const char *elf_type_str = "Homebrew / 3.xx ELF";
+			uint64_t delay_ticks = 0x3000000; // default 0.63 sec
+
+			if (isRetailNpdrm)
+			{
+				delay_ticks = 0x5B52E80; // 1.2 sec
+				elf_type_str = "Retail NPDRM ELF";
+			}
+			else if (isRetailNonNpdrm)
+			{
+				delay_ticks = 0x3000000; // 0.63 sec
+				elf_type_str = "Retail non-NPDRM ELF";
+			}
+			else if (isCustomVshModules)
+			{
+				delay_ticks = 0x5B52E80; // 1.2 sec
+				elf_type_str = "Custom VSH Module";
+			}
 
 			#ifdef DEBUG
-				const char *elf_type_str = (isNpdrm || isCustomVshModules) ? "NPDRM or custom VSH" : "Standard ELF";
-				uint64_t delay_ms = delay_ticks / 79800; // convert ticks to ms
+				uint64_t delay_ms = delay_ticks / 79800;
 				DPRINTF("%s detected, sleeping for %llu ticks (~%llu ms)\n",
 					elf_type_str,
 					(unsigned long long)delay_ticks,
 					(unsigned long long)delay_ms);
 			#endif
-
 
 			current_ticks = get_ticks();
 			target_ticks = current_ticks + delay_ticks;
