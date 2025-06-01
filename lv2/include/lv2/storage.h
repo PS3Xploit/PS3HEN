@@ -41,8 +41,8 @@
 #define DEVICE_TYPE_DVD			0x10 /* DVD-ROM, DVD+-R, DVD+-RW etc, they are differenced by booktype field in some scsi command */
 #define DEVICE_TYPE_CD			0x08 /* CD-ROM, CD-DA, CD-R, CD-RW, etc, they are differenced somehow with scsi commands */
 
-//#define REDUMP_WATERMARK_OFFSET			0xF70	
-//#define REDUMP_KEY_OFFSET				0xF80	
+#define REDUMP_WATERMARK_OFFSET			0xF70	
+#define REDUMP_KEY_OFFSET				0xF80	
 
 
 typedef uint32_t device_handle_t; // Kernel
@@ -75,12 +75,12 @@ typedef struct
 	uint32_t unk3;
 } __attribute__((packed)) StorageCmdScsiData;
 
-/* typedef struct
+typedef struct
 {
 	int isEncrypted;
 	uint64_t region_first_sector;
 	uint64_t region_last_sector;
-} __attribute__((packed)) DiscRegionInfo; */
+} __attribute__((packed)) DiscRegionInfo;
 
 LV2_EXPORT int storage_get_device_info(uint64_t device_id, device_info_t *device_info);
 
