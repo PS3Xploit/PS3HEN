@@ -207,6 +207,14 @@ static unsigned int char_arr_BE_to_uint(unsigned char *arr)
 	return arr[3] + 256 * (arr[2] + 256 * (arr[1] + (256 * arr[0])));
 }
 
+// Custom Hex Parser
+static uint8_t hex_byte(const char *s)
+{
+    uint8_t hi = (s[0] > '9') ? (s[0] & ~0x20) - 'A' + 10 : s[0] - '0';
+    uint8_t lo = (s[1] > '9') ? (s[1] & ~0x20) - 'A' + 10 : s[1] - '0';
+    return (hi << 4) | lo;
+}
+
 // Get key for ISO decryption on-the-fly (By Evilnat)
 static int get_key(char *path) 
 {
@@ -214,16 +222,12 @@ static int get_key(char *path)
 	uint64_t keynread;
 
 	char *ps3iso_folder = strstr(path, "PS3ISO");
-	if(ps3iso_folder == NULL)
-		ps3iso_folder = strstr(path, "ps3iso");
-	if(ps3iso_folder == NULL)
-		return 1;		
+	if(ps3iso_folder == NULL) ps3iso_folder = strstr(path, "ps3iso");
+	if(ps3iso_folder == NULL) return 1;
 
 	char *ext = strstr(path, ".ISO");	
-	if(ext == NULL)
-		ext = strstr(path, ".iso");
-	if(ext == NULL)
-		ext = strstr(path, ".ntfs["); // By aldostools
+	if(ext == NULL) ext = strstr(path, ".iso");
+	if(ext == NULL) ext = strstr(path, ".ntfs["); // By aldostools
 
 	if(ext)
 	{
@@ -237,30 +241,38 @@ static int get_key(char *path)
 
 	memset(ntfs_iso_path, 0, sizeof(ntfs_iso_path));
 
+	// Try .dkey first (hex format)
 	if(!cellFsOpen(dkey_path, CELL_FS_O_RDONLY, &keyfd, 0666, NULL, 0))
 	{
-		//DPRINTF("[ISO] Found DKEY\n");
-		char dkey[0x20];
-		cellFsRead(keyfd, dkey, 0x20, &keynread);
+		char dkey[0x20] = {0};
+		if (cellFsRead(keyfd, dkey, 0x20, &keynread) == 0 && keynread == 0x20)
+		{
+			cellFsClose(keyfd);
 
 		for (int i = 0; i < 0x10; i++)
 		{
-			char byte[3];
+				char byte[3] = {0};
 			strncpy(byte, &dkey[i * 2], 2);
-			byte[2] = 0;
-			disc_key[i] = strtoull(byte, NULL, 16);
+				disc_key[i] = hex_byte(&dkey[i * 2]);
 		}
 
 		return 0;
 	}
-	else if(!cellFsOpen(key_path, CELL_FS_O_RDONLY, &keyfd, 0666, NULL, 0))
+		cellFsClose(keyfd); // Make sure to close even on failure
+	}
+
+	// Fall back to .key (raw binary format)
+	if(!cellFsOpen(key_path, CELL_FS_O_RDONLY, &keyfd, 0666, NULL, 0))
 	{			
-		//DPRINTF("[ISO] Found DISCKEY\n");
-		cellFsRead(keyfd, disc_key, 0x10, &keynread);		
+		if (cellFsRead(keyfd, disc_key, 0x10, &keynread) == 0 && keynread == 0x10)
+		{
 		cellFsClose(keyfd);
 		return 0;
 	}
-	else
+		cellFsClose(keyfd);
+	}
+
+	// Default to zeroed key if nothing found
 		memset(disc_key, 0, 0x10);
 
 	return 1;
