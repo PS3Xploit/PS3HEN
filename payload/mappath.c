@@ -17,6 +17,8 @@
 #include "homebrew_blocker.h"
 #include "make_rif.h"
 
+char ntfs_iso_path[256];
+
 typedef struct MapEntry {
 	char *oldpath;
 	char *newpath;
@@ -821,6 +823,10 @@ static uint8_t libft2d_access = 0;
 
 LV2_HOOKED_FUNCTION_POSTCALL_2(int, open_path_hook, (char *path0, char *path1))
 {
+	// Save path when a ISO is mounted from NTFS partition (By Evilnat)
+	if(strstr(path0, "ntfs[PS3ISO]"))
+		strcpy(ntfs_iso_path, path0);
+	
 	//extend_kstack(0);
 	if(path0) {
 		#ifdef DEBUG

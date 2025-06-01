@@ -14,6 +14,8 @@
 #define FLAG_PROTECT					1 << 2		//internal or external use
 #define FLAG_MAX_PRIORITY				1 << 3		//internal or external use
 
+extern char ntfs_iso_path[256];
+
 uint32_t getMapTableLength();
 uint64_t getMapTableByteSize();
 void 	printMappingList();
