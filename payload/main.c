@@ -493,7 +493,7 @@ void _sys_cfw_poke(uint64_t *addr, uint64_t value);
 LV2_HOOKED_FUNCTION(void, sys_cfw_new_poke, (uint64_t *addr, uint64_t value))
 {
 	#ifdef DEBUG
-		DPRINTF("New poke called\n");
+		//DPRINTF("New poke called\n");
 	#endif
 
 	_sys_cfw_poke(addr, value);
@@ -542,7 +542,7 @@ LV2_SYSCALL2(void, sys_cfw_poke_lv1, (uint64_t _addr, uint64_t value))
 LV2_HOOKED_FUNCTION(void *, sys_cfw_memcpy, (void *dst, void *src, uint64_t len))
 {
 	#ifdef DEBUG
-		DPRINTF("sys_cfw_memcpy: %p %p 0x%lx\n", dst, src, len);
+		//DPRINTF("sys_cfw_memcpy: %p %p 0x%lx\n", dst, src, len);
 	#endif
 
 	if (len == 8)
@@ -578,7 +578,7 @@ LV2_SYSCALL2(void, sys_cfw_poke, (uint64_t *ptr, uint64_t value))
 			if (((value == sc_null) ||(value == syscall_not_impl)) && (syscall_num != 8)) //Allow removing protected syscall 6 7 9 10 35 NOT 8
 			{
 				#ifdef DEBUG
-					DPRINTF("HB remove syscall %ld\n", syscall_num);
+					//DPRINTF("HB remove syscall %ld\n", syscall_num);
 				#endif
 				*ptr=value;
 				return;
@@ -586,7 +586,7 @@ LV2_SYSCALL2(void, sys_cfw_poke, (uint64_t *ptr, uint64_t value))
 			else //Prevent syscall 6 7 9 10 and 35 from being re-written
 			{
 				#ifdef DEBUG
-					DPRINTF("HB has been blocked from rewritting syscall %ld\n", syscall_num);
+					//DPRINTF("HB has been blocked from rewritting syscall %ld\n", syscall_num);
 				#endif
 				return;
 			}

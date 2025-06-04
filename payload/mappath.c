@@ -219,7 +219,7 @@ int addMapping(const char *opath, const char *npath, uint32_t flags) {
 					}
 					mpcount++;
 					#ifdef DEBUG
-						DPRINTF("addMapping: Mapping Added: %s - Mapping Count: %u - Table Mapping Size: 0x%lx bytes\n", opath, mpcount, mapTableByteSize);
+						//DPRINTF("addMapping: Mapping Added: %s - Mapping Count: %u - Table Mapping Size: 0x%lx bytes\n", opath, mpcount, mapTableByteSize);
 					#endif
 					return 0;
 				}
@@ -684,7 +684,7 @@ int map_path(char *oldpath, char *newpath, uint32_t flags)
 		if (strcmp(oldpath, "/dev_bdvd") == 0) {
 			condition_apphome = (newpath != NULL);
 			#ifdef DEBUG
-				DPRINTF("map_path: condition_apphome set to %s\n",condition_apphome ? "true":"false" );
+				//DPRINTF("map_path: condition_apphome set to %s\n",condition_apphome ? "true":"false" );
 			#endif
 		}
 		lock_mtx(&map_mtx);
@@ -693,10 +693,10 @@ int map_path(char *oldpath, char *newpath, uint32_t flags)
 		#ifdef DEBUG
 
 			if(ret==0) {
-				DPRINTF("map_path: mapped path: %s -> %s flags %x\n", oldpath, newpath, flags);
+				//DPRINTF("map_path: mapped path: %s -> %s flags %x\n", oldpath, newpath, flags);
 			}
 			else{
-				DPRINTF("map_path: add mapping error %X for path: %s -> %s flags %x\n",ret, oldpath, newpath, flags);
+				//DPRINTF("map_path: add mapping error %X for path: %s -> %s flags %x\n",ret, oldpath, newpath, flags);
 			}
 		#endif
 	}
@@ -941,7 +941,7 @@ LV2_HOOKED_FUNCTION_POSTCALL_2(int, open_path_hook, (char *path0, char *path1))
 				if(curr) {
 					set_patched_func_param(1, (uint64_t)curr->newpath);
 					#ifdef DEBUG
-						DPRINTF("open_path_hook:= found matching entry for %s in Map Table oldpath: [%s] \nMap Table newpath: [%s] \nMap Table newpath_len: [0x%x]\n",path,curr->oldpath,curr->newpath,(unsigned int)curr->newpath_len);
+						//DPRINTF("open_path_hook:= found matching entry for %s in Map Table oldpath: [%s] \nMap Table newpath: [%s] \nMap Table newpath_len: [0x%x]\n",path,curr->oldpath,curr->newpath,(unsigned int)curr->newpath_len);
 					#endif
 				}
 				else{
