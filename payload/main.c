@@ -1184,7 +1184,7 @@ LV2_SYSCALL2(int64_t, syscall8, (uint64_t function, uint64_t param1, uint64_t pa
 			if (1 <= ps3mapi_partial_disable_syscall8)	return ENOSYS;
 			
 			 // Partial support for lv1_peek here
-			return lv1_peekd(function);
+			//return lv1_peekd(function);// BadWDSD/OFW only
 	}
 
 	#ifdef DEBUG
