@@ -362,9 +362,9 @@ static INLINE void get_next_read(int64_t discoffset, uint64_t bufsize, uint64_t 
 
 		base += discfile->sizes[i];
 	}
-	#ifdef DEBUG
+	/*#ifdef DEBUG
 		DPRINTF("Offset or size out of range  %lx   %lx!!!!!!!!\n", discoffset, bufsize);
-	#endif
+	#endif*/
 }
 
 static INLINE int process_read_iso_cmd(ReadIsoCmd *cmd)
@@ -444,7 +444,7 @@ static INLINE int process_read_iso_cmd(ReadIsoCmd *cmd)
 				if (discfd != UNDEFINED)
 					cellFsClose(discfd);
 
-				DPRINTF("Changed to part file %d\n", file);
+				//DPRINTF("Changed to part file %d\n", file);
 
 				ret = cellFsOpen(discfile->files[file], CELL_FS_O_RDONLY, &discfd, 0, NULL, 0);
 				if (ret != SUCCEEDED)
@@ -563,12 +563,12 @@ static INLINE int process_read_iso_cmd(ReadIsoCmd *cmd)
 			discfile->cached_offset = cmd->offset;
 		}
 	}
-	#ifdef DEBUG
+	/*#ifdef DEBUG
 	else
 	{
 		DPRINTF("WARNING: Error %x\n", ret);
 	}
-	#endif
+	#endif*/
 
 	discfile->activefile = activefile;
 
@@ -908,25 +908,25 @@ int process_proxy_cmd(uint64_t command, process_t process, uint8_t *buf, uint64_
 
 	if (!do_copy)
 	{
-		#ifdef DEBUG
+		/*#ifdef DEBUG
 			DPRINTF("Native VSH read\n");
-		#endif
+		#endif*/
 
 		ret = event_port_send(proxy_command_port, command, offset, (((uint64_t)buf)<<32ULL) | remaining);
 		if (ret != SUCCEEDED)
 		{
-			#ifdef DEBUG
+			/*#ifdef DEBUG
 				DPRINTF("event_port send failed: %x\n", ret);
-			#endif
+			#endif*/
 			return ret;
 		}
 
 		ret = event_queue_receive(proxy_result_queue, &event, 0);
 		if (ret != SUCCEEDED)
 		{
-			#ifdef DEBUG
+			/*#ifdef DEBUG
 				DPRINTF("event_queue_receive failed: %x\n", ret);
-			#endif
+			#endif*/
 			return ret;
 		}
 
@@ -974,18 +974,18 @@ int process_proxy_cmd(uint64_t command, process_t process, uint8_t *buf, uint64_
 		ret = page_allocate_auto(vsh_process, read_size, 0x2F, &kbuf);
 		if (ret != SUCCEEDED)
 		{
-			#ifdef DEBUG
+			/*#ifdef DEBUG
 				DPRINTF("page_allocate failed: %x\n", ret);
-			#endif
+			#endif*/
 			return ret;
 		}
 
 		ret = page_export_to_proc(vsh_process, kbuf, 0x40000, &vbuf);
 		if (ret != SUCCEEDED)
 		{
-			#ifdef DEBUG
+			/*#ifdef DEBUG
 				DPRINTF("page_export_to_proc failed: %x\n", ret);
-			#endif
+			#endif*/
 			page_free(vsh_process, kbuf, 0x2F);
 			return ret;
 		}
@@ -1178,12 +1178,12 @@ int read_psx_sector(void *dma, void *buf, uint64_t sector)
 
 				storage_unmap_io_memory(BDVD_DRIVE, dma);
 			}
-			#ifdef DEBUG
+			/*#ifdef DEBUG
 			else
 			{
-				//DPRINTF("retm %x\n", ret);
+				DPRINTF("retm %x\n", ret);
 			}
-			#endif
+			#endif*/
 
 			storage_close(handle);
 
@@ -1536,9 +1536,9 @@ void dispatch_thread_entry(uint64_t arg)
 		event_port_send(result_port, cmd_result, 0, 0);
 	}
 
-	#ifdef DEBUG
-		//DPRINTF("Exiting dispatch thread %d\n", ret);
-	#endif
+	/*#ifdef DEBUG
+		DPRINTF("Exiting dispatch thread %d\n", ret);
+	#endif*/
 	
 	ppu_thread_exit(0);
 }
@@ -1760,7 +1760,7 @@ LV2_PATCHED_FUNCTION(int, device_event, (event_port_t event_port, uint64_t event
 
 		if (event == 3)
 		{
-			DPRINTF("Disc Insert\n");
+			//DPRINTF("Disc Insert\n");
 			if (lock)
 				mutex_lock(mutex, 0);
 
@@ -1775,9 +1775,9 @@ LV2_PATCHED_FUNCTION(int, device_event, (event_port_t event_port, uint64_t event
 			if (lock)
 				mutex_lock(mutex, 0);
 
-			#ifdef DEBUG
+			/*#ifdef DEBUG
 				DPRINTF("Disc removed.\n");
-			#endif
+			#endif*/
 
 			if (effective_disctype == DEVICE_TYPE_PSX_CD)
 			{
@@ -1991,12 +1991,12 @@ LV2_HOOKED_FUNCTION_COND_POSTCALL_7(int, emu_sys_storage_async_read, (sys_device
 
 				storage_mutex = (mutex_t)sys_storage_object[0x98/8];
 
-				#ifdef DEBUG
+				/*#ifdef DEBUG
 				if (unk2 != 0)
 				{
 					DPRINTF("WARNING: unk2 not 0: %lx\n", unk2);
 				}
-				#endif
+				#endif*/
 
 				mutex_lock(storage_mutex, 0);
 
@@ -2053,12 +2053,12 @@ int process_generic_iso_scsi_cmd(uint8_t *indata, uint64_t inlen, uint8_t *outda
 				memcpy(outdata, resp, (outlen <= alloc_size) ? outlen : alloc_size);
 				dealloc(resp, 0x27);
 			}
-			#ifdef DEBUG
+			/*#ifdef DEBUG
 			else
 			{
-				//DPRINTF("Event status: %02X\n", cmd->notification_class_request);
+				DPRINTF("Event status: %02X\n", cmd->notification_class_request);
 			}
-			#endif
+			#endif*/
 		}
 		break;
 
