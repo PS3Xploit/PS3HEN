@@ -44,7 +44,7 @@ OBJS = start.o psp.o psp_s.o ps3mapi_core.o main.o crypto.o modulespatch.o confi
 	../lv2/src/libc_c.o ../lv2/src/memory.o ../lv2/src/memory_c.o ../lv2/src/thread.o ../lv2/src/thread_c.o ../lv2/src/process.o \
 	../lv2/src/synchronization.o ../lv2/src/modules.o ../lv2/src/modules_c.o ../lv2/src/storage.o ../lv2/src/object.o \
 	../lv2/src/security.o ../lv2/src/time.o ../lv2/src/hid.o ../lv2/src/pad.o ../lv2/src/syscall.o \
-	../lv1/src/hvcall.o ../lv1/src/stor.o ../lv1/src/device.o ../lv1/src/mm.o 
+	../lv1/src/hvcall.o ../lv1/src/stor.o ../lv1/src/device.o ../lv1/src/mm.o ../lv1/src/patch.o 
 
 ifeq ($(BUILD_TYPE), debug)
 OBJS += laboratory.o ../debug/src/debug.o ../debug/src/printf.o ../debug/src/debug_util.o

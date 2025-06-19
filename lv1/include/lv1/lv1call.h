@@ -357,7 +357,13 @@ LV1_CALL(undocumented_function_99, 			 			   2, 0, 99  )
 LV1_CALL(undocumented_function_62, 			 			   5, 0, 62  )
 LV1_CALL(undocumented_function_167, 					   2, 1, 167 )
 LV1_CALL(undocumented_function_168,			 			   3, 0, 168 )
-LV1_CALL(cfw_peek,					 					   1, 1, 182 )
-LV1_CALL(cfw_poke,					 					   2, 0, 183 )
+//LV1_CALL(cfw_peek,					 					   1, 1, 182 )
+//LV1_CALL(cfw_poke,					 					   2, 0, 183 )
+
+//LV1_CALL(badwdsd_peek64,                       1, 0, 34 )
+LV1_CALL(badwdsd_poke64,                       2, 0, 35 )
+//LV1_CALL(badwdsd_exec,                         7, 0, 36 )
+LV1_CALL(badwdsd_peek32,                       1, 0, 37 )
+LV1_CALL(badwdsd_poke32,                       2, 0, 38 )
 
 #endif

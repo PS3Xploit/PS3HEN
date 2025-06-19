@@ -435,7 +435,8 @@ PatchTableEntry patch_table[] =
 
 #define N_PATCH_TABLE_ENTRIES	(sizeof(patch_table) / sizeof(PatchTableEntry))
 
-#ifdef DEBUG
+//#ifdef DEBUG
+#if 0
 
 static char *hash_to_name(uint64_t hash)
 {
@@ -977,9 +978,9 @@ LV2_PATCHED_FUNCTION(int, modules_patching, (uint64_t *arg1, uint32_t *arg2))
 		{
 			if (patch_table[i].hash == hash)
 			{
-				#ifdef	DEBUG
-					DPRINTF("Now patching  %s %lx\n", hash_to_name(hash), hash);
-				#endif
+				//#ifdef DEBUG
+				//	DPRINTF("Now patching  %s %lx\n", hash_to_name(hash), hash);
+				//#endif
 
 				int j = 0;
 				
