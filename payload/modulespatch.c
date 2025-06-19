@@ -714,24 +714,32 @@ LV2_HOOKED_FUNCTION_PRECALL_2(int, post_lv1_call_99_wrapper, (uint64_t *spu_obj,
 				isRetailNonNpdrm = (!isNpdrm && !isCustomVshModules);
 			}
 
-			// 🕒 Delay Selection and Debug Message
-			const char *elf_type_str = "Homebrew / 3.xx ELF";
+			// Delay Selection and Debug Message
+			#ifdef DEBUG
+				const char *elf_type_str = "Homebrew / 3.xx ELF";
+			#endif
 			uint64_t delay_ticks = 0x3000000; // default 0.63 sec
 
 			if (isRetailNpdrm)
 			{
 				delay_ticks = 0x5B52E80; // 1.2 sec
-				elf_type_str = "Retail NPDRM ELF";
+				#ifdef DEBUG
+					elf_type_str = "Retail NPDRM ELF";
+				#endif
 			}
 			else if (isRetailNonNpdrm)
 			{
 				delay_ticks = 0x3000000; // 0.63 sec
-				elf_type_str = "Retail non-NPDRM ELF";
+				#ifdef DEBUG
+					elf_type_str = "Retail non-NPDRM ELF";
+				#endif
 			}
 			else if (isCustomVshModules)
 			{
 				delay_ticks = 0x5B52E80; // 1.2 sec
-				elf_type_str = "Custom VSH Module";
+				#ifdef DEBUG
+					elf_type_str = "Custom VSH Module";
+				#endif
 			}
 
 			#ifdef DEBUG
