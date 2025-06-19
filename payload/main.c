@@ -568,13 +568,17 @@ void BadWDSD_TryInstallHvcall()
 	if (BadWDSD_IsHvcallInstalled())
 		return;
 
-	DPRINTF("BadWDSD_TryInstallHvcall()\n");
+	#ifdef DEBUG
+		DPRINTF("BadWDSD_TryInstallHvcall()\n");
+	#endif
 
 	uint64_t table_addr = 0x372D08; // >= 4.70?
 
 	{
 		{
-			//DPRINTF("Installing hvcall peek64(34)\n");
+			#ifdef DEBUG
+				DPRINTF("Installing hvcall peek64(34)\n");
+			#endif
 
 			uint64_t code_addr = 0x130;
 			lv1_poke_114(code_addr + 0, 0xE86300004E800020);
@@ -583,7 +587,9 @@ void BadWDSD_TryInstallHvcall()
 		}
 
 		{
-			//DPRINTF("Installing hvcall poke64(35)\n");
+			#ifdef DEBUG
+				DPRINTF("Installing hvcall poke64(35)\n");
+			#endif
 
 			uint64_t code_addr = 0x140;
 
@@ -597,7 +603,9 @@ void BadWDSD_TryInstallHvcall()
 #if 1
 
 		{
-			//DPRINTF("Installing hvcall exec(36)\n");
+			#ifdef DEBUG
+				DPRINTF("Installing hvcall exec(36)\n");
+			#endif
 
 			uint64_t code_addr = 0x150;
 
@@ -614,7 +622,9 @@ void BadWDSD_TryInstallHvcall()
 		}
 
 		{
-			//DPRINTF("Installing hvcall peek32(37)\n");
+			#ifdef DEBUG
+				DPRINTF("Installing hvcall peek32(37)\n");
+			#endif
 
 			uint64_t code_addr = 0x180;
 			lv1_poke_114(code_addr + 0, 0x806300004E800020);
@@ -623,7 +633,9 @@ void BadWDSD_TryInstallHvcall()
 		}
 
 		{
-			//DPRINTF("Installing hvcall poke32(38)\n");
+			#ifdef DEBUG
+				DPRINTF("Installing hvcall poke32(38)\n");
+			#endif
 
 			uint64_t code_addr = 0x190;
 
@@ -638,11 +650,15 @@ void BadWDSD_TryInstallHvcall()
 
 	if (!BadWDSD_IsHvcallInstalled())
 	{
-		//DPRINTF("Install failed!\n");
+		#ifdef DEBUG
+			DPRINTF("Install failed!\n");
+		#endif
 		return;
 	}
 
-	DPRINTF("Install success!\n");
+	#ifdef DEBUG
+		DPRINTF("Install success!\n");
+	#endif
 }
 
 LV2_SYSCALL2(uint64_t, sys_cfw_peek_lv1, (uint64_t _addr))
