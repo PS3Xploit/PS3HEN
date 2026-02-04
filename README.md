@@ -1,4 +1,4 @@
-# PS3HEN 3.4.0
+# PS3HEN 3.4.1
 
 MultiFW support has been added.
 [Supported Firmwares]
@@ -26,6 +26,20 @@ MultiFW support has been added.
 
 Changelog<br>
 -----------<br>
+
+# 3.4.1<br>
+# HEN Plugin Changes<br>
+  - Added detection of BadWDSD via LV1 peek check on hen enable (thanks aomsin2526)<br>
+# Payload Changes<br>
+  - Enabled LV1 peek and poke to support BadHTAB and BadWDSD exploits (thanks aomsin2526)<br>
+  - Added conditional timer for Retail and NPDRM self to reduce hanging when launching homebrew (thanks Joonie, aomsin2526)<br>
+  -  Added support for 3k3y/Redump ISOs on-the-fly (thanks Joonie, Evilnat)<br>
+# Resource Changes<br>
+  - Added support for installing qCFW with xai (quasi-CFW for NOR 3000x and SS) (thanks aomsin2526)<br>
+  - Added Disc Auto Start Fix (thanks LuanTeles)<br>
+  - Now using fork of Evilnats xai plugin as base to take advantage of updated features (thanks Evilnat)<br>
+<br>
+<br>
 
 # 3.4.0<br>
 # HEN Global Changes<br>
