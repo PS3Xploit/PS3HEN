@@ -3553,6 +3553,9 @@ static INLINE int check_files_and_allocate(unsigned int filescount, char *files[
 			DPRINTF("%s, filesize: %lx\n", files[i], stat.st_size);
 		#endif
 
+		// 3k3y/Redump ISOs decryption on-the-fly (By Evilnat)
+		get_key(files[i]);
+
 		if (stat.st_size < 4096 + base_offset)
 		{
 			dealloc(discfile, 0x27);
