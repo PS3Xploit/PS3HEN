@@ -1,4 +1,4 @@
-# PS3HEN 3.4.1
+# PS3HEN 3.4.2
 
 MultiFW support has been added.
 [Supported Firmwares]
