@@ -27,6 +27,12 @@ MultiFW support has been added.
 Changelog<br>
 -----------<br>
 
+# 3.4.2<br>
+# Payload Changes<br>
+  - Added missing function call for 3k3y ISO decryption (thanks aldostools and TheWizWiki)<br>
+<br>
+<br>
+
 # 3.4.1<br>
 # HEN Plugin Changes<br>
   - Added detection of BadWDSD via LV1 peek check on hen enable (thanks aomsin2526)<br>
