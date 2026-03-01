@@ -40,6 +40,9 @@ all:
 
 	@rm -f *.o *.elf *.bin *.release *.debug *.cex *.dex *.map *.lzma ../lv2/src/*.o ../lv1/src/*.o ../debug/src/*.o
 	@make -f Makefile_492C_release --no-print-directory
+
+	@rm -f *.o *.elf *.bin *.release *.debug *.cex *.dex *.map *.lzma ../lv2/src/*.o ../lv1/src/*.o ../debug/src/*.o
+	@make -f Makefile_493C_release --no-print-directory
 	
 	@rm -f *.o *.elf *.bin *.map *.lzma ../lv2/src/*.o ../lv1/src/*.o ../debug/src/*.o
 	@make -f Makefile_480C_debug --no-print-directory
@@ -85,6 +88,9 @@ all:
 	
 	@rm -f *.o *.elf *.bin *.map *.lzma ../lv2/src/*.o ../lv1/src/*.o ../debug/src/*.o
 	@make -f Makefile_492C_debug --no-print-directory
+	
+	@rm -f *.o *.elf *.bin *.map *.lzma ../lv2/src/*.o ../lv1/src/*.o ../debug/src/*.o
+	@make -f Makefile_493C_debug --no-print-directory
 
 release:
 	@rm -f *.o *.elf *.bin *.release *.debug *.cex *.dex *.map *.lzma ../lv2/src/*.o ../lv1/src/*.o ../debug/src/*.o
@@ -131,6 +137,9 @@ release:
      
 	@rm -f *.o *.elf *.bin *.release *.debug *.cex *.dex *.map *.lzma ../lv2/src/*.o ../lv1/src/*.o ../debug/src/*.o
 	@make -f Makefile_492C_release --no-print-directory
+     
+	@rm -f *.o *.elf *.bin *.release *.debug *.cex *.dex *.map *.lzma ../lv2/src/*.o ../lv1/src/*.o ../debug/src/*.o
+	@make -f Makefile_493C_release --no-print-directory
 
 debug:	
 	@rm -f *.o *.elf *.bin *.map *.lzma ../lv2/src/*.o ../lv1/src/*.o ../debug/src/*.o
@@ -177,6 +186,9 @@ debug:
 
 	@rm -f *.o *.elf *.bin *.map *.lzma ../lv2/src/*.o ../lv1/src/*.o ../debug/src/*.o
 	@make -f Makefile_492C_debug --no-print-directory
+
+	@rm -f *.o *.elf *.bin *.map *.lzma ../lv2/src/*.o ../lv1/src/*.o ../debug/src/*.o
+	@make -f Makefile_493C_debug --no-print-directory
     
 debug_480:
 	@rm -f *.o *.elf *.bin *.release *.debug *.cex *.dex *.map *.lzma ../lv2/src/*.o ../lv1/src/*.o ../debug/src/*.o

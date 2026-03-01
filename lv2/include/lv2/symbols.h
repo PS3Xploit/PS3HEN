@@ -3,7 +3,7 @@
 #ifndef __FIRMWARE_SYMBOLS_H_S__
 #define __FIRMWARE_SYMBOLS_H_S__
 
-#if defined(FIRMWARE_4_81) || defined(FIRMWARE_4_82) || defined(FIRMWARE_4_83)|| defined(FIRMWARE_4_84)|| defined(FIRMWARE_4_85)|| defined(FIRMWARE_4_86)|| defined(FIRMWARE_4_87) || defined(FIRMWARE_4_88) || defined(FIRMWARE_4_89) || defined(FIRMWARE_4_91) || defined(FIRMWARE_4_92)
+#if defined(FIRMWARE_4_81) || defined(FIRMWARE_4_82) || defined(FIRMWARE_4_83)|| defined(FIRMWARE_4_84)|| defined(FIRMWARE_4_85)|| defined(FIRMWARE_4_86)|| defined(FIRMWARE_4_87) || defined(FIRMWARE_4_88) || defined(FIRMWARE_4_89) || defined(FIRMWARE_4_91) || defined(FIRMWARE_4_92) || defined(FIRMWARE_4_93)
 
 #define TOC 											0x34FBB0
 
