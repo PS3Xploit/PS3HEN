@@ -595,6 +595,13 @@ static void downloadPKG_thread2(void)
 		fw_version = L"492";
 		kernel_type = L"cex";
 	}
+		
+	// 4.93 CEX
+	else if(val==0x323032362F30312FULL)
+	{
+		fw_version = L"493";
+		kernel_type = L"cex";
+	}
 
 	// 4.82 DEX
 	else if(valD==0x323031372F30382FULL)
