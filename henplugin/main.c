@@ -1159,7 +1159,7 @@ done:
 		char reboot_txt[0x80];
 		sprintf(reboot_txt, "Installation Complete!\n\nPrepare For Reboot...");
 		show_msg((char *)reboot_txt);
-		sys_timer_usleep(10000000);// Wait a few seconds
+		sys_timer_usleep(7500000);// Wait a few seconds
 		reboot_ps3();// Default Soft Reboot
 	}
 	
