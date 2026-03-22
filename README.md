@@ -1,4 +1,4 @@
-# PS3HEN 3.4.2
+# PS3HEN 3.5.0
 
 MultiFW support has been added.
 [Supported Firmwares]
@@ -18,6 +18,7 @@ MultiFW support has been added.
 * CEX HFW 4.90.1 (thanks Joonie)
 * CEX HFW 4.91.1 (thanks Joonie)
 * CEX HFW 4.92.1 (thanks Joonie)
+* CEX HFW 4.93.1 (thanks Joonie)
 
 ** CFWs can be used for testing, but not recommended to use**<br>
 
@@ -26,6 +27,16 @@ MultiFW support has been added.
 
 Changelog<br>
 -----------<br>
+
+# 3.5.0<br>
+# Global Changes<br>
+  - Added support for 4.93 CEX firmware (HFW) (thanks Joonie)<br>
+# Resource Changes<br>
+  - Fixed Update HEN option in HFW Tools menu<br>
+  - Added a Homebrew Apps section in Update menu in HFW Tools<br>
+  - Added webmanMOD, multiMAN-MOD, ManagunZ, and Rebug Toolbox to Homebrew Apps menu<br>
+<br>
+<br>
 
 # 3.4.2<br>
 # Payload Changes<br>
