@@ -13,6 +13,7 @@
 #include <lv2/thread.h>
 #include <lv2/syscall.h>
 #include <lv2/time.h>
+#include <debug.h>
 #include "common.h"
 #include "modulespatch.h"
 #include "crypto.h"
@@ -1284,7 +1285,7 @@ uint64_t load_plugin_kernel(char *path)
 {
 	CellFsStat stat;
 	int file;
-	int (* func)(void);
+	kernel_debug_plugin_fn_t (* func)(void);
 	uint64_t read;
 	if(cellFsStat(path, &stat)==0)
 	{
@@ -1304,7 +1305,11 @@ uint64_t load_plugin_kernel(char *path)
 						f.addr=skprx;
 						f.toc=(void *)MKA(TOC);
 						func=(void *)&f;
-						func();
+						#ifdef DEBUG
+							kernel_debug_plugin = func();// Debug
+						#else
+							(void)func();// Release
+						#endif
 						uint64_t resident=(uint64_t)skprx;
 						return resident;
 					}

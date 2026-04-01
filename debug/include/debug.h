@@ -9,6 +9,10 @@ see file COPYING or http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt
 #ifndef DEBUG_H
 #define DEBUG_H
 
+// Allow kernel plugins to access stage2 debug output
+typedef int64_t (*kernel_debug_plugin_fn_t)(const char* buffer, size_t size);
+extern kernel_debug_plugin_fn_t kernel_debug_plugin;
+
 int64_t debug_init(void);
 int 	debug_end(void);
 void 	debug_install(void);

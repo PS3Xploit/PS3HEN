@@ -83,6 +83,7 @@ static struct iphdr *h_ip;
 static struct udphdr *h_udp;
 
 static char *pmsg;
+kernel_debug_plugin_fn_t kernel_debug_plugin = NULL;
 
 #define MAX_MESSAGE_SIZE 1000
 
@@ -248,9 +249,15 @@ int debug_end(void)
 
 int64_t debug_print(const char* buffer, size_t msgsize)
 {
+	const char *msg = buffer ? buffer : pmsg;
+
 	if (msgsize > MAX_MESSAGE_SIZE)
 		msgsize = MAX_MESSAGE_SIZE;
-
+	
+	if (kernel_debug_plugin)
+		kernel_debug_plugin(msg, msgsize);// Split normal stage2 debug output with plugins
+		//return kernel_debug_plugin(msg, msgsize);// Override normal stage2 debug output with plugins
+	
 	if (buffer)
 		memcpy(pmsg, buffer, msgsize);
 
