@@ -1,81 +1,123 @@
+CC			:= ppu-gcc
+CXX			:= ppu-g++
+LD			:= ppu-ld 
+OBJCOPY		:= ppu-objcopy
+AR 			:= ppu-ar
+STRIP		:= ppu-strip
+INCLUDE		=  ../lv2/include ../lv1/include ../debug/include
+INCLUDE		+= $(PS3DEV)/ppu/ppu/include
+LIBSDIR		=
+LIBS 		=
+TARGET		= stage0
+
+FIRMWARES_RELEASE = 480C 481C 482C 483C 484C 485C 486C 487C 488C 489C 490C 491C 492C 493C
+FIRMWARES_ALL     = 480C 481C 482D 482C 483C 484D 484C 485C 486C 487C 488C 489C 490C 491C 492C 493C
+
+FIRMWARE ?= 493C
+
+ifeq ($(FIRMWARE),480C)
+FIRMWARE_DEFINE := -DFIRMWARE_4_80
+START_OBJ := start_490.o
+else ifeq ($(FIRMWARE),481C)
+FIRMWARE_DEFINE := -DFIRMWARE_4_81
+START_OBJ := start.o
+else ifeq ($(FIRMWARE),482C)
+FIRMWARE_DEFINE := -DFIRMWARE_4_82
+START_OBJ := start.o
+else ifeq ($(FIRMWARE),482D)
+FIRMWARE_DEFINE := -DFIRMWARE_4_82DEX
+START_OBJ := start_DEX.o
+else ifeq ($(FIRMWARE),483C)
+FIRMWARE_DEFINE := -DFIRMWARE_4_83
+START_OBJ := start.o
+else ifeq ($(FIRMWARE),484C)
+FIRMWARE_DEFINE := -DFIRMWARE_4_84
+START_OBJ := start.o
+else ifeq ($(FIRMWARE),484D)
+FIRMWARE_DEFINE := -DFIRMWARE_4_84DEX
+START_OBJ := start_DEX.o
+else ifeq ($(FIRMWARE),485C)
+FIRMWARE_DEFINE := -DFIRMWARE_4_85
+START_OBJ := start.o
+else ifeq ($(FIRMWARE),486C)
+FIRMWARE_DEFINE := -DFIRMWARE_4_86
+START_OBJ := start.o
+else ifeq ($(FIRMWARE),487C)
+FIRMWARE_DEFINE := -DFIRMWARE_4_87
+START_OBJ := start.o
+else ifeq ($(FIRMWARE),488C)
+FIRMWARE_DEFINE := -DFIRMWARE_4_88
+START_OBJ := start.o
+else ifeq ($(FIRMWARE),489C)
+FIRMWARE_DEFINE := -DFIRMWARE_4_89
+START_OBJ := start.o
+else ifeq ($(FIRMWARE),490C)
+FIRMWARE_DEFINE := -DFIRMWARE_4_90
+START_OBJ := start_490.o
+else ifeq ($(FIRMWARE),491C)
+FIRMWARE_DEFINE := -DFIRMWARE_4_91
+START_OBJ := start.o
+else ifeq ($(FIRMWARE),492C)
+FIRMWARE_DEFINE := -DFIRMWARE_4_92
+START_OBJ := start.o
+else ifeq ($(FIRMWARE),493C)
+FIRMWARE_DEFINE := -DFIRMWARE_4_93
+START_OBJ := start.o
+else
+$(error Unsupported firmware $(FIRMWARE))
+endif
+
+CFLAGS = -ffunction-sections -fdata-sections -Os -m64 -fno-builtin -fno-exceptions \
+			   -Os -Wall $(foreach dir,$(INCLUDE),-I$(dir)) \
+			   -DLV2 $(FIRMWARE_DEFINE) -ffreestanding
+CFLAGS += --std=gnu99
+LDFLAGS = -T $(TARGET).ld -nostartfiles -nostdlib -nodefaultlibs -Wl,-static -Wl,-s -L. \
+		   $(foreach dir,$(LIBSDIR),-L$(dir)) $(LIBS) -Wl,--gc-sections -Wl
+
+OBJS = $(START_OBJ) unregister_services.o main.o ../lv2/src/libc.o ../lv2/src/memory.o ../lv2/src/io.o ../lv2/src/thread.o ../lv1/src/hvcall.o
+
+OUTPUT = $(TARGET).bin
+RESULT_FILE = ../stage0.bin_$(FIRMWARE)
+
+all: release
+
+release:
+	@for fw in $(FIRMWARES_RELEASE); do \
+		$(MAKE) --no-print-directory clean-objs; \
+		$(MAKE) --no-print-directory build-one FIRMWARE=$$fw || exit $$?; \
+	done
+	@$(MAKE) --no-print-directory clean-objs
+
+all_firmwares:
+	@for fw in $(FIRMWARES_ALL); do \
+		$(MAKE) --no-print-directory clean-objs; \
+		$(MAKE) --no-print-directory build-one FIRMWARE=$$fw || exit $$?; \
+	done
+	@$(MAKE) --no-print-directory clean-objs
+
+single:
+	@$(MAKE) --no-print-directory clean-objs
+	@$(MAKE) --no-print-directory build-one FIRMWARE=$(FIRMWARE)
+	@$(MAKE) --no-print-directory clean-objs
+
+build-one: $(OUTPUT)
+	@mv $(OUTPUT) $(RESULT_FILE)
+	@rm -f *.o *.elf *.self *.bin *.map ../lv1/src/*.o ../debug/src/*.o ../lv2/src/*.o
+
+%.bin: %.elf
+	$(OBJCOPY) -O binary $< $@
+
+$(TARGET).elf: $(OBJS) $(TARGET).ld
+	$(CC) $(LDFLAGS) -o $@ $(OBJS)
+
+%.o: %.S
+	$(CC) $(CFLAGS) -c -o $@ $<
+
+%.o: %.c
+	$(CC) $(CFLAGS) -c -o $@ $<
+
+clean-objs:
+	@rm -f *.o *.elf *.self *.bin *.map ../lv1/src/*.o ../debug/src/*.o ../lv2/src/*.o
 
 clean:
-	rm -f *.o *.elf *.self *.480 *.bin *.map ../lv1/src/*.o ../debug/src/*.o ../lv2/src/*.o
-	rm -f *.o *.elf *.self *.481 *.bin *.map ../lv1/src/*.o ../debug/src/*.o ../lv2/src/*.o
-	rm -f *.o *.elf *.self *.482 *.bin *.map ../lv1/src/*.o ../debug/src/*.o ../lv2/src/*.o
-	rm -f *.o *.elf *.self *.483 *.bin *.map ../lv1/src/*.o ../debug/src/*.o ../lv2/src/*.o
-	rm -f *.o *.elf *.self *.484 *.bin *.map ../lv1/src/*.o ../debug/src/*.o ../lv2/src/*.o
-	rm -f *.o *.elf *.self *.485 *.bin *.map ../lv1/src/*.o ../debug/src/*.o ../lv2/src/*.o
-	rm -f *.o *.elf *.self *.486 *.bin *.map ../lv1/src/*.o ../debug/src/*.o ../lv2/src/*.o
-	rm -f *.o *.elf *.self *.487 *.bin *.map ../lv1/src/*.o ../debug/src/*.o ../lv2/src/*.o
-	rm -f *.o *.elf *.self *.488 *.bin *.map ../lv1/src/*.o ../debug/src/*.o ../lv2/src/*.o
-	rm -f *.o *.elf *.self *.489 *.bin *.map ../lv1/src/*.o ../debug/src/*.o ../lv2/src/*.o
-	rm -f *.o *.elf *.self *.490 *.bin *.map ../lv1/src/*.o ../debug/src/*.o ../lv2/src/*.o
-	rm -f *.o *.elf *.self *.491 *.bin *.map ../lv1/src/*.o ../debug/src/*.o ../lv2/src/*.o
-	rm -f *.o *.elf *.self *.492 *.bin *.map ../lv1/src/*.o ../debug/src/*.o ../lv2/src/*.o
-	rm -f *.o *.elf *.self *.493 *.bin *.map ../lv1/src/*.o ../debug/src/*.o ../lv2/src/*.o
-
-all:
-	rm -f *.o *.elf *.self *.480 *.bin *.480C *.480D *.map ../lv1/src/*.o ../debug/src/*.o ../lv2/src/*.o
-	make -f Makefile_480C --no-print-directory
-	rm -f *.o *.bin *.elf *.480 *.480c *.map ../lv1/src/*.o ../debug/src/*.o ../lv2/src/*.o
-	
-	rm -f *.o *.elf *.self *.481 *.bin *.481C *.481D *.map ../lv1/src/*.o ../debug/src/*.o ../lv2/src/*.o
-	make -f Makefile_481C --no-print-directory
-	rm -f *.o *.bin *.elf *.481 *.481c *.map ../lv1/src/*.o ../debug/src/*.o ../lv2/src/*.o
-	
-	rm -f *.o *.elf *.self *.482 *.bin *.482C *.482D *.map ../lv1/src/*.o ../debug/src/*.o ../lv2/src/*.o
-	make -f Makefile_482D --no-print-directory
-	rm -f *.o *.bin *.elf *.482 *.482d *.map ../lv1/src/*.o ../debug/src/*.o ../lv2/src/*.o
-	
-	rm -f *.o *.elf *.self *.482 *.bin *.482C *.482D *.map ../lv1/src/*.o ../debug/src/*.o ../lv2/src/*.o
-	make -f Makefile_482C --no-print-directory
-	rm -f *.o *.bin *.elf *.482 *.482c *.map ../lv1/src/*.o ../debug/src/*.o ../lv2/src/*.o
-	
-	rm -f *.o *.elf *.self *.483 *.bin *.483C *.map ../lv1/src/*.o ../debug/src/*.o ../lv2/src/*.o
-	make -f Makefile_483C --no-print-directory
-	rm -f *.o *.bin *.elf *.483 *.483d *.map ../lv1/src/*.o ../debug/src/*.o ../lv2/src/*.o
-	
-	rm -f *.o *.elf *.self *.484 *.bin *.484D *.map ../lv1/src/*.o ../debug/src/*.o ../lv2/src/*.o
-	make -f Makefile_484D --no-print-directory    
-	rm -f *.o *.bin *.elf *.484 *.484d *.map ../lv1/src/*.o ../debug/src/*.o ../lv2/src/*.o
-	
-	rm -f *.o *.elf *.self *.484 *.bin *.484C *.484D *.map ../lv1/src/*.o ../debug/src/*.o ../lv2/src/*.o
-	make -f Makefile_484C --no-print-directory
-	rm -f *.o *.bin *.elf *.484 *.484c *.map ../lv1/src/*.o ../debug/src/*.o ../lv2/src/*.o
-
-	rm -f *.o *.elf *.self *.485 *.bin *.485C *.map ../lv1/src/*.o ../debug/src/*.o ../lv2/src/*.o
-	make -f Makefile_485C --no-print-directory 
-	rm -f *.o *.bin *.elf *.485 *.485c *.map ../lv1/src/*.o ../debug/src/*.o ../lv2/src/*.o
-
-	rm -f *.o *.elf *.self *.486 *.bin *.486C *.map ../lv1/src/*.o ../debug/src/*.o ../lv2/src/*.o
-	make -f Makefile_486C --no-print-directory 
-	rm -f *.o *.bin *.elf *.486 *.486c *.map ../lv1/src/*.o ../debug/src/*.o ../lv2/src/*.o
-
-	rm -f *.o *.elf *.self *.487 *.bin *.487C *.map ../lv1/src/*.o ../debug/src/*.o ../lv2/src/*.o
-	make -f Makefile_487C --no-print-directory 
-	rm -f *.o *.bin *.elf *.487 *.487c *.map ../lv1/src/*.o ../debug/src/*.o ../lv2/src/*.o
-
-	rm -f *.o *.elf *.self *.488 *.bin *.488C *.map ../lv1/src/*.o ../debug/src/*.o ../lv2/src/*.o
-	make -f Makefile_488C --no-print-directory 
-	rm -f *.o *.bin *.elf *.488 *.488c *.map ../lv1/src/*.o ../debug/src/*.o ../lv2/src/*.o
-
-	rm -f *.o *.elf *.self *.489 *.bin *.489C *.map ../lv1/src/*.o ../debug/src/*.o ../lv2/src/*.o
-	make -f Makefile_489C --no-print-directory 
-	rm -f *.o *.bin *.elf *.489 *.489c *.map ../lv1/src/*.o ../debug/src/*.o ../lv2/src/*.o
-
-	rm -f *.o *.elf *.self *.490 *.bin *.490C *.map ../lv1/src/*.o ../debug/src/*.o ../lv2/src/*.o
-	make -f Makefile_490C --no-print-directory 
-	rm -f *.o *.bin *.elf *.490 *.490c *.map ../lv1/src/*.o ../debug/src/*.o ../lv2/src/*.o
-
-	rm -f *.o *.elf *.self *.491 *.bin *.491C *.map ../lv1/src/*.o ../debug/src/*.o ../lv2/src/*.o
-	make -f Makefile_491C --no-print-directory 
-	rm -f *.o *.bin *.elf *.491 *.491c *.map ../lv1/src/*.o ../debug/src/*.o ../lv2/src/*.o
-
-	rm -f *.o *.elf *.self *.492 *.bin *.492C *.map ../lv1/src/*.o ../debug/src/*.o ../lv2/src/*.o
-	make -f Makefile_492C --no-print-directory 
-	rm -f *.o *.bin *.elf *.492 *.492c *.map ../lv1/src/*.o ../debug/src/*.o ../lv2/src/*.o
-
-	rm -f *.o *.elf *.self *.493 *.bin *.493C *.map ../lv1/src/*.o ../debug/src/*.o ../lv2/src/*.o
-	make -f Makefile_493C --no-print-directory 
-	rm -f *.o *.bin *.elf *.493 *.493c *.map ../lv1/src/*.o ../debug/src/*.o ../lv2/src/*.o
+	rm -f *.o *.elf *.self *.bin *.map ../lv1/src/*.o ../debug/src/*.o ../lv2/src/*.o
