@@ -5,13 +5,52 @@ set WIN_PS3SDK=C:/PSDK3v2
 set PS3DEV=%PS3SDK%/ps3dev2
 set PATH=%WIN_PS3SDK%/mingw/msys/1.0/bin;%WIN_PS3SDK%/mingw/bin;%PS3DEV%/ppu/bin;
 set CYGWIN=C:\PSDK3v2\MinGW\msys\1.0\bin
+set FIRMWARE=%~1
 
+if "%FIRMWARE%"=="" goto build_all
+if /I "%FIRMWARE%"=="all" goto build_all
+
+call :debug_name %FIRMWARE%
+if "%OUTPUT_NAME%"=="" goto invalid_fw
+
+if not exist PS3HEN_GEN mkdir PS3HEN_GEN
+move %OUTPUT_NAME% PS3HEN_GEN >nul 2>nul
+
+cd henplugin
+%CYGWIN%\bash -i -c 'make debug; rm -r objs; rm henplugin.prx; rm henplugin.sym; mv henplugin.sprx ../PS3HEN_GEN;'
+if errorlevel 1 goto fail_root
+
+cd ../stage0_file
+rm -f *.o *.elf *.self *.bin *.map ../lv1/src/*.o ../debug/src/*.o ../lv2/src/*.o
+make -f Makefile single FIRMWARE=%FIRMWARE%
+if errorlevel 1 goto fail_root
+rm -f *.o *.elf *.self *.map ../lv1/src/*.o ../debug/src/*.o ../lv2/src/*.o
+
+cd ../payload
+rm -f *.o *.elf *.self *.bin *.map ../lv1/src/*.o ../debug/src/*.o ../lv2/src/*.o
+make -f Makefile single FIRMWARE=%FIRMWARE%
+if errorlevel 1 goto fail_root
+rm -f *.o *.elf *.self *.map ../lv1/src/*.o ../debug/src/*.o ../lv2/src/*.o
+
+cd ..
+move stage0.bin_%FIRMWARE% PS3HEN_GEN >nul
+move stage2.bin_debug_%FIRMWARE% PS3HEN_GEN >nul
+
+cd PS3HEN_GEN
+gcc main.c -o HEN_GEN
+HEN_GEN %OUTPUT_NAME% stage2.bin_debug_%FIRMWARE% stage0.bin_%FIRMWARE% HENplugin.sprx
+if errorlevel 1 goto fail_here
+rm stage* *.sprx *.exe
+move %OUTPUT_NAME% ../ >nul
+goto done
+
+:build_all
 mv *DEX_482_DEBUG *DEX_484_DEBUG *CEX_480_DEBUG *CEX_481_DEBUG *CEX_482_DEBUG *CEX_483_DEBUG *CEX_484_DEBUG *CEX_485_DEBUG *CEX_486_DEBUG *CEX_487_DEBUG *CEX_488_DEBUG *CEX_489_DEBUG *CEX_490_DEBUG *CEX_491_DEBUG *CEX_492_DEBUG *CEX_493_DEBUG PS3HEN_GEN
 cd henplugin
 %CYGWIN%\bash -i -c 'make debug; rm -r objs; rm henplugin.prx; rm henplugin.sym; mv henplugin.sprx ../PS3HEN_GEN;'
 cd ../stage0_file
 rm -f *.o *.elf *.self *.bin *.map ../lv1/src/*.o ../debug/src/*.o ../lv2/src/*.o
-make -f Makefile all
+make -f Makefile all_firmwares
 rm -f *.o *.elf *.self ../lv1/src/*.o ../debug/src/*.o ../lv2/src/*.o
 cd ../payload
 rm -f *.o *.elf *.self *.bin *.map ../lv1/src/*.o ../debug/src/*.o ../lv2/src/*.o
@@ -39,4 +78,45 @@ HEN_GEN PS3HEN.BIN_CEX_492_DEBUG stage2.bin_debug_492C stage0.bin_492C HENplugin
 HEN_GEN PS3HEN.BIN_CEX_493_DEBUG stage2.bin_debug_493C stage0.bin_493C HENplugin.sprx
 rm stage* *.sprx *.exe
 mv PS3HEN* ../
+goto done
+
+:debug_name
+set OUTPUT_NAME=
+if /I "%~1"=="480C" set OUTPUT_NAME=PS3HEN.BIN_CEX_480_DEBUG
+if /I "%~1"=="481C" set OUTPUT_NAME=PS3HEN.BIN_CEX_481_DEBUG
+if /I "%~1"=="482D" set OUTPUT_NAME=PS3HEN.BIN_DEX_482_DEBUG
+if /I "%~1"=="482C" set OUTPUT_NAME=PS3HEN.BIN_CEX_482_DEBUG
+if /I "%~1"=="483C" set OUTPUT_NAME=PS3HEN.BIN_CEX_483_DEBUG
+if /I "%~1"=="484D" set OUTPUT_NAME=PS3HEN.BIN_DEX_484_DEBUG
+if /I "%~1"=="484C" set OUTPUT_NAME=PS3HEN.BIN_CEX_484_DEBUG
+if /I "%~1"=="485C" set OUTPUT_NAME=PS3HEN.BIN_CEX_485_DEBUG
+if /I "%~1"=="486C" set OUTPUT_NAME=PS3HEN.BIN_CEX_486_DEBUG
+if /I "%~1"=="487C" set OUTPUT_NAME=PS3HEN.BIN_CEX_487_DEBUG
+if /I "%~1"=="488C" set OUTPUT_NAME=PS3HEN.BIN_CEX_488_DEBUG
+if /I "%~1"=="489C" set OUTPUT_NAME=PS3HEN.BIN_CEX_489_DEBUG
+if /I "%~1"=="490C" set OUTPUT_NAME=PS3HEN.BIN_CEX_490_DEBUG
+if /I "%~1"=="491C" set OUTPUT_NAME=PS3HEN.BIN_CEX_491_DEBUG
+if /I "%~1"=="492C" set OUTPUT_NAME=PS3HEN.BIN_CEX_492_DEBUG
+if /I "%~1"=="493C" set OUTPUT_NAME=PS3HEN.BIN_CEX_493_DEBUG
+goto :eof
+
+:invalid_fw
+echo.
+echo Unsupported debug firmware: %FIRMWARE%
+echo Supported: 480C 481C 482D 482C 483C 484D 484C 485C 486C 487C 488C 489C 490C 491C 492C 493C
+goto end
+
+:fail_here
+cd ..
+:fail_root
+echo.
+echo Build failed.
+goto end
+
+:done
+echo.
+echo Debug binaries built.
+echo.
+
+:end
 pause
