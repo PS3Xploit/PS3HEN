@@ -58,6 +58,7 @@ int main(int argc, char **argv)
 				printf("stage2 is too big by 0x%lX bytes! EXITING!\n", (uint64_t)(buffer.st_size - 0x1fff8));
 				return -1;
 			}
+			printf("stage2 has 0x%lX bytes free remaining.\n", (uint64_t)(0x1fff8 - buffer.st_size));
 			uint8_t *stage2_buf=(uint8_t *)malloc(0x1fff8);
 			uint64_t size_stage2=swap64(buffer.st_size);
 			memset(stage2_buf,0,0x1fff8);
