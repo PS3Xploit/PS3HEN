@@ -79,10 +79,10 @@
 #define SYSCALL8_OPCODE_DISABLE_COBRA_STAGE		0x6A13
 
 #ifdef DEBUG
-// These debug opcode changed to odd numbers in version 7.0 to minmize crashes with lv1 peek apps
-#define SYSCALL8_OPCODE_DUMP_STACK_TRACE				0x5003
-#define SYSCALL8_OPCODE_GENERIC_DEBUG					0x5005
-#define SYSCALL8_OPCODE_PSP_SONY_BUG					0x5007
+	// These debug opcode changed to odd numbers in version 7.0 to minmize crashes with lv1 peek apps
+	#define SYSCALL8_OPCODE_DUMP_STACK_TRACE				0x5003
+	#define SYSCALL8_OPCODE_GENERIC_DEBUG					0x5005
+	#define SYSCALL8_OPCODE_PSP_SONY_BUG					0x5007
 #endif
 
 #endif /* __SYSCALL8_H__ */

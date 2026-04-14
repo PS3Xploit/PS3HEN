@@ -148,8 +148,9 @@ SprxPatch explore_plugin_patches[] =
 	{ app_home_offset+4, 0x5f626476, &condition_apphome },
 	{ app_home_offset+8, 0x642f5053, &condition_apphome },
 	//{ ps2_nonbw_offset, LI(0, 1), &condition_ps2softemu },
-/*	//// Devil303's What's New ///
-	{whatsnew_offset, 0x68747470, &condition_true	},
+	
+	// Devil303's What's New
+	/*{whatsnew_offset, 0x68747470, &condition_true	},
 	{whatsnew_offset+4, 0x3A2F2F77, &condition_true	},
 	{whatsnew_offset+8, 0x77772E78, &condition_true	},
 	{whatsnew_offset+0x0C, 0x6D626D6F, &condition_true},
@@ -226,7 +227,7 @@ SprxPatch download_plugin_patches[] =
 	{elf_patch2_download,0x48000010 , &condition_true},
 	// Devil303's extended download plugin patches
 	{elf_patch3_download,0x78000000 , &condition_true},
-	{elf_patch3_download+0x9A,0x78000000 , &condition_true},		// allow XML files to be downloaded
+	{elf_patch3_download+0x9A,0x78000000 , &condition_true},// allow XML files to be downloaded
 	{elf_patch4_download,0x78787800 , &condition_true},
 	/*{elf_patch5_download,0 , &condition_true},
 	{elf_patch5_download+8,0 , &condition_true},
@@ -450,8 +451,8 @@ static char *hash_to_name(uint64_t hash)
 		case EXPLORE_PLUGIN_HASH:
 			return "explore_plugin.sprx";
 		break;
-		/*
-		case EXPLORE_CATEGORY_GAME_HASH:
+		
+		/*case EXPLORE_CATEGORY_GAME_HASH:
 			return "explore_category_game.sprx";
 		break;*/
 
@@ -541,6 +542,7 @@ void debug_install(void);
 void debug_uninstall(void);
 int um_if_get_token(uint8_t *token,uint32_t token_size,uint8_t *seed,uint32_t seed_size);
 int read_eeprom_by_offset(uint32_t offset, uint8_t *value, uint64_t auth_id);
+
 void do_patch(uint64_t addr, uint64_t patch)
 {
 	*(uint64_t *)addr=patch;
@@ -665,7 +667,7 @@ LV2_HOOKED_FUNCTION_PRECALL_2(int, post_lv1_call_99_wrapper, (uint64_t *spu_obj,
 	{
 		caller_process = process->pid;
 
-		#ifdef	DEBUG
+		#ifdef DEBUG
 			//DPRINTF("caller_process = %08X %s\n", caller_process, get_process_name(process));
 			//DPRINTF("saved sce hdr ptr:%p\n", saved_sce_hdr);
 		#endif
@@ -745,10 +747,7 @@ LV2_HOOKED_FUNCTION_PRECALL_2(int, post_lv1_call_99_wrapper, (uint64_t *spu_obj,
 
 			#ifdef DEBUG
 				uint64_t delay_ms = delay_ticks / 79800;
-				DPRINTF("%s detected, sleeping for %llu ticks (~%llu ms)\n",
-					elf_type_str,
-					(unsigned long long)delay_ticks,
-					(unsigned long long)delay_ms);
+				DPRINTF("%s detected, sleeping for %llu ticks (~%llu ms)\n", elf_type_str, (unsigned long long)delay_ticks, (unsigned long long)delay_ms);
 			#endif
 
 			current_ticks = get_ticks();
@@ -791,7 +790,7 @@ LV2_PATCHED_FUNCTION(int, modules_patching, (uint64_t *arg1, uint32_t *arg2))
 
 	uint32_t *p = (uint32_t *)arg1[0x18/8];
 
-	#ifdef	DEBUG
+	#ifdef DEBUG
 		//DPRINTF("Flags = %x	   %x\n", self->flags, (p[0x30/4] >> 16));
 	#endif
 
@@ -801,7 +800,7 @@ LV2_PATCHED_FUNCTION(int, modules_patching, (uint64_t *arg1, uint32_t *arg2))
 		if ((p[0x30/4] >> 16) == 0x13)
 	#endif
 	{
-		#ifdef	DEBUG
+		#ifdef DEBUG
 			//DPRINTF("We are in decrypted module or in cobra encrypted\n");
 		#endif
 
@@ -830,17 +829,29 @@ LV2_PATCHED_FUNCTION(int, modules_patching, (uint64_t *arg1, uint32_t *arg2))
 		if (magic == SPRX_EXT_MAGIC)
 		{
 			if (keyIndex >= N_SPRX_KEYS_1)
-				DPRINTF("This key is not implemented yet: %lx:%x\n", magic, keyIndex);
+			{
+				#ifdef DEBUG
+					DPRINTF("This key is not implemented yet: %lx:%x\n", magic, keyIndex);
+				#endif
+			}
 			else
+			{
 				keySet = &sprx_keys_set1[keyIndex];
+			}
 
 		}
 		else if (magic == SPRX_EXT_MAGIC2)
 		{
 			if (keyIndex >= N_SPRX_KEYS_2)
-				DPRINTF("This key is not implemented yet: %lx:%x\n", magic, keyIndex);
+			{
+				#ifdef DEBUG
+					DPRINTF("This key is not implemented yet: %lx:%x\n", magic, keyIndex);
+				#endif
+			}
 			else
+			{
 				keySet = &sprx_keys_set2[keyIndex];
+			}
 		}
 
 		if (keySet)
@@ -880,7 +891,7 @@ LV2_PATCHED_FUNCTION(int, modules_patching, (uint64_t *arg1, uint32_t *arg2))
 		if (total == 0)
 			buf = (uint32_t *)saved_buf;
 
-		/* #ifdef	DEBUG
+		/* #ifdef DEBUG
 			if (last_chunk)
 			{
 				DPRINTF("Total section size: %x\n", total+ptr32[4/4]);
@@ -922,7 +933,7 @@ LV2_PATCHED_FUNCTION(int, modules_patching, (uint64_t *arg1, uint32_t *arg2))
 	#endif
 		total = 0;
 
-		#ifdef	DEBUG
+		#ifdef DEBUG
 			DPRINTF("hash = %lx\n", hash);
 		#endif
 
@@ -1017,7 +1028,7 @@ LV2_PATCHED_FUNCTION(int, modules_patching, (uint64_t *arg1, uint32_t *arg2))
 						}
 						buf[patch->offset/4] = data;
 
-						#ifdef	DEBUG
+						#ifdef DEBUG
 							//DPRINTF("Offset: 0x%08X | Data: 0x%08X\n", (uint32_t)patch->offset, (uint32_t)data);
 						#endif
 					}
@@ -1040,7 +1051,7 @@ LV2_PATCHED_FUNCTION(int, modules_patching, (uint64_t *arg1, uint32_t *arg2))
 	{
 	/*
 		// Patch original from psjailbreak. Needs some tweaks to fix some games
-		#ifdef	DEBUG
+		#ifdef DEBUG
 			DPRINTF("err = %x\n", error);
 		#endif
 		if (error == 0x13)
@@ -1067,7 +1078,7 @@ uint8_t cleared_stage0 = 0;
 
 LV2_HOOKED_FUNCTION_POSTCALL_7(void, pre_map_process_memory, (void *object, uint64_t process_addr, uint64_t size, uint64_t flags, void *unk, void *elf, uint64_t *out))
 {
-	#ifdef	DEBUG
+	#ifdef DEBUG
 		//DPRINTF("Map %lx %lx %s\n", process_addr, size, get_current_process() ? get_process_name(get_current_process())+8 : "KERNEL");
 	#endif
 
@@ -1076,7 +1087,7 @@ LV2_HOOKED_FUNCTION_POSTCALL_7(void, pre_map_process_memory, (void *object, uint
 	{
 		if ((process_addr == 0x10000) && (size == vsh_text_size) && (flags == 0x2008004) && (cleared_stage0 == 0))
 		{
-			#ifdef	DEBUG
+			#ifdef DEBUG
 				//DPRINTF("Making Retail VSH text writable, Size: 0x%lx\n", size);
 			#endif
 

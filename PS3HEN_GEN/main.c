@@ -54,7 +54,6 @@ int main(int argc, char **argv)
 		{
 			if(buffer.st_size>0x1fff8)
 			{
-				//printf("stage2 too big!EXITING!\n");
 				printf("stage2 is too big by 0x%lX bytes! EXITING!\n", (uint64_t)(buffer.st_size - 0x1fff8));
 				return -1;
 			}
@@ -70,7 +69,7 @@ int main(int argc, char **argv)
 			fseek(sp,0x7fff8,SEEK_SET);
 			fwrite(&size_stage2,8,1,sp);
 			fwrite(stage2_buf,buffer.st_size,1,sp);
-		//	truncate_len+=buffer.st_size;
+			//truncate_len+=buffer.st_size;
 			free(stage2_buf);
 			if(stat(argv[3],&buffer)==0)
 			{

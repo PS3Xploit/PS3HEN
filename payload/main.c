@@ -879,7 +879,7 @@ LV2_SYSCALL2(int64_t, syscall8, (uint64_t function, uint64_t param1, uint64_t pa
 			}
 		}
 
-		// BadWDSD/qCFW only
+		// BadWDSD only
 		if(tmp_lv1peek) 		
 			return lv1_peekd(function);
 	}
@@ -925,7 +925,7 @@ LV2_SYSCALL2(int64_t, syscall8, (uint64_t function, uint64_t param1, uint64_t pa
 	// -- AV: disable cobra without reboot (use lv1 peek)
 	if(disable_cobra)
 	{
-		return lv1_peekd(function);// BadWDSD/qCFW only
+		return lv1_peekd(function);// BadWDSD only
 	}
 
 	switch (function)
@@ -960,10 +960,10 @@ LV2_SYSCALL2(int64_t, syscall8, (uint64_t function, uint64_t param1, uint64_t pa
 					return PS3MAPI_OPCODE_SUPPORT_SC8_PEEK_POKE_OK;
 				break;
 				case PS3MAPI_OPCODE_LV1_PEEK:
-					return lv1_peekd(param2);// BadWDSD/qCFW only
+					return lv1_peekd(param2);// BadWDSD only
 				break;
 				case PS3MAPI_OPCODE_LV1_POKE:
-					lv1_poked(param2, param3);// BadWDSD/qCFW only
+					lv1_poked(param2, param3);// BadWDSD only
 					return SUCCEEDED;
 				break;
 				case PS3MAPI_OPCODE_LV2_PEEK:
@@ -1316,7 +1316,7 @@ LV2_SYSCALL2(int64_t, syscall8, (uint64_t function, uint64_t param1, uint64_t pa
 			if (1 <= ps3mapi_partial_disable_syscall8)	return ENOSYS;
 			
 			// Partial support for lv1_peek here
-			return lv1_peekd(function); // BadWDSD/qCFW only
+			return lv1_peekd(function); // BadWDSD only
 	}
 
 	#ifdef DEBUG

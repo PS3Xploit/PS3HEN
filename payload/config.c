@@ -99,6 +99,7 @@ int read_cobra_config(void)
 	
 	bd_video_region = config.bd_video_region;
 	dvd_video_region = config.dvd_video_region;
+	
 	// Removed. Now condition_ps2softemu has another meaning and it is set automatically in storage_ext if no BC console
 	//condition_ps2softemu = config.ps2softemu;
 	/* #ifdef  DEBUG
@@ -170,6 +171,7 @@ int sys_write_cobra_config(CobraConfig *cfg)
 	memcpy(&config.checksum, &cfg->checksum, copy_size);
 	bd_video_region = config.bd_video_region;
 	dvd_video_region = config.dvd_video_region;
+	
 	// Removed. Now condition_ps2softemu has another meaning and it is set automatically in storage_ext if no BC console
 	//condition_ps2softemu = config.ps2softemu;
 	

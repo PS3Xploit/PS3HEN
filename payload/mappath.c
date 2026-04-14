@@ -66,10 +66,12 @@ static MapEntry_t* findMapping(const char *opath);
 static MapEntry_t* getMapping(const char *opath);
 static uint32_t mpcount = 0;
 static uint64_t mapTableByteSize = 0;
-static MapEntry_t* mcount[0x20]; // to keep track of mappings already applied to the path so they cannot be reapllied even when they fit, a dept of 32 is probably overkill, 16 might actually be sufficient for this, 32 max???
-static size_t count = 0; // to keep track of mcount length
-//display the list
 
+static MapEntry_t* mcount[0x20]; // to keep track of mappings already applied to the path so they cannot be reapllied even when they fit, a depth of 32 is probably overkill, 16 might actually be sufficient for this, 32 max???
+
+static size_t count = 0; // to keep track of mcount length
+
+//display the list
 #ifdef DEBUG
 static void printMapTableList() {
 		DPRINTF("printMappingList: Mappings Count 0x%X : \n", getMapTableLength());
