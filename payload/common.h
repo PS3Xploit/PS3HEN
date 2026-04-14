@@ -89,6 +89,7 @@ static INLINE void dump_stack_trace3(uint64_t *stack, unsigned int n)
 	DPRINTF("---------------------------\n");
 }
 
+/*
 static INLINE void dump_stack_trace4(uint64_t *stack, unsigned int n)
 {
 	if (n == 0)
@@ -109,6 +110,7 @@ static INLINE void dump_stack_trace4(uint64_t *stack, unsigned int n)
 	
 	DPRINTF("---------------------------\n");
 }
+*/
 
 #else
 
