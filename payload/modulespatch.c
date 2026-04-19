@@ -1317,7 +1317,16 @@ uint64_t load_plugin_kernel(char *path)
 						f.toc=(void *)MKA(TOC);
 						func=(void *)&f;
 						#ifdef DEBUG
-							kernel_debug_plugin = func();// Debug
+							{
+								// Only updates kernel_debug_plugin if the plugin returns a non-null debug callback
+								kernel_debug_plugin_fn_t next_kplugin;
+
+								next_kplugin = func();// Debug
+								if(next_kplugin)
+								{
+									kernel_debug_plugin = next_kplugin;
+								}
+							}
 						#else
 							(void)func();// Release
 						#endif
