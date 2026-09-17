@@ -1,4 +1,4 @@
-# PS3HEN 3.5.0
+# PS3HEN 3.6.0
 
 MultiFW support has been added.
 [Supported Firmwares]
@@ -27,6 +27,17 @@ MultiFW support has been added.
 
 Changelog<br>
 -----------<br>
+
+# 3.6.0<br>
+# Payload Changes<br>
+  - Now allows multiple kernel plugins to send debug output simultaneously<br>
+# Resource Changes<br>
+  - Added eMMC Support for qCFW (thanks aomsin2526)<br>
+  - Added Internal Plugins Toggle to HFW Tools - Development<br>
+  - Wifi Debug Kernel Plugin added to /dev_flash/hen/plugins/kernel/<br>
+  - Added Apollo Save Manager, ArmetisPS3, IRISMAN, Movian, PKGi, and PS3 ezRemote to Homebrew Apps menu<br>
+<br>
+<br>
 
 # 3.5.0<br>
 # Global Changes<br>
